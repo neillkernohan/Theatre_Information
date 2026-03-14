@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Show Detail</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        .chart-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .chart-container canvas,
+        .chart-container div {
+            flex: 1;
+            padding: 0 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 align="center">Show Detail for <i>{{ show_name }}</i></h1>
+    
+    <div class="chart-container">
+        <div>
+            <canvas id="TicketTotalChart"></canvas>
+            <h3 align="center">Total Tickets Sold: {{ totaltickets[0][0] }} out of {{ showperformancecount[0][0]*154 }}</h3>
+        </div>
+        <div>
+            <canvas id="RevenueTotalChart"></canvas>
+            <h3 align="center">Total Projected Revenue: ${{ '{:,.2f}'.format(totalrevenue[0][0]) }}</h3>
+        </div>
+    </div>
+    
+    <div class="chart-container">
+        <div>
+            <canvas id="PersonTypeChart"></canvas>
+        </div>
+        <div>
+            <canvas id="CityChart"></canvas>
+        </div>
+        <div>
+            <canvas id="GenderChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        Chart.plugins.register({
+            afterDatasetsDraw: function(chart, easing) {
+                if(chart.canvas.id === 'StackedPersonType') return;
+
+                var ctx = chart.ctx;
+                chart.data.datasets.forEach(function(dataset, i) {
+                    var meta = chart.getDatasetMeta(i);
+                    if (!meta.hidden) {
+                        meta.data.forEach(function(element, index) {
+                            ctx.fillStyle = 'black';
+                            var fontSize = 16;
+                            var fontStyle = 'normal';
+                            var fontFamily = 'Arial';
+                            ctx.font = Chart.helpers.fontString(fontSize, fontStyle, fontFamily);
+                            var dataString = dataset.data[index] ? dataset.data[index].toString() : '';
+
+                            if (chart.options.scales.yAxes[0].ticks.callback.toString().includes('$')) {
+                                dataString = "$ " + dataString;
+                            }
+
+                            var position = element.tooltipPosition();
+                            ctx.fillText(dataString, position.x, position.y - (fontSize / 2) - 5);
+                        });
+                    }
+                });
+            }
+        });
+
+        function createBarChart(ctx, labels, data, title, isCurrency = false, yAxisMax = null) {
+            return new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Data Value',
+                        data: data,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 
+                            'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)', 'rgba(255, 159, 64, 1)', 
+                            'rgba(199, 199, 199, 1)', 'rgba(255, 99, 255, 1)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 
+                            'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)', 'rgba(255, 159, 64, 1)', 
+                            'rgba(199, 199, 199, 1)', 'rgba(255, 99, 255, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    title: { display: true, text: title, fontSize: 16 },
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                max: yAxisMax,
+                                callback: isCurrency ? value => '$ ' + value : value => value
+                            }
+                        }]
+                    },
+                    legend: { display: false }
+                }
+            });
+        }
+
+        const chartsInfo = [
+            { elementId: 'TicketTotalChart', rows: tickets, title: 'Ticket Chart', isCurrency: false, roundingValue: 160 },
+            { elementId: 'RevenueTotalChart', rows: revenue, title: 'Revenue Chart', isCurrency: true, roundingValue: 500 },
+            { elementId: 'PersonTypeChart', rows: persontypes, title: 'Person Type Chart', isCurrency: false, roundingValue: 50 },
+            { elementId: 'CityChart', rows: cities, title: 'City Chart', isCurrency: false, roundingValue: 10 },
+            { elementId: 'GenderChart', rows: genders, title: 'Gender Chart', isCurrency: false, roundingValue: 10 }
+        ];
+
+        chartsInfo.forEach(chartInfo => {
+            const labels = [];
+            const data = [];
+            chartInfo.rows.forEach(row => {
+                labels.push(row[0]);
+                data.push(row[1]);
+            });
+            const yAxisMax = Math.ceil(Math.max(...data) / chartInfo.roundingValue) * chartInfo.roundingValue;
+            createBarChart(document.getElementById(chartInfo.elementId).getContext('2d'), labels, data, chartInfo.title, chartInfo.isCurrency, yAxisMax);
+        });
+
+    </script>
+</body>
+
+</html>

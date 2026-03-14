@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Show Detail</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        td, th {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        body {
+            padding-top: 10px;
+            padding-bottom: 10px;
+            margin: 10px;
+        }
+        .messages {
+            padding-left: 50px;
+            margin: 30px;
+        }
+        .chart-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .chart-container canvas {
+            flex: 1; /* This will make the canvas elements take up an equal amount of space in the container */
+            /* margin: 0 10px; */
+        }
+    </style>
+    <!-- Latest compiled and minified CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Latest compiled JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+
+<body>
+    <div class="container p-5">
+        <div class="row">
+            <div class="col">
+                <img src="{{ url_for('static', filename='Media/Wide Logo Centred Black.png') }}" style="display: block; margin-left: auto; margin-right: auto;" width='25%' align="center" alt="Description of image" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <h1 align="center">Show Detail for <i>{{ show_name }}</i></h1>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <h4 align="center">Last Updated: {{ formatted_update }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid p-5">
+        <div class="row">
+            <div class="col">
+                <canvas id="TicketTotalChart"></canvas><br>
+                <h5 align="center">Total Tickets Sold: {{ totaltickets[0][0] }} out of {{ showperformancecount[0][0]*152 }} ({{ (totaltickets[0][0]/(showperformancecount[0][0]*152)*100)|round(1) }}%)</h2>
+            </div>
+            <div class="col">
+                <canvas id="RevenueTotalChart"></canvas><br>
+                <h5 align="center">Total Projected Revenue (minus fees): ${{ '{:,.2f}'.format(totalrevenue[0][0]) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid p-5">
+        <div class="row align-items-center">
+        <div class="col"><h4 align="center" class="messages">{{ message1 }}</h2></div>
+        <div class="col"><h4 align="center" class="messages">{{ message2 }}</h2></div>
+        <div class="col"><h4 align="center" class="messages">{{ message4 }}</h2></div>
+                <!-- <div class="col"><h4 align="center" class="messages">{{ message3 }}</h2></div> -->
+        </div>
+    </div>
+<!--     <div class="chart-container">
+        <div style="flex: 1; padding: 0 10px;">
+            <canvas id="CityChart"></canvas>
+        </div>
+        <div style="flex: 1; padding: 0 10px;">
+            <canvas id="buyerPieChart"></canvas>
+        </div>
+        <div style="flex: 1; padding: 0 10px;">
+            <canvas id="persontypesPieChart"></canvas>
+        </div>
+    </div> -->
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <h4 align="center">Show Rankings</h4><br>
+            </div>
+        </div>
+        <div class="row">
+            <!-- First Table -->
+            <div class="col-md-6 border-end">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Show Name</th>
+                            <th class="text-end">Tickets Sold</th>
+                            <!-- <th class="text-end">Rank</th> -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rankedshowlistbytickets %}
+                        <tr {% if row[0] == show_name %} class="table-success"{% endif %}>
+                            <td>{{ row[0] }}</td>
+                            <td class="text-end">{{ row[1] }}</td>
+                            <!-- <td class="text-end">{{ row[2] }}</td> -->
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Second Table -->
+            <div class="col-md-6">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Show Name</th>
+                            <th class="text-end">Revenue - Fees</th>
+                            <!-- <th class="text-end">Rank</th> -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rankedshowlistbyprofit %}
+                        <tr {% if row[0] == show_name %} class="table-success"{% endif %}>
+                            <td>{{ row[0] }}</td>
+                            <td class="text-end">${{ '{:,.2f}'.format(row[1]) }}</td>
+                            <!-- <td class="text-end">{{ row[2] }}</td> -->
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid p-5">
+        <div class="row">
+            <div class="col">
+                <h4 align="center">Ticket Sales over Time</h4><br>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <canvas id="ticketsalesovertimeoneshowChart"></canvas><br>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid p-5">
+        <div class="row">
+            <div class="col">
+                <canvas id="NewBarChart"></canvas><br>
+                <h5 align="center">In the last seven days, Theatre Aurora has sold an average of {{ '{:,.1f}'.format(averageticketssold[0][0]) }} tickets per day to <i>{{ show_name }}</i>. In order to get to 90% sold, Theatre Aurora
+                would need to sell an average of {{ '{:,.1f}'.format(averageticketsperday[0][0]) }} tickets per day.</h5>
+            </div>
+            <div class="col">
+                <canvas id="PersonTypesChart"></canvas><br>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid p-5">
+        <div class="row">
+            <h4 align="center">{{ show_name }}</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        {% for row in getcommentslastfivedays_column_headings %}
+                            {% if loop.index0 == 0 %}
+                                <th>{{ row }}</th>
+                            {% else %}
+                                <th class="text-end">{{ row }}</th>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in getcommentslastfivedays %}
+                    <tr>
+                        <td>{{ row[0] }}</td>
+                        <td class="text-end">{{ row[1] }}</td>
+                        <td class="text-end">{{ row[2] }}</td>
+                        <td class="text-end">{{ row[3] }}</td>
+                        <td class="text-end">{{ row[4] }}</td>
+                        <td class="text-end">{{ row[5] }}</td>
+                        <td class="text-end">{{ row[6] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="container-fluid p-5">
+        <div class="row">
+            <div class="col">
+                <canvas id="BuyerChart"></canvas><br>
+            </div>
+            <div class="col">
+                <canvas id="CommentChart"></canvas><br>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <h4 align="center">Where do our patrons come from?</h4><br>
+            </div>
+        </div>
+        <div class="row">
+            <!-- First Table -->
+            <div class="col-md-4 border-end">
+                <h4 align="center">{{ show_name }}</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>City/Town</th>
+                            <th class="text-end">Tickets Sold</th>
+                            <th class="text-end">% of Total
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in citycount %}
+                        <tr>
+                            <td>{{ row[0] }}</td>
+                            <td class="text-end">{{ row[1] }}</td>
+                            <td class="text-end">{{ "%.1f"|format(row[2]) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Second Table -->
+            <div class="col-md-4 border-end">
+                <h4 align="center">This Season</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>City/Town</th>
+                            <th class="text-end">Tickets Sold</th>
+                            <th class="text-end">% of Total
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in citycountforseason %}
+                        <tr>
+                            <td>{{ row[0] }}</td>
+                            <td class="text-end">{{ row[1] }}</td>
+                            <td class="text-end">{{ "%.1f"|format(row[2]) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Third Table -->
+            <div class="col-md-4">
+                <h4 align="center">Last Season</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>City/Town</th>
+                            <th class="text-end">Tickets Sold</th>
+                            <th class="text-end">% of Total
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in citycountforlastseason %}
+                        <tr>
+                            <td>{{ row[0] }}</td>
+                            <td class="text-end">{{ row[1] }}</td>
+                            <td class="text-end">{{ "%.1f"|format(row[2]) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+    let data = []; // Some data
+    let data_labels = []; // Some data labels
+    let randomBackgroundColor = [];
+    let usedColors = new Set();
+
+    let dynamicColors = function() {
+        let r = Math.floor(Math.random() * 255);
+        let g = Math.floor(Math.random() * 255);
+        let b = Math.floor(Math.random() * 255);
+        let color = "rgb(" + r + "," + g + "," + b + ")";
+
+        if (!usedColors.has(color)) {
+            usedColors.add(color);
+            return color;
+        } else {
+            return dynamicColors();
+        }
+    };
+
+    for (let i in data) {
+        randomBackgroundColor.push(dynamicColors());
+    }
+
+    var PersonTypesLabels = [{% for row in persontypes %}"{{ row[0] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+    var RegularData = [{% for row in persontypes %}"{{ row[1] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+    var SeniorData = [{% for row in persontypes %}"{{ row[2] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+    var YouthData = [{% for row in persontypes %}"{{ row[3] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+    var ctx = document.getElementById('PersonTypesChart').getContext('2d');
+    var myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: PersonTypesLabels, // Replace with your labels
+            datasets: [
+                {
+                label: 'Regular',
+                data: RegularData,
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Senior',
+                data: SeniorData,
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Youth',
+                data: YouthData,
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]},
+        options: {
+            scales: {
+                x: {
+                    stacked: true,
+                },
+                y: {
+                    stacked: true
+                }
+            },
+            plugins: {
+                    title: {
+                        display: true,
+                        text: 'Tickets by Type',
+                        font: {
+                            size: 18,
+                            weight: 'bold'
+                        },
+                        padding: {
+                            top: 10,
+                            bottom: 20
+                        }
+                    }
+                }
+        }
+    });
+
+    var colors = [
+        'rgba(255, 99, 132, 0.2)',
+        'rgba(255, 159, 64, 0.2)',
+        'rgba(255, 205, 86, 0.2)',
+        'rgba(75, 192, 192, 0.2)',
+        'rgba(54, 162, 235, 0.2)',
+        'rgba(153, 102, 255, 0.2)',
+        'rgba(201, 203, 207, 0.2)',
+        'rgba(255, 99, 71, 0.2)',
+        'rgba(99, 255, 71, 0.2)',
+        'rgba(71, 99, 255, 0.2)'  // Add more colors if you have more bars
+    ];
+
+    var borderColor = colors.map(color => color.replace('0.2', '1'));
+    
+    var newChartLabels = [{% for row in lasttwoweekstickets %}"{{ row[0] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+    var newChartData = [{% for row in lasttwoweekstickets %}{{ row[1] }}{% if not loop.last %}, {% endif %}{% endfor %}];
+
+    var newCtx = document.getElementById('NewBarChart').getContext('2d');
+
+    var newChart = new Chart(newCtx, {
+        type: 'bar',
+        data: {
+            labels: newChartLabels,
+            datasets: [{
+                label: 'New Data',
+                data: newChartData,
+                backgroundColor: colors,
+                borderColor: borderColor,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                    // Set other options as needed
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Sales by Date',
+                    font: {
+                        size: 18,
+                        weight: 'bold'
+                    },
+                    padding: {
+                        top: 10,
+                        bottom: 20
+                    }
+                }
+            }
+        }
+    });
+
+    var BuyerChartLabels = ['New Buyers', 'New Buyers from Last Show', 'New Buyers This Season', 'Long-time Supporters'];
+    var BuyerChartData = [{% for row in buyerinfo %}{{ row[0] }}{% if not loop.last %}, {% endif %}{% endfor %}];
+    var BuyerChartData = [{{buyerinfo[0][0]}}, {{buyerinfo[0][1]}}, {{buyerinfo[0][2]}}, {{buyerinfo[0][3]}}];
+
+    var ctx = document.getElementById('BuyerChart').getContext('2d');
+
+    var BuyerChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: BuyerChartLabels,
+            datasets: [{
+                label: 'New Data',
+                data: BuyerChartData,
+                backgroundColor: colors,
+                borderColor: borderColor,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                    // Set other options as needed
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Buyer Info',
+                    font: {
+                        size: 18,
+                        weight: 'bold'
+                    },
+                    padding: {
+                        top: 10,
+                        bottom: 20
+                    }
+                }
+            }
+        }
+    });
+
+    var commentsLabels = [{% for row in commentscount %}"{{ row[0] }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+    var commentsData = [{% for row in commentscount %}{{ row[1] }}{% if not loop.last %}, {% endif %}{% endfor %}];
+
+    var ctx = document.getElementById('CommentChart').getContext('2d');
+    
+    var CommentsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: commentsLabels,
+            datasets: [{
+                label: '# of Tickets',
+                data: commentsData,
+                backgroundColor: colors,
+                borderColor: borderColor,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'How did you hear about this show?',
+                    font: {
+                        size: 18,   // Change font size or any other styling as needed
+                        weight: 'bold'  // Setting font weight
+                    },
+                    padding: {
+                        top: 10,
+                        bottom: 20
+                    }
+                }
+            }
+        }
+    });
+    
+    var ticketLabels = [{% for row in tickets %}"{{ row[0] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+    var ticketData = [{% for row in tickets %}{{ row[1] }}{% if not loop.last %}, {% endif %}{% endfor %}];
+
+    var ctx = document.getElementById('TicketTotalChart').getContext('2d');
+
+    var TicketChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ticketLabels,
+            datasets: [{
+                label: '# of Tickets',
+                data: ticketData,
+                backgroundColor: colors,
+                borderColor: borderColor,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 160
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Tickets',
+                    font: {
+                        size: 18,   // Change font size or any other styling as needed
+                        weight: 'bold'  // Setting font weight
+                    },
+                    padding: {
+                        top: 10,
+                        bottom: 20
+                    }
+                }
+            }
+        }
+    });
+
+    {% set revenue_values = revenue|map(attribute=1)|list %}
+    {% set max_revenue_value = revenue_values|max %}
+    const maxRevenueValue = {{ max_revenue_value }};
+    const roundedUpValue = Math.ceil(maxRevenueValue / 500) * 500;
+    var revenueLabels = [{% for row in revenue %}"{{ row[0] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+    var revenueData = [{% for row in revenue %}{{ row[1] }}{% if not loop.last %}, {% endif %}{% endfor %}];
+
+    var ctx = document.getElementById('RevenueTotalChart').getContext('2d');
+
+    var RevenueChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: revenueLabels,
+            datasets: [{
+                label: 'Performance Revenue',
+                data: revenueData,
+                backgroundColor: colors,
+                borderColor: borderColor,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true, 
+                    max: roundedUpValue
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Revenue',
+                    font: {
+                        size: 18,   // Change font size or any other styling as needed
+                        weight: 'bold'  // Setting font weight
+                    },
+                    padding: {
+                        top: 10,
+                        bottom: 20
+                    }
+                }
+            }
+        }
+    });
+});
+
+        // Your data
+        var ticketsalesovertimeoneshowLabels = [{% for row in ticketsalesovertimeoneshow %}"{{ row[0] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+        var ticketsalesovertimeoneshowData = [{% for row in ticketsalesovertimeoneshow %}{{ row[1] }}{% if not loop.last %}, {% endif %}{% endfor %}];
+        var ticketsaleslastseasonaverage = {{ lastseasonsaverages | tojson}}
+        var ticketsalesovertimedatasets = JSON.parse('{{ ticketsalesovertimedatasets|tojson|safe }}');
+
+        // Setup for Chart.js
+        const ctx = document.getElementById('ticketsalesovertimeoneshowChart').getContext('2d');
+        const ticketSalesChart = new Chart(ctx, {
+            type: 'line', // Type of chart
+            data: {
+                labels: ticketsalesovertimeoneshowLabels, // The dates
+                datasets: [{
+                    label: '{{ show_name }}',
+                    data: ticketsalesovertimeoneshowData, // The cumulative ticket sales
+                    fill: false,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1, 
+                    borderWidth: 10
+                },
+                // {
+                //     label: 'This season\'s average for the same time frame',
+                //     data: ticketsalesthisseasonaverage, // The cumulative ticket sales
+                //     fill: false,
+                //     borderColor: 'rgb(255, 99, 132)',
+                //     tension: 0.1
+                // },
+                // {
+                //     label: 'Last season\'s average for the same time frame',
+                //     data: ticketsaleslastseasonaverage, // The cumulative ticket sales
+                //     fill: false,
+                //     borderColor: 'rgb(153, 102, 255)',
+                //     tension: 0.1
+                // },
+                ...ticketsalesovertimedatasets]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    },
+                    x: {
+                        ticks: {
+                            // Display only every other label on the x-axis
+                            callback: function(val, index) {
+                                // This will show every other label (even index)
+                                return index % 5 === 0 ? this.getLabelForValue(val) : '';
+                            }
+                        }
+            },
+                },
+                pointStyle: false
+            }
+        });
+</script>
+    

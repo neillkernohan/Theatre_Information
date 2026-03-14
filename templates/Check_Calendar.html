@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang='en'>
+  <head>
+    <meta charset='utf-8' />
+    <style>
+            .fc .fc-toolbar-title,
+            .fc .fc-col-header-cell-cushion,.fc-day-number, .fc-daygrid-day-number {
+              text-decoration: none !important;
+              color: black;
+            }
+    </style>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <script>
+    
+
+      document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var today = new Date().toISOString().slice(0, 10); // Gets today's date in 'YYYY-MM-DD' format
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth',
+          initialDate: today,
+          eventContent: function(arg) {
+            // Create an element to hold the title
+            let titleElement = document.createElement('div');
+            titleElement.classList.add('fc-event-title');
+            titleElement.innerHTML = arg.event.title;
+
+            // Return the element to be displayed
+            return { domNodes: [titleElement] };
+          },
+          dayCellDidMount: function(dayCellInfo) {
+            if (dayCellInfo.date < new Date()) {
+                // dayCellInfo.el corresponds to the day cell HTML element
+                dayCellInfo.el.style.backgroundColor = 'OldLace';
+            }
+          },
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+        },
+          themeSystem: 'bootstrap5',
+          events: {{ events | tojson | safe }}
+      });
+        calendar.render();
+
+      });
+
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </head>
+  <body>
+    <div class="container-xl" id='calendar'></div>
+  </body>
+</html>

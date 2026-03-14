@@ -1,0 +1,41 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+attrs = "==23.1.0"
+blinker = "==1.6.3"
+certifi = "==2023.7.22"
+click = "==8.1.7"
+flask = "==3.0.0"
+flask-sqlalchemy = "==3.1.1"
+flask-wtf = "==1.2.1"
+greenlet = "==3.0.1"
+h11 = "==0.14.0"
+idna = "==3.4"
+itsdangerous = "==2.1.2"
+jinja2 = "==3.1.2"
+markupsafe = "==2.1.3"
+mysql-connector-python = "==8.1.0"
+outcome = "==1.2.0"
+protobuf = "==4.21.12"
+pymysql = "==1.1.0"
+pysocks = "==1.7.1"
+selenium = "==4.14.0"
+sniffio = "==1.3.0"
+sortedcontainers = "==2.4.0"
+sqlalchemy = "==2.0.23"
+tk = "==0.1.0"
+trio = "==0.22.2"
+trio-websocket = "==0.11.1"
+typing-extensions = "==4.8.0"
+urllib3 = "==2.0.6"
+werkzeug = "==3.0.0"
+wsproto = "==1.2.0"
+wtforms = "==3.1.1"
+
+[dev-packages]
+
+[requires]
+python_version = "3.13"

@@ -1,0 +1,48 @@
+# Virtual environment
+.venv/
+
+# Environment variables & secrets
+.env
+client_secret.json
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Log files
+*.log
+error.txt
+
+# CSV data files
+*.csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Screenshots & images (not in static/)
+screenshot.png
+
+# Config (contains server paths)
+pyvenv.cfg
+
+# Pipfile.lock (generated from Pipfile)
+Pipfile.lock
+
+# Old/duplicate files
+GetDataFromArtsPeople
+GetDataFromArtsPeople.py
+Get_Ticket_Data
+Load_Gender_Info
+Load_Patron_Data
+Load_Prizm_Data
+Load_Prizm_Segments
+Load_Ticket_Data
+app for deployment.py
+requirement.txt
+import os.py
+Test.py

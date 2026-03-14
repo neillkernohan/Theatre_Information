@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theatre Information</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        td, th {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        body {
+            padding-top: 10px;
+            padding-bottom: 10px;
+            margin: 10px;
+        }
+        .toggle-link {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .table-auto {
+            width: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <img src="{{ url_for('static', filename='Media/Wide Logo Centred Black.png') }}" style="display: block; margin-left: auto; margin-right: auto;" width='25%' align="center" alt="Description of image" /><br>
+    <div align="center">
+    Select a Season: 
+    <select name="seasons" id="seasons" onchange="handleSeasonChange()">
+    </select><br><br>
+    <label>
+        <input type="checkbox" id="chkOnlyShows" name="chkOnlyShows">
+        Show Only Regular Shows
+    </label>
+    </div><br>
+    <h4 align="center">Last Updated: {{ formatted_update }}</h4><br>
+
+    <div class="container-fluid">
+        <div class="row">
+            <table class="table  mx-auto table-auto">
+                <thead>
+                    <tr>
+                        <th>Show Name</th>
+                        <th class="text-end">Regular Tickets Sold</th>
+                        <th class="text-end">Senior Tickets Sold</th>
+                        <th class="text-end">Student Tickets Sold</th>
+                        <th class="text-end">Total Tickets Sold</th>
+                        <th class="text-end">% of Tickets Sold</th>
+                        <th class="text-end">Ticket Revenue</th>
+                        <th class="text-end">Reserved Amount</th>
+                        <th class="text-end">Per Item Fees</th>
+                        <th class="text-end">Credit Card Fees</th>
+                        <th class="text-end">Forecasted Revenue</th>
+                        <th class="text-end">Deposited Revenue</th>
+                        <th class="text-end">Production Costs</th>
+                        <th class="text-end">Rights</th>
+                        <th class="text-end">Net Income</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set totals = {
+                        'regular_tickets': 0, 
+                        'senior_tickets': 0, 
+                        'student_tickets': 0, 
+                        'total_tickets': 0, 
+                        'ticket_revenue': 0, 
+                        'reserved_amount': 0, 
+                        'item_fees': 0, 
+                        'cc_fees': 0, 
+                        'forecasted_revenue': 0, 
+                        'deposited_revenue': 0, 
+                        'production_costs': 0, 
+                        'rights': 0, 
+                        'net_income': 0
+                    } %}
+                    {% for row in ticket_data %}
+                        <tr>
+                            <td data-start-date="{{ row[1] }}" data-end-date="{{ row[2] }}"><a href="{{ url_for('GetShowDetail', show_name=row[0]) }}">{{ row[0] }}</a></td>
+                            <td class="text-end">{{ row[3] }}</td>
+                            <td class="text-end">{{ row[4] }}</td>
+                            <td class="text-end">{{ row[5] }}</td>
+                            <td class="text-end">{{ row[6] }}</td>
+                            <td class="text-end">{{ "{:.1f}".format(row[6]/(152*row[13])*100) }}</td>
+                            <td class="text-end">$ {{ row[7] }}</td>
+                            <td class="text-end">$ {{ row[8] }}</td>
+                            <td class="text-end">$ {{ row[9] }}</td>
+                            <td class="text-end">$ {{ row[10] }}</td>
+                            <td class="text-end">$ {{ row[11] }}</td>
+                            <td class="text-end">$ {{ row[12] }}</td>
+                            <td class="text-end">$ {{ row[14] }}</td>
+                            <td class="text-end">$ {{ row[15] }}</td>
+                            <td class="text-end">$ {{ row[16] }}</td>
+                        </tr>
+                        {% set _dummy = totals.update({
+                            'regular_tickets': totals['regular_tickets'] + row[3],
+                            'senior_tickets': totals['senior_tickets'] + row[4],
+                            'student_tickets': totals['student_tickets'] + row[5],
+                            'total_tickets': totals['total_tickets'] + row[6],
+                            'ticket_revenue': totals['ticket_revenue'] + row[7],
+                            'reserved_amount': totals['reserved_amount'] + row[8],
+                            'item_fees': totals['item_fees'] + row[9],
+                            'cc_fees': totals['cc_fees'] + row[10],
+                            'forecasted_revenue': totals['forecasted_revenue'] + row[11],
+                            'deposited_revenue': totals['deposited_revenue'] + row[12],
+                            'production_costs': totals['production_costs'] + row[14],
+                            'rights': totals['rights'] + row[15],
+                            'net_income': totals['net_income'] + row[16]
+                        }) %}
+                    {% endfor %}
+                    <tr>
+                        <td class="fw-bold">Totals</td>
+                        <td class="text-end fw-bold">{{ totals['regular_tickets'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['senior_tickets'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['student_tickets'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['total_tickets'] }}</td>
+                        <td class="text-end fw-bold">{{ "%.1f"|format(totals['total_tickets'] * 100 / (totals['total_tickets'] if totals['total_tickets'] > 0 else 1)) }}</td>
+                        <td class="text-end fw-bold">$ {{ totals['ticket_revenue'] }}</td>
+                        <td class="text-end fw-bold">$ {{ totals['reserved_amount'] }}</td>
+                        <td class="text-end fw-bold">$ {{ totals['item_fees'] }}</td>
+                        <td class="text-end fw-bold">$ {{ totals['cc_fees'] }}</td>
+                        <td class="text-end fw-bold">$ {{ totals['forecasted_revenue'] }}</td>
+                        <td class="text-end fw-bold">$ {{ totals['deposited_revenue'] }}</td>
+                        <td class="text-end fw-bold">$ {{ totals['production_costs'] }}</td>
+                        <td class="text-end fw-bold">$ {{ totals['rights'] }}</td>
+                        <td class="text-end fw-bold">$ {{ totals['net_income'] }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <br><br>
+        <div class="row">
+            <div class="col">
+                <h4 align="center">Types of Tickets Sold Comparison</h4>
+                <table class="table table-auto mx-auto">
+                        <tr>
+                            <th colspan="2"></th><th class="text-end" id="currentSeason">Current Season</th><th class="text-end" id="previousSeason">Previous Season</th><th>% Change</th>
+                        </tr>
+                        <tr>
+                            <td>Tickets</td>
+                        </tr>
+                        <tr>
+                            <td></td><td>Regular</td><td class="text-end">{{ season_data[0][0] }}</td><td class="text-end">{{ last_season_data[0][0] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][0]/last_season_data[0][0]*100) }}%</td>
+                        </tr>
+                        <tr>
+                            <td></td><td>Senior</td><td class="text-end">{{ season_data[0][1] }}</td><td class="text-end">{{ last_season_data[0][1] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][1]/last_season_data[0][1]*100) }}%</td>
+                        </tr>
+                        <tr>
+                            <td></td><td>Student</td><td class="text-end">{{ season_data[0][2] }}</td><td class="text-end">{{ last_season_data[0][2] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][2]/last_season_data[0][2]*100) }}%</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">Totals</td><td class="text-end">{{ season_data[0][3] }}</td><td class="text-end">{{ last_season_data[0][3] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][3]/last_season_data[0][3]*100) }}%</td>
+                        </tr>
+                </table><br>
+                <h4 align="center">Subscriptions Comparison</h4>
+                <table class="table table-auto mx-auto">
+                        <tr>
+                            <th></th>
+                            <th colspan="2" class="text-end" id="currentSeason3">Current Season</th>
+                            <th class="text-end" id="previousSeason3" colspan="2">Previous Season</th>
+                            <th>% Change</th>
+                        </tr>
+                        <tr>
+                            <th>Type of Subscription</th>
+                            <th>Amount</th>
+                            <th>Sales</th>
+                            <th>Amount</th>
+                            <th>Sales</th>
+                        </tr>
+                        <tr>
+                            <td>{{ this_season_subscriptions[0][0] }}</td>
+                            <td class="text-end">{{ "{:.0f}".format(this_season_subscriptions[0][1]) }}</td>
+                            <td class="text-end">$ {{ "{:.2f}".format(this_season_subscriptions[0][2]) }}</td>
+                            <td class="text-end">{{ "{:.0f}".format(last_season_subscriptions[0][1]) }}</td>
+                            <td class="text-end">$ {{ "{:.2f}".format(last_season_subscriptions[0][2]) }}</td>
+                            <td class="text-end">{{ "{:.1f}".format((this_season_subscriptions[0][1]-last_season_subscriptions[0][1])/last_season_subscriptions[0][1]*100) }}%</td>
+                        </tr>
+                        <tr>
+                            <td>{{ this_season_subscriptions[1][0] }}</td>
+                            <td class="text-end">{{ "{:.0f}".format(this_season_subscriptions[1][1]) }}</td>
+                            <td class="text-end">$ {{ "{:.2f}".format(this_season_subscriptions[1][2]) }}</td>
+                            <td class="text-end">{{ "{:.0f}".format(last_season_subscriptions[1][1]) }}</td>
+                            <td class="text-end">$ {{ "{:.2f}".format(last_season_subscriptions[1][2]) }}</td>
+                            <td class="text-end">{{ "{:.1f}".format((this_season_subscriptions[1][1]-last_season_subscriptions[1][1])/last_season_subscriptions[1][1]*100) }}%</td>
+                        </tr>                        <tr>
+                            <td>{{ this_season_subscriptions[2][0] }}</td>
+                            <td class="text-end">{{ "{:.0f}".format(this_season_subscriptions[2][1]) }}</td>
+                            <td class="text-end">$ {{ "{:.2f}".format(this_season_subscriptions[2][2]) }}</td>
+                            <td class="text-end">{{ "{:.0f}".format(last_season_subscriptions[2][1]) }}</td>
+                            <td class="text-end">$ {{ "{:.2f}".format(last_season_subscriptions[2][2]) }}</td>
+                            {% if last_season_subscriptions[2][1] != 0 %}
+                                <td class="text-end">{{ "{:.1f}".format((this_season_subscriptions[2][1]-last_season_subscriptions[2][1])/last_season_subscriptions[2][1]*100) }}%</td>
+                            {% else %}
+                                <td class="text-end">N/A</td>
+                            {% endif %}
+                        </tr>
+                        <tr>
+                            <td>Totals</td>
+                            <td class="text-end">{{ "{:.0f}".format(this_season_subscriptions[0][1]+this_season_subscriptions[1][1]+this_season_subscriptions[2][1]) }}</td>
+                            <td class="text-end">$ {{ "{:.2f}".format(this_season_subscriptions[0][2]+this_season_subscriptions[1][2]+this_season_subscriptions[2][2]) }}</td>
+                            <td class="text-end">{{ "{:.0f}".format(last_season_subscriptions[0][1]+last_season_subscriptions[1][1]+last_season_subscriptions[2][1]) }}</td>
+                            <td class="text-end">$ {{ "{:.2f}".format(last_season_subscriptions[0][2]+last_season_subscriptions[1][2]+last_season_subscriptions[2][2]) }}</td>
+                            {% if last_season_subscriptions[0][1]+last_season_subscriptions[1][1]+last_season_subscriptions[2][1] != 0 %}
+                                <td class="text-end">{{"{:.1f}".format(((this_season_subscriptions[0][1]+this_season_subscriptions[1][1]+this_season_subscriptions[2][1])-
+                                    (last_season_subscriptions[0][1]+last_season_subscriptions[1][1]+last_season_subscriptions[2][1]))/
+                                    (last_season_subscriptions[0][1]+last_season_subscriptions[1][1]+last_season_subscriptions[2][1])*100) }}%
+                                </td>
+                                {% else %}
+                                    <td>N/A</td>
+                                {% endif %}
+                            </td>
+                        </tr>
+                </table>
+            </div>
+            <div class='col'>
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col">
+                            <h4 align="center">Ticket Sales and Revenue Over the Last Two Weeks</h4>
+                            <canvas id="ticketSalesRevenueChart"></canvas>
+                        </div>
+                    </div>
+                </div><br>      
+                <h4 align="center">Revenue Comparison</h4>
+                <table class="table table-auto mx-auto">
+                    <tr>
+                        <th colspan="2"></th><th class="text-end" id="currentSeason2">Current Season</th><th class="text-end" id="previousSeason2">Previous Season</th><th>% Change</th>
+                    </tr>
+                    <tr>
+                        <td>Revenue</td>
+                    </tr>
+                    <tr>
+                        <td></td><td>Tickets Bought</td><td class="text-end">$ {{ season_data[0][4] }}</td><td class="text-end">$ {{ last_season_data[0][4] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][4]/last_season_data[0][4]*100) if last_season_data[0][4] != 0 else "N/A" }}%</td>
+                    </tr>
+                    <tr>
+                        <td></td><td>&nbsp;&nbsp;&nbsp;Less: Reserved</td><td class="text-end">$ {{ season_data[0][5] }}</td><td class="text-end">$ {{ last_season_data[0][5] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][5]/last_season_data[0][5]*100) if last_season_data[0][5] != 0 else "N/A" }}%</td>
+
+                    </tr>
+                    <tr>
+                        <td></td><td>&nbsp;&nbsp;&nbsp;Less: Per Item Fees</td><td class="text-end">$ {{ season_data[0][6] }}</td><td class="text-end">$ {{ last_season_data[0][6] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][6]/last_season_data[0][6]*100) if last_season_data[0][6] != 0 else "N/A" }}%</td>
+                    </tr>
+                    <tr>
+                        <td></td><td>&nbsp;&nbsp;&nbsp;Less: Credit Card Fees</td><td class="text-end">$ {{ season_data[0][7] }}</td><td class="text-end">$ {{ last_season_data[0][7] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][7]/last_season_data[0][7]*100) if last_season_data[0][7] != 0 else "N/A" }}%</td>
+                    </tr>
+                    <tr>
+                        <td></td><td>Forecasted Revenue</td><td class="text-end">$ {{ season_data[0][8] }}</td><td class="text-end">$ {{ last_season_data[0][8] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][8]/last_season_data[0][8]*100) if last_season_data[0][8] != 0 else "N/A" }}%</td>
+                    </tr>
+                    <tr>
+                        <td></td><td>Deposited Revenue</td><td class="text-end">$ {{ season_data[0][9] }}</td><td class="text-end">$ {{ last_season_data[0][9] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][9]/last_season_data[0][9]*100) if last_season_data[0][9] != 0 else "N/A" }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Expenses</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Production Costs</td><td class="text-end">$ {{ this_season_expenses[0][0] }}</td>
+                        <td class="text-end">$ {{ last_season_expenses[0][0] }}</td>
+                        <td class="text-end">{{ "{:.1f}".format(this_season_expenses[0][0]/last_season_expenses[0][0]*100) if last_season_expenses[0][0] != 0 else "N/A" }}%</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Rights</td>
+                        <td class="text-end">$ {{ this_season_expenses[0][1] }}</td>
+                        <td class="text-end">$ {{ last_season_expenses[0][1] }}</td>
+                        <td class="text-end">{{ "{:.1f}".format(this_season_expenses[0][1]/last_season_expenses[0][1]*100) if last_season_expenses[0][1] != 0 else "N/A" }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Net Income</td>
+                        <td></td>
+                        <td class="text-end">$ {{ season_data[0][9] - this_season_expenses[0][0] - this_season_expenses[0][1] }}</td>
+                        <td class="text-end">$ {{ last_season_data[0][9] - last_season_expenses[0][0] - last_season_expenses[0][1] }}</td>
+                        <td class="text-end">{{ "{:.1f}".format(
+                            (season_data[0][9] - this_season_expenses[0][0] - this_season_expenses[0][1])/(last_season_data[0][9] - last_season_expenses[0][0] - last_season_expenses[0][1])*100
+                            ) 
+                            if (last_season_data[0][9] - last_season_expenses[0][0] - last_season_expenses[0][1]) != 0 else "N/A" }}%</td>
+                    </tr>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</body>
+<script>
+function setupAndSelectSeasonInDropdown() {
+    // Get today's date
+    const today = new Date();
+
+    // Define the start of each season
+    const seasons = [
+        { start: new Date('2025-07-01'), value: '2025-07-01', label: '2025-2026 Season' },
+        { start: new Date('2024-07-01'), value: '2024-07-01', label: '2024-2025 Season' },
+        { start: new Date('2023-07-01'), value: '2023-07-01', label: '2023-2024 Season' }
+    ];
+
+    // Find the dropdown element by its ID
+    const dropdown = document.getElementById('seasons');
+    
+    // Clear existing options (optional, if needed)
+    dropdown.innerHTML = '';
+
+    // Dynamically create and append options to the dropdown
+    seasons.forEach(season => {
+        const option = document.createElement('option');
+        option.value = season.value;
+        option.textContent = season.label;
+        dropdown.appendChild(option);
+
+    });
+
+    dropdown.value = "{{ this_season }}";
+
+    if (dropdown.value === "") {
+        console.log("Current date does not fall within the defined seasons.");
+    }
+
+    const date = new Date( "{{ this_season }}");
+    const year = date.getFullYear();
+    current_season = `${year}/${year + 1} Season`;
+    previous_season = `${year-1}/${year} Season`;
+    document.getElementById('currentSeason').textContent = current_season;
+    document.getElementById('previousSeason').textContent = previous_season;
+    document.getElementById('currentSeason2').textContent = current_season;
+    document.getElementById('previousSeason2').textContent = previous_season;
+    document.getElementById('currentSeason3').textContent = current_season;
+    document.getElementById('previousSeason3').textContent = previous_season;
+}
+
+function handleSeasonChange() {
+    goBackToData()
+}
+
+// Call the function to set up and select the correct season
+setupAndSelectSeasonInDropdown();
+setupCheckBox();
+
+function setupCheckBox() {
+    if ({{ shows_only }} == 1) {
+        document.getElementById('chkOnlyShows').checked = true;
+    } else {
+        document.getElementById('chkOnlyShows').checked = false;
+    }
+}
+
+function goBackToData() {
+    var seasonValue = document.getElementById('seasons').value;
+    var showsOnly = document.getElementById('chkOnlyShows');
+    if (showsOnly.checked) {
+        showsOnlyValue = true;
+    } else {
+        showsOnlyValue = false;
+    }
+    window.location.href = 'SeasonTotals?this_season='+seasonValue+'&showsOnly='+showsOnlyValue;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    var checkbox = document.getElementById('chkOnlyShows');
+
+    checkbox.addEventListener('change', function () {
+        if (this.checked) {
+            goBackToData();
+        } else {
+            goBackToData()
+        }
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Data for the last two weeks
+
+    var labels = [{% for row in past14days %}"{{ row[0] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+    var ticketSales = [{% for row in past14days %}"{{ row[1] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+    var ticketRevenue = [{% for row in past14days %}"{{ row[2] }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+
+
+
+    const ctx = document.getElementById('ticketSalesRevenueChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar', // Default type is bar, will set the ticket sales as bars
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    type: 'bar', // Specify this dataset as a bar chart
+                    label: 'Ticket Sales',
+                    data: ticketSales,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    yAxisID: 'y',
+                    fill: false
+                },
+                {
+                    type: 'line', // Specify this dataset as a line chart
+                    label: 'Ticket Revenue',
+                    data: ticketRevenue,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    yAxisID: 'y1',
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            scales: {
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Ticket Sales'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Ticket Revenue ($)'
+                    },
+                    grid: {
+                        drawOnChartArea: false, // only want the grid lines for one axis
+                    },
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Ticket Sales and Revenue Over the Last Two Weeks'
+                }
+            }
+        }
+    });
+});
+
+
+
+</script>
+</html>

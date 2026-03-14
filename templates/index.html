@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theatre Information</title>
+    <style>
+        td, th {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th>Show Name</th>
+                <th align="right">Performance Date</th>
+                <th align="right">Regular Tickets Sold</th>
+                <th align="right">Senior Tickets Sold</th>
+                <th align="right">Student Tickets Sold</th>
+                <th align="right">Total Tickets Sold</th>
+                <th align="right">% of Tickets Sold</th>
+                <th align="right">Ticket Revenue</th>
+                <th align="right">Reserved Amount</th>
+                <th align="right">Per Item Fees</th>
+                <th align="right">Credit Card Fees</th>
+                <th align="right">Forecasted Revenue</th>
+                <th align="right">Deposited Revenue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set ns = {'prev_show_name': '', 'total_regular': 0, 'total_senior': 0, 'total_student': 0, 'total_tickets': 0, 'total_revenue': 0, 'total_reserved': 0, 'total_item_fees': 0, 'total_cc_fees': 0, 'total_forecasted': 0, 'total_deposited': 0, 'grand_total_regular': 0, 'grand_total_senior': 0, 'grand_total_student': 0, 'grand_total_tickets': 0, 'grand_total_revenue': 0, 'grand_total_reserved': 0, 'grand_total_item_fees': 0, 'grand_total_cc_fees': 0, 'grand_total_forecasted': 0, 'grand_total_deposited': 0} %}
+            {% for row in data %}
+                {% if row[0] != ns['prev_show_name'] and ns['prev_show_name'] != '' %}
+                    <!-- Display totals for the previous show -->
+                    <tr style="background-color: #e6e6e6;">
+                        <td colspan="2">Totals for {{ ns['prev_show_name'] }}</td>
+                        <td align="right">{{ ns['total_regular'] }}</td>
+                        <td align="right">{{ ns['total_senior'] }}</td>
+                        <td align="right">{{ ns['total_student'] }}</td>
+                        <td align="right">{{ ns['total_tickets'] }}</td>
+                        <td></td> <!-- Percentage total not applicable -->
+                        <td align="right">$ {{ ns['total_revenue'] }}</td>
+                        <td align="right">$ {{ ns['total_reserved'] }}</td>
+                        <td align="right">$ {{ ns['total_item_fees'] }}</td>
+                        <td align="right">$ {{ ns['total_cc_fees'] }}</td>
+                        <td align="right">$ {{ ns['total_forecasted'] }}</td>
+                        <td align="right">$ {{ ns['total_deposited'] }}</td>
+                    </tr>
+                    <tr><td>&nbsp;</td></tr>
+                    <!-- Reset show-specific totals -->
+                    {% set _dummy = ns.update({'total_regular': 0, 'total_senior': 0, 'total_student': 0, 'total_tickets': 0, 'total_revenue': 0, 'total_reserved': 0, 'total_item_fees': 0, 'total_cc_fees': 0, 'total_forecasted': 0, 'total_deposited': 0}) %}
+                {% endif %}
+                <!-- Update show-specific and grand totals -->
+                {% set _dummy = ns.update({'total_regular': ns['total_regular'] + row[2], 'total_senior': ns['total_senior'] + row[3], 'total_student': ns['total_student'] + row[4], 'total_tickets': ns['total_tickets'] + row[5], 'total_revenue': ns['total_revenue'] + row[7], 'total_reserved': ns['total_reserved'] + row[8], 'total_item_fees': ns['total_item_fees'] + row[9], 'total_cc_fees': ns['total_cc_fees'] + row[10], 'total_forecasted': ns['total_forecasted'] + row[11], 'total_deposited': ns['total_deposited'] + row[12], 'grand_total_regular': ns['grand_total_regular'] + row[2], 'grand_total_senior': ns['grand_total_senior'] + row[3], 'grand_total_student': ns['grand_total_student'] + row[4], 'grand_total_tickets': ns['grand_total_tickets'] + row[5], 'grand_total_revenue': ns['grand_total_revenue'] + row[7], 'grand_total_reserved': ns['grand_total_reserved'] + row[8], 'grand_total_item_fees': ns['grand_total_item_fees'] + row[9], 'grand_total_cc_fees': ns['grand_total_cc_fees'] + row[10], 'grand_total_forecasted': ns['grand_total_forecasted'] + row[11], 'grand_total_deposited': ns['grand_total_deposited'] + row[12]}) %}
+                <!-- Display data for the current row -->
+                {% if row[0] != ns['prev_show_name'] %}
+                    <tr>
+                        <td colspan="13" style="background-color: #f2f2f2; font-weight: bold;">{{ row[0] }}</td>
+                    </tr>
+                    {% set _dummy = ns.update({'prev_show_name': row[0]}) %}
+                {% endif %}
+                <tr>
+                    <td></td> <!-- Empty cell for Show Name -->
+                    <td align="right">{{ row[1].strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td align="right">{{ row[2] }}</td>
+                    <td align="right">{{ row[3] }}</td>
+                    <td align="right">{{ row[4] }}</td>
+                    <td align="right">{{ row[5] }}</td>
+                    <td align="right">{{ "{:.1f}".format(row[6]*100) }}</td>
+                    <td align="right">$ {{ row[7] }}</td>
+                    <td align="right">$ {{ row[8] }}</td>
+                    <td align="right">$ {{ row[9] }}</td>
+                    <td align="right">$ {{ row[10] }}</td>
+                    <td align="right">$ {{ row[11] }}</td>
+                    <td align="right">$ {{ row[12] }}</td>
+                </tr>
+            {% endfor %}
+            <!-- Display totals for the last show -->
+            <tr style="background-color: #e6e6e6;">
+                <td colspan="2">Totals for {{ ns['prev_show_name'] }}</td>
+                <td align="right">{{ ns['total_regular'] }}</td>
+                <td align="right">{{ ns['total_senior'] }}</td>
+                <td align="right">{{ ns['total_student'] }}</td>
+                <td align="right">{{ ns['total_tickets'] }}</td>
+                <td></td> <!-- Percentage total not applicable -->
+                <td align="right">$ {{ ns['total_revenue'] }}</td>
+                <td align="right">$ {{ ns['total_reserved'] }}</td>
+                <td align="right">$ {{ ns['total_item_fees'] }}</td>
+                <td align="right">$ {{ ns['total_cc_fees'] }}</td>
+                <td align="right">$ {{ ns['total_forecasted'] }}</td>
+                <td align="right">$ {{ ns['total_deposited'] }}</td>
+            </tr>
+            <!-- Display grand totals -->
+            <tr style="background-color: #cccccc;">
+                <td colspan="2">Grand Totals</td>
+                <td align="right">$ {{ ns['grand_total_regular'] }}</td>
+                <td align="right">$ {{ ns['grand_total_senior'] }}</td>
+                <td align="right">$ {{ ns['grand_total_student'] }}</td>
+                <td align="right">$ {{ ns['grand_total_tickets'] }}</td>
+                <td></td> <!-- Percentage total not applicable -->
+                <td align="right">$ {{ ns['grand_total_revenue'] }}</td>
+                <td align="right">$ {{ ns['grand_total_reserved'] }}</td>
+                <td align="right">$ {{ ns['grand_total_item_fees'] }}</td>
+                <td align="right">$ {{ ns['grand_total_cc_fees'] }}</td>
+                <td align="right">$ {{ ns['grand_total_forecasted'] }}</td>
+                <td align="right">$ {{ ns['grand_total_deposited'] }}</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
