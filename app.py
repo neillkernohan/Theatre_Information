@@ -147,6 +147,10 @@ def get_fiscal_year_start(input_date):
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", 'cW3(sP1;tJ4#mX2<sL6!uB1&zR0~gX4%')  # Needed for session management
 
+@app.route('/')
+def home():
+    return render_template('home.html')
+
 @app.route('/SeasonTotals')
 def SeasonTotals():
     Theatre_Information_DB = mysql.connector.connect(
