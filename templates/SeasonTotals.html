@@ -54,7 +54,6 @@
                         <th class="text-end">Ticket Revenue</th>
                         <th class="text-end">Reserved Amount</th>
                         <th class="text-end">Per Item Fees</th>
-                        <th class="text-end">Credit Card Fees</th>
                         <th class="text-end">Forecasted Revenue</th>
                         <th class="text-end">Deposited Revenue</th>
                         <th class="text-end">Production Costs</th>
@@ -89,7 +88,6 @@
                             <td class="text-end">$ {{ row[7] }}</td>
                             <td class="text-end">$ {{ row[8] }}</td>
                             <td class="text-end">$ {{ row[9] }}</td>
-                            <td class="text-end">$ {{ row[10] }}</td>
                             <td class="text-end">$ {{ row[11] }}</td>
                             <td class="text-end">$ {{ row[12] }}</td>
                             <td class="text-end">$ {{ row[14] }}</td>
@@ -122,7 +120,6 @@
                         <td class="text-end fw-bold">$ {{ totals['ticket_revenue'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['reserved_amount'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['item_fees'] }}</td>
-                        <td class="text-end fw-bold">$ {{ totals['cc_fees'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['forecasted_revenue'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['deposited_revenue'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['production_costs'] }}</td>
@@ -242,9 +239,6 @@
                     </tr>
                     <tr>
                         <td></td><td>&nbsp;&nbsp;&nbsp;Less: Per Item Fees</td><td class="text-end">$ {{ season_data[0][6] }}</td><td class="text-end">$ {{ last_season_data[0][6] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][6]/last_season_data[0][6]*100) if last_season_data[0][6] != 0 else "N/A" }}%</td>
-                    </tr>
-                    <tr>
-                        <td></td><td>&nbsp;&nbsp;&nbsp;Less: Credit Card Fees</td><td class="text-end">$ {{ season_data[0][7] }}</td><td class="text-end">$ {{ last_season_data[0][7] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][7]/last_season_data[0][7]*100) if last_season_data[0][7] != 0 else "N/A" }}%</td>
                     </tr>
                     <tr>
                         <td></td><td>Forecasted Revenue</td><td class="text-end">$ {{ season_data[0][8] }}</td><td class="text-end">$ {{ last_season_data[0][8] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][8]/last_season_data[0][8]*100) if last_season_data[0][8] != 0 else "N/A" }}%</td>
