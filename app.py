@@ -482,7 +482,7 @@ def GetShowDetail():
             )
         else:
             message2 = (
-                "'" + show_name + "' is at " + str(round(totaltickets[0][0]/topshow[0][1]*100,1)) + "% of the tickets sales and " + str(round(totalrevenue[0][0]/topshow[0][2]*100,1)) + "\% of the revenue of the top-rated show in this category, '" + topshow[0][0] + "'."
+                "'" + show_name + "' is at " + str(round(totaltickets[0][0]/topshow[0][1]*100,1)) + "% of the tickets sales and " + str(round(totalrevenue[0][0]/topshow[0][2]*100,1)) + "% of the revenue of the top-rated show in this category, '" + topshow[0][0] + "'."
             )
         message4 = (
             "The last show of type '" + 
@@ -507,7 +507,7 @@ def GetShowDetail():
             )
         else:
             message2 = (
-                "'" + show_name + "' is at " + str(round(totaltickets[0][0]/topshow[0][1]*100,1)) + "% of the tickets sales and " + str(round(totalrevenue[0][0]/topshow[0][2]*100,1)) + "\% of the revenue of the top-rated show in this category, '" + topshow[0][0] + "'."
+                "'" + show_name + "' is at " + str(round(totaltickets[0][0]/topshow[0][1]*100,1)) + "% of the tickets sales and " + str(round(totalrevenue[0][0]/topshow[0][2]*100,1)) + "% of the revenue of the top-rated show in this category, '" + topshow[0][0] + "'."
             )
         message4 = (
             "The last show of type '" + 
