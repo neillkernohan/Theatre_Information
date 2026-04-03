@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "flask",
+      "runtimeExecutable": "/Users/neillkernohan/Library/CloudStorage/OneDrive-Personal/Python Scripts/Theatre_Info/.venv/bin/python3",
+      "runtimeArgs": ["app.py"],
+      "port": 5001,
+      "autoPort": false
+    }
+  ]
+}

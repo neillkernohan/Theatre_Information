@@ -11,6 +11,7 @@ import time
 from decimal import Decimal
 import json
 from dotenv import load_dotenv
+from functools import wraps
 
 import random
 
@@ -20,6 +21,7 @@ MYSQL_HOST = os.getenv("MYSQL_HOST")
 MYSQL_USER = os.getenv("MYSQL_USER")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
 MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
+APP_PASSWORD = os.getenv("APP_PASSWORD")
 
 used_colors = set()
 
@@ -147,11 +149,37 @@ def get_fiscal_year_start(input_date):
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", 'cW3(sP1;tJ4#mX2<sL6!uB1&zR0~gX4%')  # Needed for session management
 
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        if request.form['password'] == APP_PASSWORD:
+            session['logged_in'] = True
+            return redirect(request.args.get('next') or url_for('home'))
+        else:
+            error = 'Incorrect password.'
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def home():
     return render_template('home.html')
 
 @app.route('/SeasonTotals')
+@login_required
 def SeasonTotals():
     Theatre_Information_DB = mysql.connector.connect(
         host=MYSQL_HOST,
@@ -233,6 +261,7 @@ def SeasonTotals():
         past14days=past14days)
 
 @app.route('/TotalSales')
+@login_required
 def TotalSales():
     Ticket_Data_DB = mysql.connector.connect(
         host=MYSQL_HOST,
@@ -284,6 +313,7 @@ def TotalSales():
     return render_template('TotalSales.html', data=ticket_data, season_data=season_data, last_season_data=last_season_data, subscription_data = subscription_data, formatted_update=formatted_update, comments_season_count=comments_season_count, dayaverages=dayaverages)
 
 @app.route('/ShowDetail')
+@login_required
 def GetShowDetail():
     show_name = request.args.get('show_name', default="Anne of Green Gables - The Musical", type=str)  # Getting show_name from the query parameters
 
@@ -557,6 +587,7 @@ def GetShowDetail():
     )
 
 @app.route('/Check_Calendar')
+@login_required
 def Check_Calendar():
 
     # Specify the path to your CSV file
@@ -579,6 +610,127 @@ def Check_Calendar():
     return render_template('Check_Calendar.html', events=events)
 
 
-    
+@app.route('/OurPeople')
+@login_required
+def OurPeople():
+    db = mysql.connector.connect(
+        host=MYSQL_HOST,
+        user=MYSQL_USER,
+        password=MYSQL_PASSWORD,
+        database=MYSQL_DATABASE
+    )
+    cursor = db.cursor()
+
+    # Get all patrons who have role data ( // in Notes) or are on the Volunteers mailing list
+    cursor.execute("""
+        SELECT First_name, Last_name, Email, Notes, Marketing_Lists
+        FROM Patrons
+        WHERE Notes LIKE '%//%'
+           OR Marketing_Lists LIKE '%Volunteers%'
+        ORDER BY Last_name, First_name
+    """)
+    rows = cursor.fetchall()
+
+    # Get show-to-season mapping from Ticket_Info
+    cursor.execute("""
+        SELECT DISTINCT Show_name, Season
+        FROM Ticket_Info
+        ORDER BY Season DESC, Show_name
+    """)
+    ticket_shows = cursor.fetchall()
+
+    # Get last update time
+    cursor.execute("SELECT Update_date_time FROM Updates ORDER BY Update_date_time DESC LIMIT 1")
+    update_data = cursor.fetchall()
+    last_update = update_data[0][0] if update_data else None
+    formatted_update = last_update.strftime('%B %-d, %Y at %-I:%M %p') if last_update else 'Not available'
+
+    db.close()
+
+    # Build a lookup: show name -> season label
+    # Use case-insensitive, substring matching for fuzzy matching
+    show_season_map = {}
+    for ticket_show, season in ticket_shows:
+        show_season_map[ticket_show] = season
+
+    def get_season_label(season_date):
+        """Convert a season start date (e.g. 2024-07-01) to '2024-2025'."""
+        if isinstance(season_date, str):
+            from dateutil.parser import parse
+            season_date = parse(season_date)
+        year = season_date.year
+        month = season_date.month
+        if month >= 7:
+            return f"{year}-{year + 1}"
+        else:
+            return f"{year - 1}-{year}"
+
+    def find_season_for_show(show_name):
+        """Match a show name from Notes to a season via Ticket_Info."""
+        show_lower = show_name.lower()
+        # Exact match first
+        for ticket_show, season in show_season_map.items():
+            if ticket_show.lower() == show_lower:
+                return get_season_label(season)
+        # Substring match (Notes show name contained in Ticket_Info name or vice versa)
+        for ticket_show, season in show_season_map.items():
+            if show_lower in ticket_show.lower() or ticket_show.lower() in show_lower:
+                return get_season_label(season)
+        return "Other"
+
+    # Parse Notes into structured role data — one row per person, all roles combined
+    table_rows = []
+    all_roles = set()
+    all_shows = set()
+    show_to_season = {}
+
+    for first_name, last_name, email, notes, marketing_lists in rows:
+        roles = []
+        if notes:
+            for line in notes.split('\n'):
+                if '//' in line:
+                    parts = line.split('//', 1)
+                    show = parts[0].strip()
+                    role = parts[1].strip()
+                    season = find_season_for_show(show)
+                    roles.append({'show': show, 'role': role})
+                    all_roles.add(role)
+                    all_shows.add(show)
+                    show_to_season[show] = season
+        ml = marketing_lists or ''
+        is_volunteer = 'Volunteers' in [item.strip() for item in ml.split(';')]
+        if roles or is_volunteer:
+            table_rows.append({
+                'first_name': first_name or '',
+                'last_name': last_name or '',
+                'email': email or '',
+                'roles': roles,
+                'all_roles': ','.join(r['role'] for r in roles),
+                'all_shows': ','.join(r['show'] for r in roles),
+                'is_volunteer': is_volunteer,
+            })
+
+    # Sort by last name, first name
+    table_rows.sort(key=lambda r: (r['last_name'].lower(), r['first_name'].lower()))
+
+    # Group shows by season, sorted with most recent season first
+    seasons = {}
+    for show, season in show_to_season.items():
+        if season not in seasons:
+            seasons[season] = []
+        seasons[season].append(show)
+    for season in seasons:
+        seasons[season].sort()
+    sorted_seasons = sorted(seasons.keys(), reverse=True)
+    shows_by_season = [(s, seasons[s]) for s in sorted_seasons]
+
+    return render_template('OurPeople.html',
+        table_rows=table_rows,
+        all_roles=sorted(all_roles),
+        shows_by_season=shows_by_season,
+        formatted_update=formatted_update,
+    )
+
+
 if __name__ == '__main__':
     app.run(debug=True)

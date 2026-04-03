@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theatre Information</title>
+    <title>Theatre Information — Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -14,31 +14,30 @@
             min-height: 100vh;
             margin: 0;
         }
-        .home-container {
+        .login-container {
             text-align: center;
-            max-width: 600px;
+            max-width: 400px;
             padding: 40px;
         }
-        .home-container img {
+        .login-container img {
             max-width: 80%;
-            margin-bottom: 40px;
-        }
-        .btn-theatre {
-            display: block;
-            width: 100%;
-            padding: 16px 24px;
-            margin-bottom: 16px;
-            font-size: 1.2rem;
-            border-radius: 8px;
+            margin-bottom: 30px;
         }
     </style>
 </head>
 <body>
-    <div class="home-container">
+    <div class="login-container">
         <img src="{{ url_for('static', filename='Media/Wide Logo Centred Black.png') }}" alt="Theatre Logo">
-        <h2 class="mb-4">Theatre Information Dashboard</h2>
-        <a href="/SeasonTotals" class="btn btn-dark btn-theatre">Season Totals</a>
-        <a href="/OurPeople" class="btn btn-dark btn-theatre">Our People</a>
+        <h4 class="mb-4">Theatre Information Dashboard</h4>
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <form method="POST">
+            <div class="mb-3">
+                <input type="password" name="password" class="form-control" placeholder="Enter password" autofocus>
+            </div>
+            <button type="submit" class="btn btn-dark w-100">Log In</button>
+        </form>
     </div>
 </body>
 </html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theatre Aurora — Our People</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        html {
+            overflow-x: auto;
+        }
+        body {
+            background-color: #f8f9fa;
+            padding-top: 10px;
+            padding-bottom: 40px;
+            margin: 10px;
+            max-width: 100vw;
+            overflow-x: auto;
+        }
+        td, th {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            margin: 3px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 1px solid #343a40;
+            background-color: #fff;
+            color: #343a40;
+            transition: all 0.2s;
+        }
+        .role-badge:hover {
+            background-color: #e9ecef;
+        }
+        .role-badge.active {
+            background-color: #343a40;
+            color: #fff;
+        }
+        .show-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            margin: 3px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 1px solid #0d6efd;
+            background-color: #fff;
+            color: #0d6efd;
+            transition: all 0.2s;
+        }
+        .show-badge:hover {
+            background-color: #e7f1ff;
+        }
+        .show-badge.active {
+            background-color: #0d6efd;
+            color: #fff;
+        }
+        #searchBox {
+            max-width: 400px;
+        }
+        .filter-section {
+            margin-bottom: 16px;
+        }
+        .filter-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 6px;
+        }
+        .season-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #495057;
+            margin-right: 4px;
+        }
+        .count-display {
+            font-size: 0.95rem;
+            color: #6c757d;
+        }
+        .back-link {
+            text-decoration: none;
+            color: #343a40;
+        }
+        .back-link:hover {
+            color: #0d6efd;
+        }
+        .table-auto {
+            width: auto;
+        }
+        .table-responsive-wrapper {
+            overflow-x: auto;
+            width: 100%;
+        }
+        #emailListContainer {
+            display: none;
+            margin-bottom: 16px;
+        }
+        #emailListContainer.has-emails {
+            display: block;
+        }
+        #emailList {
+            font-size: 0.9rem;
+            word-break: break-all;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px 14px;
+            min-height: 40px;
+        }
+        .copy-btn {
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header (outside container so table width doesn't affect centering) -->
+    <div style="text-align: center; margin-bottom: 1rem;">
+        <a href="/">
+            <img src="{{ url_for('static', filename='Media/Wide Logo Centred Black.png') }}"
+                 style="display: block; margin-left: auto; margin-right: auto; max-width: 250px;" alt="Theatre Aurora Logo">
+        </a>
+    </div>
+
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <a href="/" class="back-link">&larr; Home</a>
+            <h3 class="mb-0">Our People</h3>
+            <span class="count-display" id="countDisplay"></span>
+        </div>
+        <div class="text-center mb-3" style="font-size: 0.85rem; color: #6c757d;">
+            Last Updated: {{ formatted_update }}
+        </div>
+
+        <!-- Search -->
+        <div class="mb-3 d-flex align-items-center" style="max-width: 400px;">
+            <input type="text" id="searchBox" class="form-control" placeholder="Search by name, email, show, or role...">
+            <button class="btn btn-sm btn-outline-secondary ms-2" id="clearSearchBtn" style="display: none;" onclick="clearSearch()">Clear</button>
+        </div>
+
+        <!-- Role Filters -->
+        <div class="filter-section">
+            <div class="filter-label">Filter by Role:</div>
+            <div id="roleFilters">
+                {% for role in all_roles %}
+                {% if role != 'Volunteer' %}
+                <span class="role-badge" data-role="{{ role }}">{{ role }}</span>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Show Filters (grouped by season) -->
+        <div class="filter-section">
+            <div class="filter-label">Filter by Show:</div>
+            <div id="showFilters">
+                {% for season, shows in shows_by_season %}
+                <div class="mb-2">
+                    <span class="season-label">{{ season }}:</span>
+                    {% for show in shows %}
+                    <span class="show-badge" data-show="{{ show }}">{{ show }}</span>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Quick Select & Email List -->
+        <div class="mb-3">
+            <button class="btn btn-sm btn-outline-success" id="volunteerToggleBtn" onclick="toggleVolunteers()">Select All Volunteers</button>
+        </div>
+
+        <div id="emailListContainer">
+            <div class="d-flex align-items-center mb-1">
+                <span class="filter-label mb-0 me-2">Email List (<span id="emailCount">0</span> selected):</span>
+                <button class="btn btn-sm btn-outline-secondary copy-btn" onclick="copyEmailList()">Copy to Clipboard</button>
+            </div>
+            <div id="emailList"></div>
+        </div>
+
+        <!-- People Table -->
+        <div class="table-responsive-wrapper">
+        <table class="table table-striped table-hover mx-auto table-auto">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll" title="Select all visible"></th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Show // Role</th>
+                    <th>Volunteer List</th>
+                </tr>
+            </thead>
+            <tbody id="peopleTable">
+                {% for row in table_rows %}
+                <tr class="people-row"
+                    data-name="{{ row.last_name }}, {{ row.first_name }}"
+                    data-email="{{ row.email }}"
+                    data-role="{{ row.all_roles }}"
+                    data-show="{{ row.all_shows }}"
+                    data-volunteer="{{ 'yes' if row.is_volunteer else 'no' }}">
+                    <td><input type="checkbox" class="row-check" data-email="{{ row.email }}"></td>
+                    <td>{{ row.last_name }}{% if row.last_name and row.first_name %}, {% endif %}{{ row.first_name }}</td>
+                    <td>{{ row.email }}</td>
+                    <td>
+                        {% for r in row.roles %}
+                        <div><span style="color: #0d6efd;">{{ r.show }}</span> // {{ r.role }}</div>
+                        {% endfor %}
+                    </td>
+                    <td class="text-center">
+                        {% if row.is_volunteer %}
+                        <span style="color: #198754;" title="On Volunteer marketing list">&#10003;</span>
+                        {% else %}
+                        <span style="color: #dc3545;" title="Not on Volunteer marketing list">&#10007;</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <script>
+        const rows = document.querySelectorAll('.people-row');
+        const searchBox = document.getElementById('searchBox');
+        const roleBadges = document.querySelectorAll('.role-badge');
+        const showBadges = document.querySelectorAll('.show-badge');
+        const countDisplay = document.getElementById('countDisplay');
+
+        let activeRoles = new Set();
+        let activeShows = new Set();
+
+        function updateCount() {
+            const visible = document.querySelectorAll('.people-row:not([style*="display: none"])').length;
+            const total = rows.length;
+            countDisplay.textContent = `Showing ${visible} of ${total} entries`;
+        }
+
+        function filterRows() {
+            const search = searchBox.value.toLowerCase();
+
+            rows.forEach(row => {
+                const name = row.dataset.name.toLowerCase();
+                const email = row.dataset.email.toLowerCase();
+                const role = row.dataset.role;
+                const show = row.dataset.show;
+
+                const matchesSearch = !search ||
+                    name.includes(search) ||
+                    email.includes(search) ||
+                    show.toLowerCase().includes(search) ||
+                    role.toLowerCase().includes(search);
+                const personRoles = role.split(',').map(r => r.trim());
+                const personShows = show.split(',').map(s => s.trim());
+                const matchesRole = activeRoles.size === 0 || personRoles.some(r => activeRoles.has(r));
+                const matchesShow = activeShows.size === 0 || personShows.some(s => activeShows.has(s));
+
+                row.style.display = (matchesSearch && matchesRole && matchesShow) ? '' : 'none';
+            });
+
+            updateCount();
+        }
+
+        searchBox.addEventListener('input', () => {
+            document.getElementById('clearSearchBtn').style.display = searchBox.value ? '' : 'none';
+            filterRows();
+        });
+
+        function clearSearch() {
+            searchBox.value = '';
+            document.getElementById('clearSearchBtn').style.display = 'none';
+            filterRows();
+        }
+
+        roleBadges.forEach(badge => {
+            badge.addEventListener('click', () => {
+                const role = badge.dataset.role;
+                if (activeRoles.has(role)) {
+                    activeRoles.delete(role);
+                    badge.classList.remove('active');
+                } else {
+                    activeRoles.add(role);
+                    badge.classList.add('active');
+                }
+                filterRows();
+            });
+        });
+
+        showBadges.forEach(badge => {
+            badge.addEventListener('click', () => {
+                const show = badge.dataset.show;
+                if (activeShows.has(show)) {
+                    activeShows.delete(show);
+                    badge.classList.remove('active');
+                } else {
+                    activeShows.add(show);
+                    badge.classList.add('active');
+                }
+                filterRows();
+            });
+        });
+
+        // Checkbox logic
+        const selectAll = document.getElementById('selectAll');
+        const emailListContainer = document.getElementById('emailListContainer');
+        const emailListDiv = document.getElementById('emailList');
+        const emailCountSpan = document.getElementById('emailCount');
+
+        function updateEmailList() {
+            const checked = document.querySelectorAll('.row-check:checked');
+            const emails = new Set();
+            checked.forEach(cb => {
+                const row = cb.closest('.people-row');
+                if (row && row.dataset.volunteer !== 'yes') return;
+                const email = cb.dataset.email.trim();
+                if (email) emails.add(email);
+            });
+            const emailArray = [...emails];
+            emailListDiv.textContent = emailArray.join('; ');
+            emailCountSpan.textContent = emailArray.length;
+            emailListContainer.classList.toggle('has-emails', emailArray.length > 0);
+        }
+
+        function updateSelectAllState() {
+            const visibleChecks = document.querySelectorAll('.people-row:not([style*="display: none"]) .row-check');
+            const allChecked = visibleChecks.length > 0 && [...visibleChecks].every(cb => cb.checked);
+            selectAll.checked = allChecked;
+        }
+
+        selectAll.addEventListener('change', () => {
+            const visibleChecks = document.querySelectorAll('.people-row:not([style*="display: none"]) .row-check');
+            visibleChecks.forEach(cb => cb.checked = selectAll.checked);
+            updateEmailList();
+        });
+
+        document.querySelectorAll('.row-check').forEach(cb => {
+            cb.addEventListener('change', () => {
+                updateSelectAllState();
+                updateEmailList();
+            });
+        });
+
+        let volunteersSelected = false;
+
+        function toggleVolunteers() {
+            const btn = document.getElementById('volunteerToggleBtn');
+            volunteersSelected = !volunteersSelected;
+
+            if (volunteersSelected) {
+                // Check only volunteers
+                document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
+                rows.forEach(row => {
+                    if (row.dataset.volunteer === 'yes') {
+                        const cb = row.querySelector('.row-check');
+                        if (cb) cb.checked = true;
+                    }
+                });
+                btn.textContent = 'Deselect All Volunteers';
+                btn.classList.remove('btn-outline-success');
+                btn.classList.add('btn-success');
+            } else {
+                // Uncheck volunteers
+                rows.forEach(row => {
+                    if (row.dataset.volunteer === 'yes') {
+                        const cb = row.querySelector('.row-check');
+                        if (cb) cb.checked = false;
+                    }
+                });
+                btn.textContent = 'Select All Volunteers';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-success');
+            }
+            updateSelectAllState();
+            updateEmailList();
+        }
+
+        function copyEmailList() {
+            const text = emailListDiv.textContent;
+            navigator.clipboard.writeText(text);
+            const btn = document.querySelector('.copy-btn');
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy to Clipboard', 1500);
+        }
+
+        // Update select-all state when filters change
+        const origFilterRows = filterRows;
+        filterRows = function() {
+            origFilterRows();
+            updateSelectAllState();
+        };
+
+        // Initial count
+        updateCount();
+    </script>
+</body>
+</html>
