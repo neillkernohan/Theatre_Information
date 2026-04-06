@@ -174,12 +174,10 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/')
-@login_required
 def home():
     return render_template('home.html')
 
 @app.route('/SeasonTotals')
-@login_required
 def SeasonTotals():
     Theatre_Information_DB = mysql.connector.connect(
         host=MYSQL_HOST,
@@ -261,7 +259,6 @@ def SeasonTotals():
         past14days=past14days)
 
 @app.route('/TotalSales')
-@login_required
 def TotalSales():
     Ticket_Data_DB = mysql.connector.connect(
         host=MYSQL_HOST,
@@ -313,7 +310,6 @@ def TotalSales():
     return render_template('TotalSales.html', data=ticket_data, season_data=season_data, last_season_data=last_season_data, subscription_data = subscription_data, formatted_update=formatted_update, comments_season_count=comments_season_count, dayaverages=dayaverages)
 
 @app.route('/ShowDetail')
-@login_required
 def GetShowDetail():
     show_name = request.args.get('show_name', default="Anne of Green Gables - The Musical", type=str)  # Getting show_name from the query parameters
 
@@ -587,7 +583,6 @@ def GetShowDetail():
     )
 
 @app.route('/Check_Calendar')
-@login_required
 def Check_Calendar():
 
     # Specify the path to your CSV file
@@ -611,7 +606,6 @@ def Check_Calendar():
 
 
 @app.route('/OurPeople')
-@login_required
 def OurPeople():
     db = mysql.connector.connect(
         host=MYSQL_HOST,
