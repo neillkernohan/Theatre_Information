@@ -19,6 +19,15 @@ error.txt
 # CSV data files
 *.csv
 
+# XLSX data files
+*.xlsx
+
+# shell files
+*.sh
+
+# sql fils
+*.sql
+
 # Python cache
 __pycache__/
 *.pyc
@@ -32,6 +41,17 @@ pyvenv.cfg
 
 # Pipfile.lock (generated from Pipfile)
 Pipfile.lock
+
+#Unneeded py files
+UploadDatafromCSV.py
+AddRolePeopleToVolunteerList.py
+AddVolunteersToArtsPeople.py
+GetDataFromArtsPeople2.py
+Load Patrons from Mailchimp into Arts People.py
+RemoveRoleFromVolunteersList.py
+ReplaceEmDashInNotes.py
+ReplaceRoleInNotes.py
+UpdateHouseManagerNotes.py
 
 # Old/duplicate files
 GetDataFromArtsPeople

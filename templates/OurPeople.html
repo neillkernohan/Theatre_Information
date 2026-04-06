@@ -127,10 +127,10 @@
     </div>
 
     <div class="container-fluid">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-            <a href="/" class="back-link">&larr; Home</a>
-            <h3 class="mb-0">Our People</h3>
-            <span class="count-display" id="countDisplay"></span>
+        <div class="align-items-center mb-1" style="display: grid; grid-template-columns: 1fr auto 1fr;">
+            <a href="/" class="back-link" style="justify-self: start;">&larr; Home</a>
+            <h3 class="m-0 text-center">Our People</h3>
+            <span class="count-display" id="countDisplay" style="justify-self: end;"></span>
         </div>
         <div class="text-center mb-3" style="font-size: 0.85rem; color: #6c757d;">
             Last Updated: {{ formatted_update }}
