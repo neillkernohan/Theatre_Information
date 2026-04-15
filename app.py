@@ -166,81 +166,92 @@ google = oauth.register(
     client_kwargs={'scope': 'openid email profile'},
 )
 
-# --- Auditions Module Setup ---
-from flask_login import LoginManager
-from flask_mail import Mail
-from flask_wtf.csrf import CSRFProtect, CSRFError
+# --- Auditions Module Setup (optional) ---
+# The auditions module is optional — the core site runs without it.
+# If the 'auditions' package or its dependencies are missing (e.g. on a
+# server that hasn't been set up for auditions yet), skip this whole block
+# instead of crashing the entire app.
+AUDITIONS_ENABLED = False
+try:
+    from flask_login import LoginManager
+    from flask_mail import Mail
+    from flask_wtf.csrf import CSRFProtect, CSRFError
+    from auditions.models import db, User
+    from auditions import auditions_bp
 
-# SQLAlchemy config for auditions database
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('AUDITIONS_DB_URI')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    # SQLAlchemy config for auditions database
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('AUDITIONS_DB_URI')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# File upload config
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'auditions', 'uploads')
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    # File upload config
+    app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'auditions', 'uploads')
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Flask-Mail config (Gmail SMTP)
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'Theatre Aurora Auditions <auditions@theatreaurora.com>')
+    # Flask-Mail config (Gmail SMTP)
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+    app.config['MAIL_PORT'] = 587
+    app.config['MAIL_USE_TLS'] = True
+    app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+    app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'Theatre Aurora Auditions <auditions@theatreaurora.com>')
 
-# Initialize extensions
-from auditions.models import db, User
-db.init_app(app)
+    # Initialize extensions
+    db.init_app(app)
 
-login_manager = LoginManager(app)
-login_manager.login_view = 'auditions.actor_login'
-login_manager.login_message_category = 'info'
+    login_manager = LoginManager(app)
+    login_manager.login_view = 'auditions.actor_login'
+    login_manager.login_message_category = 'info'
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
 
-mail = Mail(app)
-csrf = CSRFProtect(app)
+    mail = Mail(app)
+    csrf = CSRFProtect(app)
 
-@app.errorhandler(CSRFError)
-def handle_csrf_error(e):
-    from flask import jsonify
-    return jsonify({'error': 'CSRF validation failed', 'detail': e.description}), 400
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        from flask import jsonify
+        return jsonify({'error': 'CSRF validation failed', 'detail': e.description}), 400
 
-# Register auditions blueprint
-from auditions import auditions_bp
-app.register_blueprint(auditions_bp)
+    # Register auditions blueprint
+    app.register_blueprint(auditions_bp)
 
-# CLI commands for auditions
-@app.cli.command('init-auditions-db')
-def init_auditions_db():
-    """Create all auditions database tables."""
-    with app.app_context():
-        db.create_all()
-    click.echo('Auditions database tables created.')
+    # CLI commands for auditions
+    @app.cli.command('init-auditions-db')
+    def init_auditions_db():
+        """Create all auditions database tables."""
+        with app.app_context():
+            db.create_all()
+        click.echo('Auditions database tables created.')
 
-@app.cli.command('create-admin')
-@click.option('--email', prompt='Admin email')
-@click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
-@click.option('--first-name', prompt='First name')
-@click.option('--last-name', prompt='Last name')
-def create_admin(email, password, first_name, last_name):
-    """Create an admin user for the auditions module."""
-    with app.app_context():
-        if User.query.filter_by(email=email.lower()).first():
-            click.echo(f'Error: User with email {email} already exists.')
-            return
-        user = User(
-            email=email.lower().strip(),
-            first_name=first_name.strip(),
-            last_name=last_name.strip(),
-            role='admin'
-        )
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        click.echo(f'Admin user {first_name} {last_name} ({email}) created successfully.')
+    @app.cli.command('create-admin')
+    @click.option('--email', prompt='Admin email')
+    @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
+    @click.option('--first-name', prompt='First name')
+    @click.option('--last-name', prompt='Last name')
+    def create_admin(email, password, first_name, last_name):
+        """Create an admin user for the auditions module."""
+        with app.app_context():
+            if User.query.filter_by(email=email.lower()).first():
+                click.echo(f'Error: User with email {email} already exists.')
+                return
+            user = User(
+                email=email.lower().strip(),
+                first_name=first_name.strip(),
+                last_name=last_name.strip(),
+                role='admin'
+            )
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            click.echo(f'Admin user {first_name} {last_name} ({email}) created successfully.')
+
+    AUDITIONS_ENABLED = True
+except (ImportError, ModuleNotFoundError) as _auditions_err:
+    import sys as _sys
+    print(f"[Theatre_Info] Auditions module disabled: {_auditions_err}", file=_sys.stderr)
 # --- End Auditions Module Setup ---
 
 def login_required(f):
