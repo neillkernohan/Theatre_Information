@@ -134,6 +134,10 @@
         </div>
         <div class="text-center mb-3" style="font-size: 0.85rem; color: #6c757d;">
             Last Updated: {{ formatted_update }}
+            {% if session.get('user_email') %}
+            &nbsp;|&nbsp; Signed in as {{ session.get('user_email') }}
+            &nbsp;|&nbsp; <a href="{{ url_for('logout') }}">Logout</a>
+            {% endif %}
         </div>
 
         <!-- Search -->

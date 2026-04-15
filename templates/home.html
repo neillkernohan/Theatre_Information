@@ -31,14 +31,62 @@
             font-size: 1.2rem;
             border-radius: 8px;
         }
+        #loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(248, 249, 250, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        #loading-overlay.active {
+            display: flex;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #dee2e6;
+            border-top: 5px solid #343a40;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p id="loading-text" style="margin-top: 16px; color: #6c757d;">Loading...</p>
+    </div>
     <div class="home-container">
         <img src="{{ url_for('static', filename='Media/Wide Logo Centred Black.png') }}" alt="Theatre Logo">
         <h2 class="mb-4">Theatre Information Dashboard</h2>
-        <a href="/SeasonTotals" class="btn btn-dark btn-theatre">Season Totals</a>
-        <a href="/OurPeople" class="btn btn-dark btn-theatre">Our People</a>
+        <a href="/SeasonTotals" class="btn btn-dark btn-theatre nav-link-loading" data-label="Loading Season Totals...">Season Totals</a>
+        <a href="/OurPeople" class="btn btn-dark btn-theatre nav-link-loading" data-label="Loading Our People...">Our People</a>
+        <!-- <a href="/auditions/" class="btn btn-dark btn-theatre nav-link-loading" data-label="Loading Auditions Manager...">Auditions Manager</a> -->
+        {% if session.get('user_email') %}
+        <div style="margin-top: 24px; font-size: 0.85rem; color: #6c757d;">
+            Signed in as {{ session.get('user_email') }} &nbsp;|&nbsp; <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+        {% endif %}
     </div>
+    <script>
+        document.querySelectorAll('.nav-link-loading').forEach(link => {
+            link.addEventListener('click', (e) => {
+                const overlay = document.getElementById('loading-overlay');
+                const text = document.getElementById('loading-text');
+                text.textContent = link.dataset.label || 'Loading...';
+                overlay.classList.add('active');
+            });
+        });
+        // Hide overlay if user navigates back to this page
+        window.addEventListener('pageshow', () => {
+            document.getElementById('loading-overlay').classList.remove('active');
+        });
+    </script>
 </body>
 </html>

@@ -12,6 +12,8 @@ from decimal import Decimal
 import json
 from dotenv import load_dotenv
 from functools import wraps
+from authlib.integrations.flask_client import OAuth
+import click
 
 import random
 
@@ -22,6 +24,8 @@ MYSQL_USER = os.getenv("MYSQL_USER")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
 MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
 APP_PASSWORD = os.getenv("APP_PASSWORD")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 used_colors = set()
 
@@ -149,28 +153,152 @@ def get_fiscal_year_start(input_date):
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", 'cW3(sP1;tJ4#mX2<sL6!uB1&zR0~gX4%')  # Needed for session management
 
+# Keep users logged in for 30 days
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+
+# Google OAuth setup
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'},
+)
+
+# --- Auditions Module Setup ---
+from flask_login import LoginManager
+from flask_mail import Mail
+from flask_wtf.csrf import CSRFProtect, CSRFError
+
+# SQLAlchemy config for auditions database
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('AUDITIONS_DB_URI')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# File upload config
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'auditions', 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Flask-Mail config (Gmail SMTP)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'Theatre Aurora Auditions <auditions@theatreaurora.com>')
+
+# Initialize extensions
+from auditions.models import db, User
+db.init_app(app)
+
+login_manager = LoginManager(app)
+login_manager.login_view = 'auditions.actor_login'
+login_manager.login_message_category = 'info'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+mail = Mail(app)
+csrf = CSRFProtect(app)
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    from flask import jsonify
+    return jsonify({'error': 'CSRF validation failed', 'detail': e.description}), 400
+
+# Register auditions blueprint
+from auditions import auditions_bp
+app.register_blueprint(auditions_bp)
+
+# CLI commands for auditions
+@app.cli.command('init-auditions-db')
+def init_auditions_db():
+    """Create all auditions database tables."""
+    with app.app_context():
+        db.create_all()
+    click.echo('Auditions database tables created.')
+
+@app.cli.command('create-admin')
+@click.option('--email', prompt='Admin email')
+@click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
+@click.option('--first-name', prompt='First name')
+@click.option('--last-name', prompt='Last name')
+def create_admin(email, password, first_name, last_name):
+    """Create an admin user for the auditions module."""
+    with app.app_context():
+        if User.query.filter_by(email=email.lower()).first():
+            click.echo(f'Error: User with email {email} already exists.')
+            return
+        user = User(
+            email=email.lower().strip(),
+            first_name=first_name.strip(),
+            last_name=last_name.strip(),
+            role='admin'
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        click.echo(f'Admin user {first_name} {last_name} ({email}) created successfully.')
+# --- End Auditions Module Setup ---
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get('logged_in'):
-            return redirect(url_for('login', next=request.path))
+            session['next_url'] = request.path
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated
 
-@app.route('/login', methods=['GET', 'POST'])
+def is_authorized(email):
+    """Check if an email is in the Authorized_Users table."""
+    db = mysql.connector.connect(
+        host=MYSQL_HOST,
+        user=MYSQL_USER,
+        password=MYSQL_PASSWORD,
+        database=MYSQL_DATABASE
+    )
+    cursor = db.cursor()
+    cursor.execute("SELECT COUNT(*) FROM Authorized_Users WHERE email = %s", (email.lower(),))
+    count = cursor.fetchone()[0]
+    db.close()
+    return count > 0
+
+@app.route('/login')
 def login():
-    error = None
-    if request.method == 'POST':
-        if request.form['password'] == APP_PASSWORD:
-            session['logged_in'] = True
-            return redirect(request.args.get('next') or url_for('home'))
-        else:
-            error = 'Incorrect password.'
-    return render_template('login.html', error=error)
+    return render_template('login.html')
+
+@app.route('/auth/google')
+def auth_google():
+    redirect_uri = url_for('auth_google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/auth/google/callback')
+def auth_google_callback():
+    token = google.authorize_access_token()
+    user_info = token.get('userinfo')
+    if not user_info:
+        user_info = google.userinfo()
+
+    email = user_info.get('email', '').lower()
+    name = user_info.get('name', '')
+
+    if not is_authorized(email):
+        return render_template('login.html',
+            error=f"'{email}' is not authorized to access this site. Contact your administrator.")
+
+    session.permanent = True
+    session['logged_in'] = True
+    session['user_email'] = email
+    session['user_name'] = name
+    next_url = session.pop('next_url', None)
+    return redirect(next_url or url_for('home'))
 
 @app.route('/logout')
 def logout():
-    session.pop('logged_in', None)
+    session.clear()
     return redirect(url_for('login'))
 
 @app.route('/')
@@ -178,6 +306,7 @@ def home():
     return render_template('home.html')
 
 @app.route('/SeasonTotals')
+@login_required
 def SeasonTotals():
     Theatre_Information_DB = mysql.connector.connect(
         host=MYSQL_HOST,
@@ -606,6 +735,7 @@ def Check_Calendar():
 
 
 @app.route('/OurPeople')
+@login_required
 def OurPeople():
     db = mysql.connector.connect(
         host=MYSQL_HOST,

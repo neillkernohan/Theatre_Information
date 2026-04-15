@@ -24,11 +24,53 @@
         .table-auto {
             width: auto;
         }
+        #loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #dee2e6;
+            border-top: 5px solid #343a40;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 
 <body>
-    <div style="margin: 10px;"><a href="/" style="text-decoration: none; color: #343a40;">&larr; Home</a></div>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p style="margin-top: 16px; color: #6c757d;">Loading Season Totals...</p>
+    </div>
+    <script>
+        window.addEventListener('load', function() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.transition = 'opacity 0.3s';
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 300);
+            }
+        });
+    </script>
+    <div style="margin: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <a href="/" style="text-decoration: none; color: #343a40;">&larr; Home</a>
+        {% if session.get('user_email') %}
+        <span style="font-size: 0.85rem; color: #6c757d;">
+            Signed in as {{ session.get('user_email') }} &nbsp;|&nbsp; <a href="{{ url_for('logout') }}">Logout</a>
+        </span>
+        {% endif %}
+    </div>
     <img src="{{ url_for('static', filename='Media/Wide Logo Centred Black.png') }}" style="display: block; margin-left: auto; margin-right: auto;" width='25%' align="center" alt="Description of image" /><br>
     <div align="center">
     Select a Season: 
