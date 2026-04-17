@@ -336,7 +336,7 @@
         }
 
         selectAll.addEventListener('change', () => {
-            const visibleChecks = document.querySelectorAll('.people-row:not([style*="display: none"]) .row-check');
+            const visibleChecks = document.querySelectorAll('.people-row:not([style*="display: none"]):not([data-volunteer="no"]) .row-check');
             visibleChecks.forEach(cb => cb.checked = selectAll.checked);
             updateEmailList();
         });
@@ -390,11 +390,13 @@
             setTimeout(() => btn.textContent = 'Copy to Clipboard', 1500);
         }
 
-        // Update select-all state when filters change
+        // Uncheck only rows that become hidden when filters change
         const origFilterRows = filterRows;
         filterRows = function() {
             origFilterRows();
+            document.querySelectorAll('.people-row[style*="display: none"] .row-check').forEach(cb => cb.checked = false);
             updateSelectAllState();
+            updateEmailList();
         };
 
         // Initial count

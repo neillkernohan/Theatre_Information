@@ -398,56 +398,56 @@ def SeasonTotals():
         shows_only=shows_only,
         past14days=past14days)
 
-@app.route('/TotalSales')
-def TotalSales():
-    Ticket_Data_DB = mysql.connector.connect(
-        host=MYSQL_HOST,
-        user=MYSQL_USER,
-        password=MYSQL_PASSWORD,
-        database=MYSQL_DATABASE
-    )
+# @app.route('/TotalSales')
+# def TotalSales():
+#     Ticket_Data_DB = mysql.connector.connect(
+#         host=MYSQL_HOST,
+#         user=MYSQL_USER,
+#         password=MYSQL_PASSWORD,
+#         database=MYSQL_DATABASE
+#     )
 
-    data = Ticket_Data_DB.cursor()
+#     data = Ticket_Data_DB.cursor()
 
-    data.callproc('GetTicketTotals', ('2023-07-01',0))
-    for result in data.stored_results():
-        ticket_data = result.fetchall()
+#     data.callproc('GetTicketTotals', ('2023-07-01',0))
+#     for result in data.stored_results():
+#         ticket_data = result.fetchall()
 
-    data.callproc('GetSeasonTotals', ('2023-07-01',0))
-    for result in data.stored_results():
-        season_data = result.fetchall()
+#     data.callproc('GetSeasonTotals', ('2023-07-01',0))
+#     for result in data.stored_results():
+#         season_data = result.fetchall()
 
-    data.callproc('GetSeasonTotals', ('2022-07-01',0))
-    for result in data.stored_results():
-        last_season_data = result.fetchall()
+#     data.callproc('GetSeasonTotals', ('2022-07-01',0))
+#     for result in data.stored_results():
+#         last_season_data = result.fetchall()
     
-    data.callproc('GetCommentsSeasonCount', ('2023-07-01',))
-    for result in data.stored_results():
-        comments_season_count = result.fetchall()
+#     data.callproc('GetCommentsSeasonCount', ('2023-07-01',))
+#     for result in data.stored_results():
+#         comments_season_count = result.fetchall()
 
-    data.callproc('GetDayAverages')
-    for result in data.stored_results():
-        dayaverages = result.fetchall()
+#     data.callproc('GetDayAverages')
+#     for result in data.stored_results():
+#         dayaverages = result.fetchall()
 
-    Subscription_Cursor = Ticket_Data_DB.cursor()
-    Subscription_Cursor.callproc('GetSubscriptions', ('2023-07-01',))
-    for result in Subscription_Cursor.stored_results():
-        subscription_data = result.fetchall()
+#     Subscription_Cursor = Ticket_Data_DB.cursor()
+#     Subscription_Cursor.callproc('GetSubscriptions', ('2023-07-01',))
+#     for result in Subscription_Cursor.stored_results():
+#         subscription_data = result.fetchall()
 
-    Updates_Cursor = Ticket_Data_DB.cursor()
-    Updates_Cursor.execute("SELECT Update_date_time FROM Theatre_Information.Updates order by Update_date_time desc limit 1;")
-    update_data=Updates_Cursor.fetchall()
-    last_update = update_data[0][0] if update_data else 'Not available'
-    # Your code to fetch last_update from the database...
+#     Updates_Cursor = Ticket_Data_DB.cursor()
+#     Updates_Cursor.execute("SELECT Update_date_time FROM Theatre_Information.Updates order by Update_date_time desc limit 1;")
+#     update_data=Updates_Cursor.fetchall()
+#     last_update = update_data[0][0] if update_data else 'Not available'
+#     # Your code to fetch last_update from the database...
 
-    # Parse and format the datetime
+#     # Parse and format the datetime
     
-    # last_update is assumed to be a datetime.datetime object
-    formatted_update = last_update.strftime('%B %-d, %Y at %-I:%M %p')
+#     # last_update is assumed to be a datetime.datetime object
+#     formatted_update = last_update.strftime('%B %-d, %Y at %-I:%M %p')
 
-    # Then render the template with formatted_update
+#     # Then render the template with formatted_update
 
-    return render_template('TotalSales.html', data=ticket_data, season_data=season_data, last_season_data=last_season_data, subscription_data = subscription_data, formatted_update=formatted_update, comments_season_count=comments_season_count, dayaverages=dayaverages)
+#     return render_template('TotalSales.html', data=ticket_data, season_data=season_data, last_season_data=last_season_data, subscription_data = subscription_data, formatted_update=formatted_update, comments_season_count=comments_season_count, dayaverages=dayaverages)
 
 @app.route('/ShowDetail')
 def GetShowDetail():
@@ -722,27 +722,27 @@ def GetShowDetail():
         ticketsalesovertimedatasets=ticketsalesovertimedatasets
     )
 
-@app.route('/Check_Calendar')
-def Check_Calendar():
+# @app.route('/Check_Calendar')
+# def Check_Calendar():
 
-    # Specify the path to your CSV file
-    csv_file_path = 'events.csv'  # Make sure to adjust this to your CSV file's actual path
+#     # Specify the path to your CSV file
+#     csv_file_path = 'events.csv'  # Make sure to adjust this to your CSV file's actual path
 
-    # Initialize an empty list to store the data
-    events = []
+#     # Initialize an empty list to store the data
+#     events = []
 
-    # Open and read the CSV file
-    with open(csv_file_path, mode='r', newline='') as file:
-        reader = csv.DictReader(file)
+#     # Open and read the CSV file
+#     with open(csv_file_path, mode='r', newline='') as file:
+#         reader = csv.DictReader(file)
         
-        # Iterate over each row in the CSV and add it to the list
-        for row in reader:
-            # If 'allDay' exists in the row, convert its string representation back to a boolean
-            if 'allDay' in row:
-                row['allDay'] = row['allDay'].lower() == 'true'
-            events.append(row)
+#         # Iterate over each row in the CSV and add it to the list
+#         for row in reader:
+#             # If 'allDay' exists in the row, convert its string representation back to a boolean
+#             if 'allDay' in row:
+#                 row['allDay'] = row['allDay'].lower() == 'true'
+#             events.append(row)
 
-    return render_template('Check_Calendar.html', events=events)
+#     return render_template('Check_Calendar.html', events=events)
 
 
 @app.route('/OurPeople')
