@@ -127,7 +127,7 @@
                             <td class="text-end">{{ row[4] }}</td>
                             <td class="text-end">{{ row[5] }}</td>
                             <td class="text-end">{{ row[6] }}</td>
-                            <td class="text-end">{{ "{:.1f}".format(row[6]/(152*row[13])*100) }}</td>
+                            <td class="text-end">{{ "{:.1f}".format(row[6]/(152*row[13])*100) if row[6] is not none and row[13] else "N/A" }}</td>
                             <td class="text-end">$ {{ row[7] }}</td>
                             <td class="text-end">$ {{ row[8] }}</td>
                             <td class="text-end">$ {{ row[9] }}</td>
@@ -184,16 +184,16 @@
                             <td>Tickets</td>
                         </tr>
                         <tr>
-                            <td></td><td>Regular</td><td class="text-end">{{ season_data[0][0] }}</td><td class="text-end">{{ last_season_data[0][0] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][0]/last_season_data[0][0]*100) }}%</td>
+                            <td></td><td>Regular</td><td class="text-end">{{ season_data[0][0] }}</td><td class="text-end">{{ last_season_data[0][0] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][0]/last_season_data[0][0]*100) if season_data[0][0] is not none and last_season_data[0][0] else "N/A" }}%</td>
                         </tr>
                         <tr>
-                            <td></td><td>Senior</td><td class="text-end">{{ season_data[0][1] }}</td><td class="text-end">{{ last_season_data[0][1] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][1]/last_season_data[0][1]*100) }}%</td>
+                            <td></td><td>Senior</td><td class="text-end">{{ season_data[0][1] }}</td><td class="text-end">{{ last_season_data[0][1] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][1]/last_season_data[0][1]*100) if season_data[0][1] is not none and last_season_data[0][1] else "N/A" }}%</td>
                         </tr>
                         <tr>
-                            <td></td><td>Student</td><td class="text-end">{{ season_data[0][2] }}</td><td class="text-end">{{ last_season_data[0][2] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][2]/last_season_data[0][2]*100) }}%</td>
+                            <td></td><td>Student</td><td class="text-end">{{ season_data[0][2] }}</td><td class="text-end">{{ last_season_data[0][2] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][2]/last_season_data[0][2]*100) if season_data[0][2] is not none and last_season_data[0][2] else "N/A" }}%</td>
                         </tr>
                         <tr>
-                            <td colspan="2">Totals</td><td class="text-end">{{ season_data[0][3] }}</td><td class="text-end">{{ last_season_data[0][3] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][3]/last_season_data[0][3]*100) }}%</td>
+                            <td colspan="2">Totals</td><td class="text-end">{{ season_data[0][3] }}</td><td class="text-end">{{ last_season_data[0][3] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][3]/last_season_data[0][3]*100) if season_data[0][3] is not none and last_season_data[0][3] else "N/A" }}%</td>
                         </tr>
                 </table><br>
                 <h4 align="center">Subscriptions Comparison</h4>
@@ -217,7 +217,7 @@
                             <td class="text-end">$ {{ "{:.2f}".format(this_season_subscriptions[0][2]) }}</td>
                             <td class="text-end">{{ "{:.0f}".format(last_season_subscriptions[0][1]) }}</td>
                             <td class="text-end">$ {{ "{:.2f}".format(last_season_subscriptions[0][2]) }}</td>
-                            <td class="text-end">{{ "{:.1f}".format((this_season_subscriptions[0][1]-last_season_subscriptions[0][1])/last_season_subscriptions[0][1]*100) }}%</td>
+                            <td class="text-end">{{ "{:.1f}".format((this_season_subscriptions[0][1]-last_season_subscriptions[0][1])/last_season_subscriptions[0][1]*100) if this_season_subscriptions[0][1] is not none and last_season_subscriptions[0][1] else "N/A" }}%</td>
                         </tr>
                         <tr>
                             <td>{{ this_season_subscriptions[1][0] }}</td>
@@ -225,18 +225,14 @@
                             <td class="text-end">$ {{ "{:.2f}".format(this_season_subscriptions[1][2]) }}</td>
                             <td class="text-end">{{ "{:.0f}".format(last_season_subscriptions[1][1]) }}</td>
                             <td class="text-end">$ {{ "{:.2f}".format(last_season_subscriptions[1][2]) }}</td>
-                            <td class="text-end">{{ "{:.1f}".format((this_season_subscriptions[1][1]-last_season_subscriptions[1][1])/last_season_subscriptions[1][1]*100) }}%</td>
+                            <td class="text-end">{{ "{:.1f}".format((this_season_subscriptions[1][1]-last_season_subscriptions[1][1])/last_season_subscriptions[1][1]*100) if this_season_subscriptions[1][1] is not none and last_season_subscriptions[1][1] else "N/A" }}%</td>
                         </tr>                        <tr>
                             <td>{{ this_season_subscriptions[2][0] }}</td>
                             <td class="text-end">{{ "{:.0f}".format(this_season_subscriptions[2][1]) }}</td>
                             <td class="text-end">$ {{ "{:.2f}".format(this_season_subscriptions[2][2]) }}</td>
                             <td class="text-end">{{ "{:.0f}".format(last_season_subscriptions[2][1]) }}</td>
                             <td class="text-end">$ {{ "{:.2f}".format(last_season_subscriptions[2][2]) }}</td>
-                            {% if last_season_subscriptions[2][1] != 0 %}
-                                <td class="text-end">{{ "{:.1f}".format((this_season_subscriptions[2][1]-last_season_subscriptions[2][1])/last_season_subscriptions[2][1]*100) }}%</td>
-                            {% else %}
-                                <td class="text-end">N/A</td>
-                            {% endif %}
+                                <td class="text-end">{{ "{:.1f}".format((this_season_subscriptions[2][1]-last_season_subscriptions[2][1])/last_season_subscriptions[2][1]*100) if this_season_subscriptions[2][1] is not none and last_season_subscriptions[2][1] else "N/A" }}%</td>
                         </tr>
                         <tr>
                             <td>Totals</td>
@@ -274,20 +270,20 @@
                         <td>Revenue</td>
                     </tr>
                     <tr>
-                        <td></td><td>Tickets Bought</td><td class="text-end">$ {{ season_data[0][4] }}</td><td class="text-end">$ {{ last_season_data[0][4] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][4]/last_season_data[0][4]*100) if last_season_data[0][4] != 0 else "N/A" }}%</td>
+                        <td></td><td>Tickets Bought</td><td class="text-end">$ {{ season_data[0][4] }}</td><td class="text-end">$ {{ last_season_data[0][4] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][4]/last_season_data[0][4]*100) if season_data[0][4] is not none and last_season_data[0][4] else "N/A" }}%</td>
                     </tr>
                     <tr>
-                        <td></td><td>&nbsp;&nbsp;&nbsp;Less: Reserved</td><td class="text-end">$ {{ season_data[0][5] }}</td><td class="text-end">$ {{ last_season_data[0][5] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][5]/last_season_data[0][5]*100) if last_season_data[0][5] != 0 else "N/A" }}%</td>
+                        <td></td><td>&nbsp;&nbsp;&nbsp;Less: Reserved</td><td class="text-end">$ {{ season_data[0][5] }}</td><td class="text-end">$ {{ last_season_data[0][5] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][5]/last_season_data[0][5]*100) if season_data[0][5] is not none and last_season_data[0][5] else "N/A" }}%</td>
 
                     </tr>
                     <tr>
-                        <td></td><td>&nbsp;&nbsp;&nbsp;Less: Per Item Fees</td><td class="text-end">$ {{ season_data[0][6] }}</td><td class="text-end">$ {{ last_season_data[0][6] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][6]/last_season_data[0][6]*100) if last_season_data[0][6] != 0 else "N/A" }}%</td>
+                        <td></td><td>&nbsp;&nbsp;&nbsp;Less: Per Item Fees</td><td class="text-end">$ {{ season_data[0][6] }}</td><td class="text-end">$ {{ last_season_data[0][6] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][6]/last_season_data[0][6]*100) if season_data[0][6] is not none and last_season_data[0][6] else "N/A" }}%</td>
                     </tr>
                     <tr>
-                        <td></td><td>Forecasted Revenue</td><td class="text-end">$ {{ season_data[0][8] }}</td><td class="text-end">$ {{ last_season_data[0][8] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][8]/last_season_data[0][8]*100) if last_season_data[0][8] != 0 else "N/A" }}%</td>
+                        <td></td><td>Forecasted Revenue</td><td class="text-end">$ {{ season_data[0][8] }}</td><td class="text-end">$ {{ last_season_data[0][8] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][8]/last_season_data[0][8]*100) if season_data[0][8] is not none and last_season_data[0][8] else "N/A" }}%</td>
                     </tr>
                     <tr>
-                        <td></td><td>Deposited Revenue</td><td class="text-end">$ {{ season_data[0][9] }}</td><td class="text-end">$ {{ last_season_data[0][9] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][9]/last_season_data[0][9]*100) if last_season_data[0][9] != 0 else "N/A" }}%</td>
+                        <td></td><td>Deposited Revenue</td><td class="text-end">$ {{ season_data[0][9] }}</td><td class="text-end">$ {{ last_season_data[0][9] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][9]/last_season_data[0][9]*100) if season_data[0][9] is not none and last_season_data[0][9] else "N/A" }}%</td>
                     </tr>
                     <tr>
                         <td>Expenses</td>
@@ -296,24 +292,24 @@
                         <td></td>
                         <td>Production Costs</td><td class="text-end">$ {{ this_season_expenses[0][0] }}</td>
                         <td class="text-end">$ {{ last_season_expenses[0][0] }}</td>
-                        <td class="text-end">{{ "{:.1f}".format(this_season_expenses[0][0]/last_season_expenses[0][0]*100) if last_season_expenses[0][0] != 0 else "N/A" }}%</td>
+                        <td class="text-end">{{ "{:.1f}".format(this_season_expenses[0][0]/last_season_expenses[0][0]*100) if this_season_expenses[0][0] is not none and last_season_expenses[0][0] else "N/A" }}%</td>
                     </tr>
                     <tr>
                         <td></td>
                         <td>Rights</td>
                         <td class="text-end">$ {{ this_season_expenses[0][1] }}</td>
                         <td class="text-end">$ {{ last_season_expenses[0][1] }}</td>
-                        <td class="text-end">{{ "{:.1f}".format(this_season_expenses[0][1]/last_season_expenses[0][1]*100) if last_season_expenses[0][1] != 0 else "N/A" }}%</td>
+                        <td class="text-end">{{ "{:.1f}".format(this_season_expenses[0][1]/last_season_expenses[0][1]*100) if this_season_expenses[0][1] is not none and last_season_expenses[0][1] else "N/A" }}%</td>
                     </tr>
                     <tr>
                         <td>Net Income</td>
                         <td></td>
-                        <td class="text-end">$ {{ season_data[0][9] - this_season_expenses[0][0] - this_season_expenses[0][1] }}</td>
-                        <td class="text-end">$ {{ last_season_data[0][9] - last_season_expenses[0][0] - last_season_expenses[0][1] }}</td>
+                        <td class="text-end">$ {{ season_data[0][9] - (this_season_expenses[0][0] or 0) - (this_season_expenses[0][1] or 0) if season_data[0][9] is not none else "N/A" }}</td>
+                        <td class="text-end">$ {{ last_season_data[0][9] - (last_season_expenses[0][0] or 0) - (last_season_expenses[0][1] or 0) if last_season_data[0][9] is not none else "N/A" }}</td>
                         <td class="text-end">{{ "{:.1f}".format(
-                            (season_data[0][9] - this_season_expenses[0][0] - this_season_expenses[0][1])/(last_season_data[0][9] - last_season_expenses[0][0] - last_season_expenses[0][1])*100
-                            ) 
-                            if (last_season_data[0][9] - last_season_expenses[0][0] - last_season_expenses[0][1]) != 0 else "N/A" }}%</td>
+                            (season_data[0][9] - (this_season_expenses[0][0] or 0) - (this_season_expenses[0][1] or 0))/(last_season_data[0][9] - (last_season_expenses[0][0] or 0) - (last_season_expenses[0][1] or 0))*100
+                            )
+                            if season_data[0][9] is not none and last_season_data[0][9] is not none and (last_season_data[0][9] - (last_season_expenses[0][0] or 0) - (last_season_expenses[0][1] or 0)) != 0 else "N/A" }}%</td>
                     </tr>
                     </tr>
                 </table>
@@ -329,6 +325,7 @@ function setupAndSelectSeasonInDropdown() {
 
     // Define the start of each season
     const seasons = [
+        { start: new Date('2026-07-01'), value: '2026-07-01', label: '2026-2027 Season' },
         { start: new Date('2025-07-01'), value: '2025-07-01', label: '2025-2026 Season' },
         { start: new Date('2024-07-01'), value: '2024-07-01', label: '2024-2025 Season' },
         { start: new Date('2023-07-01'), value: '2023-07-01', label: '2023-2024 Season' }
