@@ -98,6 +98,8 @@
                         <th class="text-end">Senior Tickets Reserved</th>
                         <th class="text-end">Youth Tickets Reserved</th>
                         <th class="text-end">Total Tickets Reserved</th>
+                        <th class="text-end">Total Tickets Booked</th>
+                        <th class="text-end">% of Capacity</th>
                         <th class="text-end">Reserved Amount</th>
                         <th class="text-end">Per Item Fees</th>
                         <th class="text-end">Forecasted Revenue</th>
@@ -139,6 +141,8 @@
                             <td class="text-end">{{ row[9] }}</td>
                             <td class="text-end">{{ row[10] }}</td>
                             <td class="text-end">{{ row[11] }}</td>
+                            <td class="text-end">{{ row[6] + row[11] }}</td>
+                            <td class="text-end">{{ "{:.1f}".format((row[6] + row[11]) / (152 * row[17]) * 100) if row[17] else "N/A" }}%</td>
                             <td class="text-end">$ {{ row[12] }}</td>
                             <td class="text-end">$ {{ row[13] }}</td>
                             <td class="text-end">$ {{ row[15] }}</td>
@@ -178,6 +182,8 @@
                         <td class="text-end fw-bold">{{ totals['senior_reserved'] }}</td>
                         <td class="text-end fw-bold">{{ totals['youth_reserved'] }}</td>
                         <td class="text-end fw-bold">{{ totals['total_reserved'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['total_sold'] + totals['total_reserved'] }}</td>
+                        <td class="text-end fw-bold"></td>
                         <td class="text-end fw-bold">$ {{ totals['reserved_amount'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['item_fees'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['forecasted_revenue'] }}</td>
