@@ -91,10 +91,13 @@
                         <th>Show Name</th>
                         <th class="text-end">Regular Tickets Sold</th>
                         <th class="text-end">Senior Tickets Sold</th>
-                        <th class="text-end">Student Tickets Sold</th>
+                        <th class="text-end">Youth Tickets Sold</th>
                         <th class="text-end">Total Tickets Sold</th>
-                        <th class="text-end">% of Tickets Sold</th>
                         <th class="text-end">Ticket Revenue</th>
+                        <th class="text-end">Regular Tickets Reserved</th>
+                        <th class="text-end">Senior Tickets Reserved</th>
+                        <th class="text-end">Youth Tickets Reserved</th>
+                        <th class="text-end">Total Tickets Reserved</th>
                         <th class="text-end">Reserved Amount</th>
                         <th class="text-end">Per Item Fees</th>
                         <th class="text-end">Forecasted Revenue</th>
@@ -106,18 +109,22 @@
                 </thead>
                 <tbody>
                     {% set totals = {
-                        'regular_tickets': 0, 
-                        'senior_tickets': 0, 
-                        'student_tickets': 0, 
-                        'total_tickets': 0, 
-                        'ticket_revenue': 0, 
-                        'reserved_amount': 0, 
-                        'item_fees': 0, 
-                        'cc_fees': 0, 
-                        'forecasted_revenue': 0, 
-                        'deposited_revenue': 0, 
-                        'production_costs': 0, 
-                        'rights': 0, 
+                        'regular_sold': 0,
+                        'senior_sold': 0,
+                        'youth_sold': 0,
+                        'total_sold': 0,
+                        'ticket_revenue': 0,
+                        'regular_reserved': 0,
+                        'senior_reserved': 0,
+                        'youth_reserved': 0,
+                        'total_reserved': 0,
+                        'reserved_amount': 0,
+                        'item_fees': 0,
+                        'cc_fees': 0,
+                        'forecasted_revenue': 0,
+                        'deposited_revenue': 0,
+                        'production_costs': 0,
+                        'rights': 0,
                         'net_income': 0
                     } %}
                     {% for row in ticket_data %}
@@ -127,40 +134,50 @@
                             <td class="text-end">{{ row[4] }}</td>
                             <td class="text-end">{{ row[5] }}</td>
                             <td class="text-end">{{ row[6] }}</td>
-                            <td class="text-end">{{ "{:.1f}".format(row[6]/(152*row[13])*100) if row[6] is not none and row[13] else "N/A" }}</td>
                             <td class="text-end">$ {{ row[7] }}</td>
-                            <td class="text-end">$ {{ row[8] }}</td>
-                            <td class="text-end">$ {{ row[9] }}</td>
-                            <td class="text-end">$ {{ row[11] }}</td>
+                            <td class="text-end">{{ row[8] }}</td>
+                            <td class="text-end">{{ row[9] }}</td>
+                            <td class="text-end">{{ row[10] }}</td>
+                            <td class="text-end">{{ row[11] }}</td>
                             <td class="text-end">$ {{ row[12] }}</td>
-                            <td class="text-end">$ {{ row[14] }}</td>
+                            <td class="text-end">$ {{ row[13] }}</td>
                             <td class="text-end">$ {{ row[15] }}</td>
                             <td class="text-end">$ {{ row[16] }}</td>
+                            <td class="text-end">$ {{ row[18] }}</td>
+                            <td class="text-end">$ {{ row[19] }}</td>
+                            <td class="text-end">$ {{ row[20] }}</td>
                         </tr>
                         {% set _dummy = totals.update({
-                            'regular_tickets': totals['regular_tickets'] + row[3],
-                            'senior_tickets': totals['senior_tickets'] + row[4],
-                            'student_tickets': totals['student_tickets'] + row[5],
-                            'total_tickets': totals['total_tickets'] + row[6],
+                            'regular_sold': totals['regular_sold'] + row[3],
+                            'senior_sold': totals['senior_sold'] + row[4],
+                            'youth_sold': totals['youth_sold'] + row[5],
+                            'total_sold': totals['total_sold'] + row[6],
                             'ticket_revenue': totals['ticket_revenue'] + row[7],
-                            'reserved_amount': totals['reserved_amount'] + row[8],
-                            'item_fees': totals['item_fees'] + row[9],
-                            'cc_fees': totals['cc_fees'] + row[10],
-                            'forecasted_revenue': totals['forecasted_revenue'] + row[11],
-                            'deposited_revenue': totals['deposited_revenue'] + row[12],
-                            'production_costs': totals['production_costs'] + row[14],
-                            'rights': totals['rights'] + row[15],
-                            'net_income': totals['net_income'] + row[16]
+                            'regular_reserved': totals['regular_reserved'] + row[8],
+                            'senior_reserved': totals['senior_reserved'] + row[9],
+                            'youth_reserved': totals['youth_reserved'] + row[10],
+                            'total_reserved': totals['total_reserved'] + row[11],
+                            'reserved_amount': totals['reserved_amount'] + row[12],
+                            'item_fees': totals['item_fees'] + row[13],
+                            'cc_fees': totals['cc_fees'] + row[14],
+                            'forecasted_revenue': totals['forecasted_revenue'] + row[15],
+                            'deposited_revenue': totals['deposited_revenue'] + row[16],
+                            'production_costs': totals['production_costs'] + row[18],
+                            'rights': totals['rights'] + row[19],
+                            'net_income': totals['net_income'] + row[20]
                         }) %}
                     {% endfor %}
                     <tr>
                         <td class="fw-bold">Totals</td>
-                        <td class="text-end fw-bold">{{ totals['regular_tickets'] }}</td>
-                        <td class="text-end fw-bold">{{ totals['senior_tickets'] }}</td>
-                        <td class="text-end fw-bold">{{ totals['student_tickets'] }}</td>
-                        <td class="text-end fw-bold">{{ totals['total_tickets'] }}</td>
-                        <td class="text-end fw-bold">{{ "%.1f"|format(totals['total_tickets'] * 100 / (totals['total_tickets'] if totals['total_tickets'] > 0 else 1)) }}</td>
+                        <td class="text-end fw-bold">{{ totals['regular_sold'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['senior_sold'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['youth_sold'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['total_sold'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['ticket_revenue'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['regular_reserved'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['senior_reserved'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['youth_reserved'] }}</td>
+                        <td class="text-end fw-bold">{{ totals['total_reserved'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['reserved_amount'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['item_fees'] }}</td>
                         <td class="text-end fw-bold">$ {{ totals['forecasted_revenue'] }}</td>
@@ -190,7 +207,7 @@
                             <td></td><td>Senior</td><td class="text-end">{{ season_data[0][1] }}</td><td class="text-end">{{ last_season_data[0][1] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][1]/last_season_data[0][1]*100) if season_data[0][1] is not none and last_season_data[0][1] else "N/A" }}%</td>
                         </tr>
                         <tr>
-                            <td></td><td>Student</td><td class="text-end">{{ season_data[0][2] }}</td><td class="text-end">{{ last_season_data[0][2] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][2]/last_season_data[0][2]*100) if season_data[0][2] is not none and last_season_data[0][2] else "N/A" }}%</td>
+                            <td></td><td>Youth</td><td class="text-end">{{ season_data[0][2] }}</td><td class="text-end">{{ last_season_data[0][2] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][2]/last_season_data[0][2]*100) if season_data[0][2] is not none and last_season_data[0][2] else "N/A" }}%</td>
                         </tr>
                         <tr>
                             <td colspan="2">Totals</td><td class="text-end">{{ season_data[0][3] }}</td><td class="text-end">{{ last_season_data[0][3] }}</td><td class="text-end">{{ "{:.1f}".format(season_data[0][3]/last_season_data[0][3]*100) if season_data[0][3] is not none and last_season_data[0][3] else "N/A" }}%</td>
