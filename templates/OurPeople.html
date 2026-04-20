@@ -205,17 +205,29 @@
                     data-email="{{ row.email }}"
                     data-role="{{ row.all_roles }}"
                     data-show="{{ row.all_shows }}"
-                    data-volunteer="{{ 'yes' if row.is_volunteer else 'no' }}">
-                    <td><input type="checkbox" class="row-check" data-email="{{ row.email }}"></td>
+                    data-volunteer="{{ 'yes' if row.is_volunteer else 'no' }}"
+                    data-unsubscribed="{{ 'yes' if row.is_unsubscribed else 'no' }}"
+                    {% if row.is_unsubscribed %}style="opacity: 0.5;"{% endif %}>
+                    <td><input type="checkbox" class="row-check" data-email="{{ row.email }}"
+                        {% if row.is_unsubscribed %}disabled title="Unsubscribed — cannot be added to email list"{% endif %}></td>
                     <td>{{ row.last_name }}{% if row.last_name and row.first_name %}, {% endif %}{{ row.first_name }}</td>
-                    <td>{{ row.email }}</td>
+                    <td>
+                        {{ row.email }}
+                        {% if row.email %}
+                        <a href="#" title="Copy unsubscribe link"
+                           onclick="copyUnsubLink('{{ request.host_url }}unsubscribe?email={{ row.email | urlencode }}&token={{ row.unsubscribe_token }}', this); return false;"
+                           style="margin-left: 6px; font-size: 0.75rem; color: #adb5bd; text-decoration: none;">&#128279;</a>
+                        {% endif %}
+                    </td>
                     <td>
                         {% for r in row.roles %}
                         <div><span style="color: #0d6efd;">{{ r.show }}</span> // {{ r.role }}</div>
                         {% endfor %}
                     </td>
                     <td class="text-center">
-                        {% if row.is_volunteer %}
+                        {% if row.is_unsubscribed %}
+                        <span style="color: #dc3545; font-size: 1.1rem;" title="Unsubscribed">&#128683;</span>
+                        {% elif row.is_volunteer %}
                         <span style="color: #198754;" title="On Volunteer marketing list">&#10003;</span>
                         {% else %}
                         <span style="color: #dc3545;" title="Not on Volunteer marketing list">&#10007;</span>
@@ -226,6 +238,45 @@
             </tbody>
         </table>
         </div>
+
+        <!-- Unsubscribed People (admin) -->
+        {% if unsubscribed_list %}
+        <div class="mt-4">
+            <button class="btn btn-sm btn-outline-secondary" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#unsubscribedSection">
+                Unsubscribed People ({{ unsubscribed_list | length }})
+            </button>
+            <div class="collapse mt-2" id="unsubscribedSection">
+                <table class="table table-sm table-bordered" style="max-width: 600px;">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Date</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in unsubscribed_list %}
+                        <tr>
+                            <td>{{ u.email }}</td>
+                            <td>{{ u.date }}</td>
+                            <td>
+                                <form method="POST" action="/resubscribe" style="margin:0;">
+                                    <input type="hidden" name="email" value="{{ u.email }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success"
+                                            onclick="return confirm('Re-subscribe {{ u.email }}?')">
+                                        Re-subscribe
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 
     <script>
@@ -319,7 +370,9 @@
             const emails = new Set();
             checked.forEach(cb => {
                 const row = cb.closest('.people-row');
-                if (row && row.dataset.volunteer !== 'yes') return;
+                if (!row) return;
+                if (row.dataset.volunteer !== 'yes') return;
+                if (row.dataset.unsubscribed === 'yes') return;
                 const email = cb.dataset.email.trim();
                 if (email) emails.add(email);
             });
@@ -329,6 +382,15 @@
             emailListContainer.classList.toggle('has-emails', emailArray.length > 0);
         }
 
+        function copyUnsubLink(url, el) {
+            navigator.clipboard.writeText(url).then(() => {
+                const orig = el.title;
+                el.title = 'Copied!';
+                el.style.color = '#198754';
+                setTimeout(() => { el.title = orig; el.style.color = '#adb5bd'; }, 1500);
+            });
+        }
+
         function updateSelectAllState() {
             const visibleChecks = document.querySelectorAll('.people-row:not([style*="display: none"]) .row-check');
             const allChecked = visibleChecks.length > 0 && [...visibleChecks].every(cb => cb.checked);
@@ -336,7 +398,9 @@
         }
 
         selectAll.addEventListener('change', () => {
-            const visibleChecks = document.querySelectorAll('.people-row:not([style*="display: none"]):not([data-volunteer="no"]) .row-check');
+            const visibleChecks = document.querySelectorAll(
+                '.people-row:not([style*="display: none"]):not([data-volunteer="no"]):not([data-unsubscribed="yes"]) .row-check'
+            );
             visibleChecks.forEach(cb => cb.checked = selectAll.checked);
             updateEmailList();
         });
@@ -355,10 +419,10 @@
             volunteersSelected = !volunteersSelected;
 
             if (volunteersSelected) {
-                // Check only volunteers
+                // Check only volunteers who haven't unsubscribed
                 document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
                 rows.forEach(row => {
-                    if (row.dataset.volunteer === 'yes') {
+                    if (row.dataset.volunteer === 'yes' && row.dataset.unsubscribed !== 'yes') {
                         const cb = row.querySelector('.row-check');
                         if (cb) cb.checked = true;
                     }

@@ -14,6 +14,11 @@ from dotenv import load_dotenv
 from functools import wraps
 from authlib.integrations.flask_client import OAuth
 import click
+import hmac
+import hashlib
+import smtplib
+import sys
+from email.mime.text import MIMEText
 
 import random
 
@@ -26,6 +31,9 @@ MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
 APP_PASSWORD = os.getenv("APP_PASSWORD")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+MAIL_USERNAME = os.getenv("MAIL_USERNAME")
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+NOTIFY_EMAIL = os.getenv("NOTIFY_EMAIL")
 
 used_colors = set()
 
@@ -247,6 +255,20 @@ try:
             db.session.add(user)
             db.session.commit()
             click.echo(f'Admin user {first_name} {last_name} ({email}) created successfully.')
+
+    @app.cli.command('reset-password')
+    @click.option('--email', prompt='User email')
+    @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
+    def reset_password(email, password):
+        """Reset the password for any auditions user."""
+        with app.app_context():
+            user = User.query.filter_by(email=email.lower().strip()).first()
+            if not user:
+                click.echo(f'Error: No user found with email {email}.')
+                return
+            user.set_password(password)
+            db.session.commit()
+            click.echo(f'Password reset for {user.first_name} {user.last_name} ({user.email}).')
 
     AUDITIONS_ENABLED = True
 except (ImportError, ModuleNotFoundError) as _auditions_err:
@@ -605,24 +627,35 @@ def GetShowDetail():
 
     # Compare the current time with the specified times
     if now < eight_pm_opening_date:
-        message1 = (
-            "Other shows of the type '" + showtype[0][0] + "' have sold an average of " + 
-            str(round(averageticketsrevenueopening[0][0], 0)) + " tickets and have made $" +
-            str(round(averageticketsrevenueopening[0][1], 2)) + " by this time before opening. " + 
-            "'" + show_name + "' is at " + str(round(totaltickets[0][0]/averageticketsrevenueopening[0][0],1)) + " times average tickets sold and " + str(round(totalrevenue[0][0]/averageticketsrevenueopening[0][1],1)) + " times average revenue right now."
-        )
+        if (averageticketsrevenueopening[0][0] is not None and
+                averageticketsrevenueopening[0][1] is not None and
+                averageticketsrevenueopening[0][0] != 0 and
+                averageticketsrevenueopening[0][1] != 0):
+            message1 = (
+                "Other shows of the type '" + showtype[0][0] + "' have sold an average of " +
+                str(round(averageticketsrevenueopening[0][0], 0)) + " tickets and have made $" +
+                str(round(averageticketsrevenueopening[0][1], 2)) + " by this time before opening. " +
+                "'" + show_name + "' is at " + str(round(totaltickets[0][0]/averageticketsrevenueopening[0][0],1)) + " times average tickets sold and " + str(round(totalrevenue[0][0]/averageticketsrevenueopening[0][1],1)) + " times average revenue right now."
+            )
+        else:
+            message1 = ''
 
-        if previousshowdatabeforeopening[0][0] != 'Special':
+        if (previousshowdatabeforeopening[0][0] != 'Special' and
+                previousshowdatabeforeopening[0][2] is not None and
+                previousshowdatabeforeopening[0][3] is not None and
+                previousshowdatabeforeopening[0][4] is not None and
+                previousshowdatabeforeopening[0][2] != 0 and
+                previousshowdatabeforeopening[0][3] != 0):
             message4 = (
-                "The last show of type '" + 
-                previousshowdatabeforeopening[0][0] + "', '" + 
-                previousshowdatabeforeopening[0][1] + "', had sold " + 
-                str(round(previousshowdatabeforeopening[0][2],0)) + " tickets and made $" + 
-                str(round(previousshowdatabeforeopening[0][3],2)) + " by this time before opening (" + 
-                str(round(previousshowdatabeforeopening[0][4],0)) + " days). '" + 
-                show_name + "' is at " + 
-                str(round(totaltickets[0][0]/previousshowdatabeforeopening[0][2],1)) + " times tickets sold and " + 
-                str(round(totalrevenue[0][0]/previousshowdatabeforeopening[0][3],1)) + " times revenue right now." 
+                "The last show of type '" +
+                previousshowdatabeforeopening[0][0] + "', '" +
+                previousshowdatabeforeopening[0][1] + "', had sold " +
+                str(round(previousshowdatabeforeopening[0][2],0)) + " tickets and made $" +
+                str(round(previousshowdatabeforeopening[0][3],2)) + " by this time before opening (" +
+                str(round(previousshowdatabeforeopening[0][4],0)) + " days). '" +
+                show_name + "' is at " +
+                str(round(totaltickets[0][0]/previousshowdatabeforeopening[0][2],1)) + " times tickets sold and " +
+                str(round(totalrevenue[0][0]/previousshowdatabeforeopening[0][3],1)) + " times revenue right now."
             )
         else:
             message4 = ''
@@ -745,6 +778,104 @@ def GetShowDetail():
 #     return render_template('Check_Calendar.html', events=events)
 
 
+# ---------------------------------------------------------------------------
+# Unsubscribe helpers
+# ---------------------------------------------------------------------------
+
+def generate_unsubscribe_token(email):
+    """Return a permanent HMAC-SHA256 token for the given email address."""
+    secret = app.config['SECRET_KEY'].encode()
+    return hmac.new(secret, email.lower().strip().encode(), hashlib.sha256).hexdigest()
+
+def send_unsubscribe_notification(email):
+    """Email NOTIFY_EMAIL to say someone unsubscribed. Silently skips if not configured."""
+    if not MAIL_USERNAME or not MAIL_PASSWORD or not NOTIFY_EMAIL:
+        return
+    try:
+        msg = MIMEText(
+            f"{email} has unsubscribed from Theatre Aurora emails.\n\n"
+            f"To re-add them, go to the Our People page and use the "
+            f"Re-subscribe button at the bottom."
+        )
+        msg['Subject'] = f"Theatre Aurora: Unsubscribe — {email}"
+        msg['From'] = MAIL_USERNAME
+        msg['To'] = NOTIFY_EMAIL
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(MAIL_USERNAME, MAIL_PASSWORD)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"[Theatre_Info] Notification email failed: {e}", file=sys.stderr)
+
+
+@app.route('/unsubscribe', methods=['GET', 'POST'])
+def unsubscribe_page():
+    """Public unsubscribe page — no login required."""
+    db = mysql.connector.connect(
+        host=MYSQL_HOST, user=MYSQL_USER,
+        password=MYSQL_PASSWORD, database=MYSQL_DATABASE
+    )
+    cursor = db.cursor()
+
+    # --- One-click via link: /unsubscribe?email=x&token=y ---
+    email_param = request.args.get('email', '').strip().lower()
+    token_param = request.args.get('token', '')
+    if email_param and token_param:
+        expected = generate_unsubscribe_token(email_param)
+        if hmac.compare_digest(token_param, expected):
+            cursor.execute(
+                "INSERT IGNORE INTO Unsubscribed (email) VALUES (%s)", (email_param,)
+            )
+            db.commit()
+            new_entry = cursor.rowcount > 0
+            db.close()
+            if new_entry:
+                send_unsubscribe_notification(email_param)
+            return render_template('unsubscribe.html',
+                confirmed=True, already=not new_entry, email=email_param)
+        db.close()
+        return render_template('unsubscribe.html', error=True)
+
+    # --- Form submission ---
+    if request.method == 'POST':
+        email_form = request.form.get('email', '').strip().lower()
+        if email_form:
+            cursor.execute(
+                "INSERT IGNORE INTO Unsubscribed (email) VALUES (%s)", (email_form,)
+            )
+            db.commit()
+            new_entry = cursor.rowcount > 0
+            db.close()
+            if new_entry:
+                send_unsubscribe_notification(email_form)
+            return render_template('unsubscribe.html',
+                confirmed=True, already=not new_entry, email=email_form)
+        db.close()
+        return render_template('unsubscribe.html', error_empty=True)
+
+    db.close()
+    return render_template('unsubscribe.html', prefill=email_param)
+
+
+@app.route('/resubscribe', methods=['POST'])
+@login_required
+def resubscribe():
+    """Admin-only: remove someone from the Unsubscribed table."""
+    email = request.form.get('email', '').strip().lower()
+    if email:
+        db = mysql.connector.connect(
+            host=MYSQL_HOST, user=MYSQL_USER,
+            password=MYSQL_PASSWORD, database=MYSQL_DATABASE
+        )
+        cursor = db.cursor()
+        cursor.execute("DELETE FROM Unsubscribed WHERE email = %s", (email,))
+        db.commit()
+        db.close()
+    return redirect(url_for('OurPeople'))
+
+
+# ---------------------------------------------------------------------------
+
 @app.route('/OurPeople')
 @login_required
 def OurPeople():
@@ -779,6 +910,12 @@ def OurPeople():
     update_data = cursor.fetchall()
     last_update = update_data[0][0] if update_data else None
     formatted_update = last_update.strftime('%B %-d, %Y at %-I:%M %p') if last_update else 'Not available'
+
+    # Get unsubscribed emails
+    cursor.execute("SELECT email, unsubscribed_date FROM Unsubscribed ORDER BY unsubscribed_date DESC")
+    unsubscribed_rows = cursor.fetchall()
+    unsubscribed_emails = {r[0].lower().strip() for r in unsubscribed_rows}
+    unsubscribed_list = [{'email': r[0], 'date': r[1].strftime('%B %-d, %Y') if r[1] else ''} for r in unsubscribed_rows]
 
     db.close()
 
@@ -834,6 +971,8 @@ def OurPeople():
                     show_to_season[show] = season
         ml = marketing_lists or ''
         is_volunteer = 'Volunteers' in [item.strip() for item in ml.split(';')]
+        email_clean = (email or '').strip().lower()
+        is_unsubscribed = email_clean in unsubscribed_emails
         if roles or is_volunteer:
             table_rows.append({
                 'first_name': first_name or '',
@@ -843,6 +982,8 @@ def OurPeople():
                 'all_roles': ','.join(r['role'] for r in roles),
                 'all_shows': ','.join(r['show'] for r in roles),
                 'is_volunteer': is_volunteer,
+                'is_unsubscribed': is_unsubscribed,
+                'unsubscribe_token': generate_unsubscribe_token(email_clean) if email_clean else '',
             })
 
     # Sort by last name, first name
@@ -864,6 +1005,7 @@ def OurPeople():
         all_roles=sorted(all_roles),
         shows_by_season=shows_by_season,
         formatted_update=formatted_update,
+        unsubscribed_list=unsubscribed_list,
     )
 
 
