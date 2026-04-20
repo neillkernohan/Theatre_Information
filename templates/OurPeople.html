@@ -184,6 +184,13 @@
                 <button class="btn btn-sm btn-outline-secondary copy-btn" onclick="copyEmailList()">Copy to Clipboard</button>
             </div>
             <div id="emailList"></div>
+            <div class="mt-2" style="font-size: 0.82rem; color: #6c757d;">
+                <span class="filter-label mb-0 me-2" style="font-size: 0.82rem;">Unsubscribe footer:</span>
+                <button class="btn btn-sm btn-outline-secondary copy-btn" style="font-size: 0.78rem;" onclick="copyUnsubFooter()">Copy to Clipboard</button>
+                <div id="unsubFooter" style="margin-top: 4px; background: #fff; border: 1px solid #dee2e6; border-radius: 6px; padding: 8px 14px; font-size: 0.82rem; color: #495057;">
+                    To unsubscribe from Theatre Aurora emails, visit: {{ request.host_url }}unsubscribe
+                </div>
+            </div>
         </div>
 
         <!-- People Table -->
@@ -452,6 +459,16 @@
             const btn = document.querySelector('.copy-btn');
             btn.textContent = 'Copied!';
             setTimeout(() => btn.textContent = 'Copy to Clipboard', 1500);
+        }
+
+        function copyUnsubFooter() {
+            const text = document.getElementById('unsubFooter').textContent.trim();
+            navigator.clipboard.writeText(text).then(() => {
+                const btns = document.querySelectorAll('.copy-btn');
+                const btn = btns[1]; // second copy button
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy to Clipboard', 1500);
+            });
         }
 
         // Uncheck only rows that become hidden when filters change
