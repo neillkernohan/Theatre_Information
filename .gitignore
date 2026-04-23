@@ -1,3 +1,6 @@
+# Claude Code working files
+.claude/
+
 # Virtual environment
 .venv/
 
