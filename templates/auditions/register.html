@@ -36,7 +36,6 @@
 
                 <form method="POST" id="registrationForm">
                     {{ form.hidden_tag() }}
-                    <input type="hidden" name="acting_experience_json" id="actingExperienceJson" value="[]">
 
                     <!-- Personal Information -->
                     <h5 class="mb-3">Personal Information</h5>
@@ -120,7 +119,7 @@
 
                     <!-- Audition Preferences -->
                     <div class="section-divider">
-                        <h5 class="mb-3">Audition Preferences</h5>
+                        <h5 class="mb-3">Preferences</h5>
                     </div>
 
                     <div class="mb-3">
@@ -137,107 +136,7 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        {{ form.roles_auditioning_for.label(class="form-label") }}
-                        {{ form.roles_auditioning_for(class="form-control", placeholder="e.g. Juliet, Nurse") }}
-                    </div>
-
-                    <div class="mb-3">
-                        {{ form.accept_other_role.label(class="form-label") }}
-                        <div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptYes" value="yes" checked>
-                                <label class="form-check-label" for="acceptYes">Yes</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptNo" value="no">
-                                <label class="form-check-label" for="acceptNo">No</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        {{ form.comfortable_performing.label(class="form-label") }}
-                        <div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="comfortable_performing" id="comfortYes" value="yes" checked>
-                                <label class="form-check-label" for="comfortYes">Yes</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="comfortable_performing" id="comfortNo" value="no">
-                                <label class="form-check-label" for="comfortNo">No</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        {{ form.equity_or_actra.label(class="form-label") }}
-                        <div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="equity_or_actra" id="equityYes" value="yes">
-                                <label class="form-check-label" for="equityYes">Yes</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="equity_or_actra" id="equityNo" value="no" checked>
-                                <label class="form-check-label" for="equityNo">No</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        {{ form.schedule_conflicts.label(class="form-label") }}
-                        {{ form.schedule_conflicts(class="form-control", rows=3, placeholder="List any dates or times you are unavailable during the rehearsal period...") }}
-                    </div>
-
-                    <!-- Volunteer Interests -->
-                    <div class="section-divider">
-                        <h5 class="mb-3">Other Interests at Theatre Aurora</h5>
-                        <p class="text-muted small">Check any roles you'd be interested in (select all that apply):</p>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="form-check mb-2">{{ form.interest_choreographer(class="form-check-input") }} {{ form.interest_choreographer.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_concession(class="form-check-input") }} {{ form.interest_concession.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_costume_design(class="form-check-input") }} {{ form.interest_costume_design.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_director(class="form-check-input") }} {{ form.interest_director.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_lighting_design(class="form-check-input") }} {{ form.interest_lighting_design.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_lighting_operator(class="form-check-input") }} {{ form.interest_lighting_operator.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_music_director(class="form-check-input") }} {{ form.interest_music_director.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_photography(class="form-check-input") }} {{ form.interest_photography.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_producer(class="form-check-input") }} {{ form.interest_producer.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_props_master(class="form-check-input") }} {{ form.interest_props_master.label(class="form-check-label") }}</div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check mb-2">{{ form.interest_set_build(class="form-check-input") }} {{ form.interest_set_build.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_set_design(class="form-check-input") }} {{ form.interest_set_design.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_set_dressing(class="form-check-input") }} {{ form.interest_set_dressing.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_set_painting(class="form-check-input") }} {{ form.interest_set_painting.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_sound_design(class="form-check-input") }} {{ form.interest_sound_design.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_sound_operator(class="form-check-input") }} {{ form.interest_sound_operator.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_stagehand(class="form-check-input") }} {{ form.interest_stagehand.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_stage_manager(class="form-check-input") }} {{ form.interest_stage_manager.label(class="form-check-label") }}</div>
-                            <div class="form-check mb-2">{{ form.interest_usher(class="form-check-input") }} {{ form.interest_usher.label(class="form-check-label") }}</div>
-                        </div>
-                    </div>
-
-                    <!-- Training & Experience -->
-                    <div class="section-divider">
-                        <h5 class="mb-3">Training & Experience</h5>
-                    </div>
-
-                    <div class="mb-3">
-                        {{ form.training.label(class="form-label") }}
-                        {{ form.training(class="form-control", rows=3, placeholder="e.g. BFA in Theatre, Vocal coaching, Dance training...") }}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Acting Experience</label>
-                        <div id="experienceList"></div>
-                        <button type="button" class="btn btn-sm btn-outline-dark mt-2" onclick="addExperience()">
-                            <i class="bi bi-plus-lg"></i> Add Experience
-                        </button>
-                    </div>
+                    <p class="text-muted small">You'll be asked about roles, experience, and availability when you register for a specific show.</p>
 
                     {{ form.submit(class="btn btn-dark w-100") }}
                 </form>
@@ -268,58 +167,5 @@
     pronounsSelect.addEventListener('change', () => {
         otherGroup.style.display = pronounsSelect.value === 'other' ? 'block' : 'none';
     });
-
-    // Acting experience management
-    let experiences = [];
-
-    function renderExperiences() {
-        const list = document.getElementById('experienceList');
-        list.innerHTML = '';
-        experiences.forEach((exp, idx) => {
-            list.innerHTML += `
-                <div class="experience-row">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label small">Show</label>
-                            <input type="text" class="form-control form-control-sm" value="${exp.show || ''}"
-                                   onchange="updateExperience(${idx}, 'show', this.value)" placeholder="Show name">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small">Role</label>
-                            <input type="text" class="form-control form-control-sm" value="${exp.role || ''}"
-                                   onchange="updateExperience(${idx}, 'role', this.value)" placeholder="Role played">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small">Theatre Group</label>
-                            <input type="text" class="form-control form-control-sm" value="${exp.theatre_group || ''}"
-                                   onchange="updateExperience(${idx}, 'theatre_group', this.value)" placeholder="Theatre company">
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeExperience(${idx})">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>`;
-        });
-        document.getElementById('actingExperienceJson').value = JSON.stringify(experiences);
-    }
-
-    function addExperience() {
-        experiences.push({ show: '', role: '', theatre_group: '' });
-        renderExperiences();
-    }
-
-    function updateExperience(idx, key, value) {
-        experiences[idx][key] = value;
-        document.getElementById('actingExperienceJson').value = JSON.stringify(experiences);
-    }
-
-    function removeExperience(idx) {
-        experiences.splice(idx, 1);
-        renderExperiences();
-    }
-
-    renderExperiences();
 </script>
 {% endblock %}

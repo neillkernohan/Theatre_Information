@@ -1,0 +1,185 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block extra_css %}
+<style>
+    .section-divider { border-top: 2px solid #dee2e6; margin: 1.5rem 0; padding-top: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <a href="{{ url_for('auditions.actor_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+            <h3 class="mb-0">Edit My Profile</h3>
+        </div>
+        <p class="text-muted mb-4">This information will be pre-filled when you register for a show. You can update it any time.</p>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" id="profileForm">
+                    {{ form.hidden_tag() }}
+                    <input type="hidden" name="acting_experience_json" id="actingExperienceJson" value="{{ acting_experience_json }}">
+
+                    <!-- Audition Preferences -->
+                    <h5 class="mb-3">Audition Preferences</h5>
+
+                    <div class="mb-3">
+                        {{ form.roles_auditioning_for.label(class="form-label") }}
+                        {{ form.roles_auditioning_for(class="form-control", placeholder="e.g. Juliet, Nurse") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.accept_other_role.label.text }}</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptYes" value="yes" {{ 'checked' if form.accept_other_role.data == 'yes' else '' }}>
+                                <label class="form-check-label" for="acceptYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptNo" value="no" {{ 'checked' if form.accept_other_role.data == 'no' else '' }}>
+                                <label class="form-check-label" for="acceptNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.comfortable_performing.label.text }}</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="comfortable_performing" id="comfortYes" value="yes" {{ 'checked' if form.comfortable_performing.data == 'yes' else '' }}>
+                                <label class="form-check-label" for="comfortYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="comfortable_performing" id="comfortNo" value="no" {{ 'checked' if form.comfortable_performing.data == 'no' else '' }}>
+                                <label class="form-check-label" for="comfortNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.equity_or_actra.label.text }}</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="equity_or_actra" id="equityYes" value="yes" {{ 'checked' if form.equity_or_actra.data == 'yes' else '' }}>
+                                <label class="form-check-label" for="equityYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="equity_or_actra" id="equityNo" value="no" {{ 'checked' if form.equity_or_actra.data == 'no' else '' }}>
+                                <label class="form-check-label" for="equityNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.schedule_conflicts.label(class="form-label") }}
+                        {{ form.schedule_conflicts(class="form-control", rows=3, placeholder="List any dates or times you are unavailable during the rehearsal period...") }}
+                    </div>
+
+                    <!-- Training & Experience -->
+                    <div class="section-divider">
+                        <h5 class="mb-3">Training &amp; Experience</h5>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.training.label(class="form-label") }}
+                        {{ form.training(class="form-control", rows=3, placeholder="e.g. BFA in Theatre, vocal coaching, dance training...") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Acting Experience</label>
+                        <div id="experienceList"></div>
+                        <button type="button" class="btn btn-sm btn-outline-dark mt-2" onclick="addExperience()">
+                            <i class="bi bi-plus-lg"></i> Add Experience
+                        </button>
+                    </div>
+
+                    <!-- Volunteer Interests -->
+                    <div class="section-divider">
+                        <h5 class="mb-3">Other Interests at Theatre Aurora</h5>
+                        <p class="text-muted small">Check any roles you'd be interested in (select all that apply):</p>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            {% for field in [form.interest_choreographer, form.interest_concession, form.interest_costume_design, form.interest_director, form.interest_lighting_design, form.interest_lighting_operator, form.interest_music_director, form.interest_photography, form.interest_producer, form.interest_props_master] %}
+                            <div class="form-check mb-2">{{ field(class="form-check-input") }} {{ field.label(class="form-check-label") }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            {% for field in [form.interest_set_build, form.interest_set_design, form.interest_set_dressing, form.interest_set_painting, form.interest_sound_design, form.interest_sound_operator, form.interest_stagehand, form.interest_stage_manager, form.interest_usher] %}
+                            <div class="form-check mb-2">{{ field(class="form-check-input") }} {{ field.label(class="form-check-label") }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {{ form.submit(class="btn btn-dark w-100") }}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let experiences = [];
+    try {
+        experiences = JSON.parse(document.getElementById('actingExperienceJson').value || '[]');
+    } catch(e) { experiences = []; }
+
+    function renderExperiences() {
+        const list = document.getElementById('experienceList');
+        list.innerHTML = '';
+        experiences.forEach((exp, idx) => {
+            list.innerHTML += `
+                <div style="background:#f8f9fa;border-radius:8px;padding:10px;margin-bottom:6px;">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small">Show</label>
+                            <input type="text" class="form-control form-control-sm" value="${exp.show || ''}"
+                                   onchange="updateExp(${idx},'show',this.value)" placeholder="Show name">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Role</label>
+                            <input type="text" class="form-control form-control-sm" value="${exp.role || ''}"
+                                   onchange="updateExp(${idx},'role',this.value)" placeholder="Role played">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Theatre Group</label>
+                            <input type="text" class="form-control form-control-sm" value="${exp.theatre_group || ''}"
+                                   onchange="updateExp(${idx},'theatre_group',this.value)" placeholder="Theatre company">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeExp(${idx})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        });
+        document.getElementById('actingExperienceJson').value = JSON.stringify(experiences);
+    }
+
+    function addExperience() {
+        experiences.push({ show: '', role: '', theatre_group: '' });
+        renderExperiences();
+    }
+
+    function updateExp(idx, key, value) {
+        experiences[idx][key] = value;
+        document.getElementById('actingExperienceJson').value = JSON.stringify(experiences);
+    }
+
+    function removeExp(idx) {
+        experiences.splice(idx, 1);
+        renderExperiences();
+    }
+
+    renderExperiences();
+</script>
+{% endblock %}

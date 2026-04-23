@@ -19,9 +19,6 @@ class TestActorRegistration:
             'phone': '416-555-1234',
             'pronouns': 'she/her',
             'contact_email_ok': 'yes',
-            'accept_other_role': 'yes',
-            'comfortable_performing': 'yes',
-            'equity_or_actra': 'no',
             'past_member': 'yes',
             'password': 'SecurePass1!',
             'confirm_password': 'SecurePass1!',
@@ -40,9 +37,7 @@ class TestActorRegistration:
             'password': 'SecurePass1!',
             'confirm_password': 'SecurePass1!',
             'contact_email_ok': 'yes',
-            'accept_other_role': 'yes',
-            'comfortable_performing': 'yes',
-            'equity_or_actra': 'no',
+            'past_member': 'yes',
         }, follow_redirects=True)
         assert User.query.filter_by(email=actor.email).count() == 1
 
@@ -54,9 +49,7 @@ class TestActorRegistration:
             'password': 'SecurePass1!',
             'confirm_password': 'DifferentPass!',
             'contact_email_ok': 'yes',
-            'accept_other_role': 'yes',
-            'comfortable_performing': 'yes',
-            'equity_or_actra': 'no',
+            'past_member': 'yes',
         }, follow_redirects=True)
         assert User.query.filter_by(email='new@example.com').first() is None
 
@@ -125,6 +118,33 @@ class TestAdminLogin:
             'password': 'ActorPass1!',
         }, follow_redirects=True)
         assert b'Invalid admin credentials' in r.data
+
+
+class TestEditProfile:
+
+    def test_edit_profile_page_loads(self, client, actor):
+        login_actor(client, actor)
+        r = client.get('/auditions/profile/edit')
+        assert r.status_code == 200
+        assert b'Edit My Profile' in r.data
+
+    def test_edit_profile_saves_to_user(self, client, actor, db):
+        login_actor(client, actor)
+        client.post('/auditions/profile/edit', data={
+            'roles_auditioning_for': 'Hamlet',
+            'accept_other_role': 'yes',
+            'comfortable_performing': 'yes',
+            'equity_or_actra': 'no',
+            'training': 'BFA Acting',
+            'acting_experience_json': '[]',
+        }, follow_redirects=True)
+        db.session.refresh(actor)
+        assert actor.roles_auditioning_for == 'Hamlet'
+        assert actor.training == 'BFA Acting'
+
+    def test_edit_profile_requires_login(self, client):
+        r = client.get('/auditions/profile/edit', follow_redirects=False)
+        assert r.status_code == 302
 
 
 class TestPasswordReset:

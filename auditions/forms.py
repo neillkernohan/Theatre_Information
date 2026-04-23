@@ -27,44 +27,6 @@ class ActorRegistrationForm(FlaskForm):
         ('yes', 'Yes'),
         ('no', 'No'),
     ], default='yes')
-    roles_auditioning_for = StringField('What role(s) are you auditioning for?', validators=[Optional(), Length(max=500)])
-    accept_other_role = SelectField('Will you accept another role if offered?', choices=[
-        ('yes', 'Yes'),
-        ('no', 'No'),
-    ], default='yes')
-    comfortable_performing = SelectField(
-        'Are you comfortable performing the following on stage: kissing, smoking, physical violence, swearing, using weapons?',
-        choices=[('yes', 'Yes'), ('no', 'No')],
-        default='yes'
-    )
-    equity_or_actra = SelectField("Are you currently a member of Actor's Equity or ACTRA?", choices=[
-        ('no', 'No'),
-        ('yes', 'Yes'),
-    ], default='no')
-    schedule_conflicts = TextAreaField('Please list any potential conflicts with the rehearsal schedule',
-                                       validators=[Optional()])
-    training = TextAreaField('Training', validators=[Optional()])
-
-    # Volunteer interests - each is a BooleanField
-    interest_choreographer = BooleanField('Choreographer')
-    interest_concession = BooleanField('Concession Assistant (Smart Serve Certified)')
-    interest_costume_design = BooleanField('Costume Design')
-    interest_director = BooleanField('Director')
-    interest_lighting_design = BooleanField('Lighting Design')
-    interest_lighting_operator = BooleanField('Lighting Operator')
-    interest_music_director = BooleanField('Music Director')
-    interest_photography = BooleanField('Photography')
-    interest_producer = BooleanField('Producer')
-    interest_props_master = BooleanField('Props Master')
-    interest_set_build = BooleanField('Set Build')
-    interest_set_design = BooleanField('Set Design')
-    interest_set_dressing = BooleanField('Set Dressing')
-    interest_set_painting = BooleanField('Set Painting')
-    interest_sound_design = BooleanField('Sound Design')
-    interest_sound_operator = BooleanField('Sound Operator')
-    interest_stagehand = BooleanField('Stagehand')
-    interest_stage_manager = BooleanField('Stage Manager')
-    interest_usher = BooleanField('Usher')
 
     past_member = RadioField(
         'Have you been a member of Theatre Aurora in the past?',
@@ -85,6 +47,46 @@ class ActorRegistrationForm(FlaskForm):
     def validate_email(self, field):
         if User.query.filter_by(email=field.data.lower()).first():
             raise ValidationError('An account with this email already exists.')
+
+
+class ActorProfileForm(FlaskForm):
+    """Profile fields shown on audition registration and the Edit Profile page."""
+    roles_auditioning_for = StringField('What role(s) are you auditioning for?',
+                                        validators=[Optional(), Length(max=500)])
+    accept_other_role = SelectField('Will you accept another role if offered?',
+                                    choices=[('yes', 'Yes'), ('no', 'No')], default='yes')
+    comfortable_performing = SelectField(
+        'Are you comfortable performing the following on stage: kissing, smoking, physical violence, swearing, using weapons?',
+        choices=[('yes', 'Yes'), ('no', 'No')], default='yes'
+    )
+    equity_or_actra = SelectField("Are you currently a member of Actor's Equity or ACTRA?",
+                                  choices=[('no', 'No'), ('yes', 'Yes')], default='no')
+    schedule_conflicts = TextAreaField('Please list any potential conflicts with the rehearsal schedule',
+                                       validators=[Optional()])
+    training = TextAreaField('Training', validators=[Optional()])
+
+    # Volunteer interests
+    interest_choreographer = BooleanField('Choreographer')
+    interest_concession = BooleanField('Concession Assistant (Smart Serve Certified)')
+    interest_costume_design = BooleanField('Costume Design')
+    interest_director = BooleanField('Director')
+    interest_lighting_design = BooleanField('Lighting Design')
+    interest_lighting_operator = BooleanField('Lighting Operator')
+    interest_music_director = BooleanField('Music Director')
+    interest_photography = BooleanField('Photography')
+    interest_producer = BooleanField('Producer')
+    interest_props_master = BooleanField('Props Master')
+    interest_set_build = BooleanField('Set Build')
+    interest_set_design = BooleanField('Set Design')
+    interest_set_dressing = BooleanField('Set Dressing')
+    interest_set_painting = BooleanField('Set Painting')
+    interest_sound_design = BooleanField('Sound Design')
+    interest_sound_operator = BooleanField('Sound Operator')
+    interest_stagehand = BooleanField('Stagehand')
+    interest_stage_manager = BooleanField('Stage Manager')
+    interest_usher = BooleanField('Usher')
+
+    submit = SubmitField('Save Profile')
 
 
 class LoginForm(FlaskForm):

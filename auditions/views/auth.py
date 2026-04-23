@@ -4,7 +4,7 @@ import secrets
 from flask_login import login_user, logout_user, login_required, current_user
 from auditions import auditions_bp
 from auditions.models import db, User, Registration, Show, AuditionSlot
-from auditions.forms import ActorRegistrationForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
+from auditions.forms import ActorRegistrationForm, ActorProfileForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
 
 
 @auditions_bp.route('/register', methods=['GET', 'POST'])
@@ -20,40 +20,6 @@ def actor_register():
         elif pronouns == '':
             pronouns = None
 
-        # Collect volunteer interests
-        interest_fields = [
-            ('interest_choreographer', 'Choreographer'),
-            ('interest_concession', 'Concession Assistant (Smart Serve Certified)'),
-            ('interest_costume_design', 'Costume Design'),
-            ('interest_director', 'Director'),
-            ('interest_lighting_design', 'Lighting Design'),
-            ('interest_lighting_operator', 'Lighting Operator'),
-            ('interest_music_director', 'Music Director'),
-            ('interest_photography', 'Photography'),
-            ('interest_producer', 'Producer'),
-            ('interest_props_master', 'Props Master'),
-            ('interest_set_build', 'Set Build'),
-            ('interest_set_design', 'Set Design'),
-            ('interest_set_dressing', 'Set Dressing'),
-            ('interest_set_painting', 'Set Painting'),
-            ('interest_sound_design', 'Sound Design'),
-            ('interest_sound_operator', 'Sound Operator'),
-            ('interest_stagehand', 'Stagehand'),
-            ('interest_stage_manager', 'Stage Manager'),
-            ('interest_usher', 'Usher'),
-        ]
-        volunteer_interests = [
-            label for field_name, label in interest_fields
-            if getattr(form, field_name).data
-        ]
-
-        # Parse acting experience from form
-        experience_json = request.form.get('acting_experience_json', '[]')
-        try:
-            acting_experience = json.loads(experience_json)
-        except (json.JSONDecodeError, TypeError):
-            acting_experience = []
-
         is_past_member = (form.past_member.data == 'yes')
         hear_about_us = None if is_past_member else (form.hear_about_us.data.strip() or None)
 
@@ -64,14 +30,6 @@ def actor_register():
             phone=form.phone.data.strip() if form.phone.data else None,
             pronouns=pronouns,
             contact_email_ok=(form.contact_email_ok.data == 'yes'),
-            roles_auditioning_for=form.roles_auditioning_for.data.strip() if form.roles_auditioning_for.data else None,
-            accept_other_role=(form.accept_other_role.data == 'yes'),
-            comfortable_performing=(form.comfortable_performing.data == 'yes'),
-            equity_or_actra=(form.equity_or_actra.data == 'yes'),
-            schedule_conflicts=form.schedule_conflicts.data.strip() if form.schedule_conflicts.data else None,
-            training=form.training.data.strip() if form.training.data else None,
-            acting_experience=acting_experience if acting_experience else None,
-            volunteer_interests=volunteer_interests if volunteer_interests else None,
             past_member=is_past_member,
             hear_about_us=hear_about_us,
             role='actor'
@@ -253,3 +211,103 @@ def actor_dashboard():
         Registration.created_at.desc()
     ).all()
     return render_template('auditions/public/my_auditions.html', registrations=registrations)
+
+
+@auditions_bp.route('/profile/edit', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    form = ActorProfileForm()
+
+    if form.validate_on_submit():
+        _save_profile_from_form(form, current_user)
+        db.session.commit()
+        flash('Your profile has been updated.', 'success')
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    # Pre-populate form on GET
+    if request.method == 'GET':
+        _prepopulate_profile_form(form, current_user)
+
+    return render_template('auditions/public/edit_profile.html', form=form,
+                           acting_experience_json=json.dumps(current_user.acting_experience or []))
+
+
+def _save_profile_from_form(form, user):
+    """Save ActorProfileForm data back to the user record."""
+    interest_fields = [
+        ('interest_choreographer', 'Choreographer'),
+        ('interest_concession', 'Concession Assistant (Smart Serve Certified)'),
+        ('interest_costume_design', 'Costume Design'),
+        ('interest_director', 'Director'),
+        ('interest_lighting_design', 'Lighting Design'),
+        ('interest_lighting_operator', 'Lighting Operator'),
+        ('interest_music_director', 'Music Director'),
+        ('interest_photography', 'Photography'),
+        ('interest_producer', 'Producer'),
+        ('interest_props_master', 'Props Master'),
+        ('interest_set_build', 'Set Build'),
+        ('interest_set_design', 'Set Design'),
+        ('interest_set_dressing', 'Set Dressing'),
+        ('interest_set_painting', 'Set Painting'),
+        ('interest_sound_design', 'Sound Design'),
+        ('interest_sound_operator', 'Sound Operator'),
+        ('interest_stagehand', 'Stagehand'),
+        ('interest_stage_manager', 'Stage Manager'),
+        ('interest_usher', 'Usher'),
+    ]
+    volunteer_interests = [
+        label for field_name, label in interest_fields
+        if getattr(form, field_name).data
+    ]
+
+    experience_json = request.form.get('acting_experience_json', '[]')
+    try:
+        acting_experience = json.loads(experience_json)
+    except (json.JSONDecodeError, TypeError):
+        acting_experience = []
+
+    def _s(val):
+        return val.strip() if val else None
+
+    user.roles_auditioning_for = _s(form.roles_auditioning_for.data)
+    user.accept_other_role = (form.accept_other_role.data == 'yes')
+    user.comfortable_performing = (form.comfortable_performing.data == 'yes')
+    user.equity_or_actra = (form.equity_or_actra.data == 'yes')
+    user.schedule_conflicts = _s(form.schedule_conflicts.data)
+    user.training = _s(form.training.data)
+    user.acting_experience = acting_experience if acting_experience else None
+    user.volunteer_interests = volunteer_interests if volunteer_interests else None
+
+
+def _prepopulate_profile_form(form, user):
+    """Pre-populate an ActorProfileForm from a user's saved profile."""
+    vi = user.volunteer_interests or []
+    label_to_field = {
+        'Choreographer': 'interest_choreographer',
+        'Concession Assistant (Smart Serve Certified)': 'interest_concession',
+        'Costume Design': 'interest_costume_design',
+        'Director': 'interest_director',
+        'Lighting Design': 'interest_lighting_design',
+        'Lighting Operator': 'interest_lighting_operator',
+        'Music Director': 'interest_music_director',
+        'Photography': 'interest_photography',
+        'Producer': 'interest_producer',
+        'Props Master': 'interest_props_master',
+        'Set Build': 'interest_set_build',
+        'Set Design': 'interest_set_design',
+        'Set Dressing': 'interest_set_dressing',
+        'Set Painting': 'interest_set_painting',
+        'Sound Design': 'interest_sound_design',
+        'Sound Operator': 'interest_sound_operator',
+        'Stagehand': 'interest_stagehand',
+        'Stage Manager': 'interest_stage_manager',
+        'Usher': 'interest_usher',
+    }
+    form.roles_auditioning_for.data = user.roles_auditioning_for or ''
+    form.accept_other_role.data = 'yes' if user.accept_other_role else 'no'
+    form.comfortable_performing.data = 'yes' if user.comfortable_performing else 'no'
+    form.equity_or_actra.data = 'yes' if user.equity_or_actra else 'no'
+    form.schedule_conflicts.data = user.schedule_conflicts or ''
+    form.training.data = user.training or ''
+    for label, field_name in label_to_field.items():
+        getattr(form, field_name).data = label in vi

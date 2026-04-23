@@ -4,6 +4,8 @@ from auditions import auditions_bp
 from auditions.models import db, Show, AuditionSlot, Registration
 from auditions.utils import assign_slot, promote_from_waitlist
 from auditions.email import send_confirmation_email, send_waitlist_email, send_cancellation_email
+from auditions.views.auth import _save_profile_from_form, _prepopulate_profile_form
+from auditions.forms import ActorProfileForm
 from datetime import datetime
 import json
 
@@ -62,7 +64,12 @@ def register_for_show(show_id):
             slots_by_date[date_str] = []
         slots_by_date[date_str].append(slot)
 
+    profile_form = ActorProfileForm()
+
     if request.method == 'POST':
+        # Save profile fields back to the user's permanent profile
+        _save_profile_from_form(profile_form, current_user)
+
         # Create the registration
         registration = Registration(
             user_id=current_user.id,
@@ -113,11 +120,16 @@ def register_for_show(show_id):
 
         return redirect(url_for('auditions.actor_dashboard'))
 
+    # Pre-populate profile form from user's saved profile
+    _prepopulate_profile_form(profile_form, current_user)
+
     return render_template(
         'auditions/public/register_audition.html',
         show=show,
         slots_by_date=slots_by_date,
-        available_slots=available_slots
+        available_slots=available_slots,
+        profile_form=profile_form,
+        acting_experience_json=json.dumps(current_user.acting_experience or [])
     )
 
 
