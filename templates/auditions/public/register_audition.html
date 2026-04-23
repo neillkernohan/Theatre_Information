@@ -105,19 +105,19 @@
                     <input type="hidden" name="acting_experience_json" id="actingExperienceJson" value="{{ acting_experience_json }}">
 
                     <div class="mb-3">
-                        {{ profile_form.roles_auditioning_for.label(class="form-label") }}
-                        {{ profile_form.roles_auditioning_for(class="form-control", placeholder="e.g. Juliet, Nurse") }}
+                        <label class="form-label">What role(s) are you auditioning for?</label>
+                        <input type="text" class="form-control" name="roles_auditioning_for" placeholder="e.g. Juliet, Nurse">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">{{ profile_form.accept_other_role.label.text }}</label>
+                        <label class="form-label">Will you accept another role if offered?</label>
                         <div>
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptYes" value="yes" {{ 'checked' if profile_form.accept_other_role.data == 'yes' else '' }}>
+                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptYes" value="yes" checked>
                                 <label class="form-check-label" for="acceptYes">Yes</label>
                             </div>
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptNo" value="no" {{ 'checked' if profile_form.accept_other_role.data == 'no' else '' }}>
+                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptNo" value="no">
                                 <label class="form-check-label" for="acceptNo">No</label>
                             </div>
                         </div>
@@ -152,8 +152,9 @@
                     </div>
 
                     <div class="mb-3">
-                        {{ profile_form.schedule_conflicts.label(class="form-label") }}
-                        {{ profile_form.schedule_conflicts(class="form-control", rows=3, placeholder="List any dates or times you are unavailable during the rehearsal period...") }}
+                        <label class="form-label">Please list any potential conflicts with the rehearsal schedule</label>
+                        <textarea class="form-control" name="schedule_conflicts" rows="3"
+                                  placeholder="List any dates or times you are unavailable during the rehearsal period..."></textarea>
                     </div>
 
                     <div class="mb-3">

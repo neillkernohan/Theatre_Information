@@ -29,25 +29,6 @@
                     <h5 class="mb-3">Audition Preferences</h5>
 
                     <div class="mb-3">
-                        {{ form.roles_auditioning_for.label(class="form-label") }}
-                        {{ form.roles_auditioning_for(class="form-control", placeholder="e.g. Juliet, Nurse") }}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">{{ form.accept_other_role.label.text }}</label>
-                        <div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptYes" value="yes" {{ 'checked' if form.accept_other_role.data == 'yes' else '' }}>
-                                <label class="form-check-label" for="acceptYes">Yes</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptNo" value="no" {{ 'checked' if form.accept_other_role.data == 'no' else '' }}>
-                                <label class="form-check-label" for="acceptNo">No</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
                         <label class="form-label">{{ form.comfortable_performing.label.text }}</label>
                         <div>
                             <div class="form-check form-check-inline">
@@ -73,11 +54,6 @@
                                 <label class="form-check-label" for="equityNo">No</label>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="mb-3">
-                        {{ form.schedule_conflicts.label(class="form-label") }}
-                        {{ form.schedule_conflicts(class="form-control", rows=3, placeholder="List any dates or times you are unavailable during the rehearsal period...") }}
                     </div>
 
                     <!-- Training & Experience -->

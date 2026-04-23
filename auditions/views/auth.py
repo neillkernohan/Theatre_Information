@@ -269,11 +269,8 @@ def _save_profile_from_form(form, user):
     def _s(val):
         return val.strip() if val else None
 
-    user.roles_auditioning_for = _s(form.roles_auditioning_for.data)
-    user.accept_other_role = (form.accept_other_role.data == 'yes')
     user.comfortable_performing = (form.comfortable_performing.data == 'yes')
     user.equity_or_actra = (form.equity_or_actra.data == 'yes')
-    user.schedule_conflicts = _s(form.schedule_conflicts.data)
     user.training = _s(form.training.data)
     user.acting_experience = acting_experience if acting_experience else None
     user.volunteer_interests = volunteer_interests if volunteer_interests else None
@@ -303,11 +300,8 @@ def _prepopulate_profile_form(form, user):
         'Stage Manager': 'interest_stage_manager',
         'Usher': 'interest_usher',
     }
-    form.roles_auditioning_for.data = user.roles_auditioning_for or ''
-    form.accept_other_role.data = 'yes' if user.accept_other_role else 'no'
     form.comfortable_performing.data = 'yes' if user.comfortable_performing else 'no'
     form.equity_or_actra.data = 'yes' if user.equity_or_actra else 'no'
-    form.schedule_conflicts.data = user.schedule_conflicts or ''
     form.training.data = user.training or ''
     for label, field_name in label_to_field.items():
         getattr(form, field_name).data = label in vi

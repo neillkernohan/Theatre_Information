@@ -129,22 +129,30 @@
                 <div class="row g-3">
                     <div class="col-12">
                         <p class="info-label">Roles Auditioning For</p>
-                        <p class="info-value">{{ reg.user.roles_auditioning_for or '—' }}</p>
+                        <p class="info-value">{{ reg.roles_auditioning_for or '—' }}</p>
                     </div>
                     <div class="col-sm-4">
                         <p class="info-label">Accept Other Role</p>
                         <p class="info-value">
-                            <span class="badge {{ 'yes-badge' if reg.user.accept_other_role else 'no-badge' }}">
-                                {{ 'Yes' if reg.user.accept_other_role else 'No' }}
+                            {% if reg.accept_other_role is none %}
+                            <span class="text-muted">—</span>
+                            {% else %}
+                            <span class="badge {{ 'yes-badge' if reg.accept_other_role else 'no-badge' }}">
+                                {{ 'Yes' if reg.accept_other_role else 'No' }}
                             </span>
+                            {% endif %}
                         </p>
                     </div>
                     <div class="col-sm-4">
                         <p class="info-label">Comfortable Performing</p>
                         <p class="info-value">
+                            {% if reg.user.comfortable_performing is none %}
+                            <span class="text-muted">—</span>
+                            {% else %}
                             <span class="badge {{ 'yes-badge' if reg.user.comfortable_performing else 'no-badge' }}">
                                 {{ 'Yes' if reg.user.comfortable_performing else 'No' }}
                             </span>
+                            {% endif %}
                         </p>
                     </div>
                     <div class="col-sm-4">
@@ -155,10 +163,10 @@
                             </span>
                         </p>
                     </div>
-                    {% if reg.user.schedule_conflicts %}
+                    {% if reg.schedule_conflicts %}
                     <div class="col-12">
                         <p class="info-label">Schedule Conflicts</p>
-                        <p class="info-value">{{ reg.user.schedule_conflicts }}</p>
+                        <p class="info-value">{{ reg.schedule_conflicts }}</p>
                     </div>
                     {% endif %}
                 </div>

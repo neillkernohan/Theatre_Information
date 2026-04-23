@@ -84,6 +84,11 @@ def register_for_show(show_id):
                 custom_data[field['name']] = request.form.get(field_name, '')
             registration.custom_field_data = custom_data
 
+        # Per-show fields saved to Registration (not user profile)
+        registration.roles_auditioning_for = request.form.get('roles_auditioning_for', '').strip() or None
+        registration.accept_other_role = (request.form.get('accept_other_role') == 'yes')
+        registration.schedule_conflicts = request.form.get('schedule_conflicts', '').strip() or None
+
         # Handle file uploads (headshot, resume) and video link
         registration.video_link = request.form.get('video_link', '').strip() or None
 

@@ -106,6 +106,9 @@ class Registration(db.Model):
         db.Enum('confirmed', 'waitlisted', 'callback', 'cancelled', name='registration_status'),
         default='confirmed'
     )
+    roles_auditioning_for = db.Column(db.String(500))
+    accept_other_role = db.Column(db.Boolean)
+    schedule_conflicts = db.Column(db.Text)
     headshot_path = db.Column(db.String(500))
     resume_path = db.Column(db.String(500))
     video_link = db.Column(db.String(500))

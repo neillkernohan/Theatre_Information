@@ -131,16 +131,14 @@ class TestEditProfile:
     def test_edit_profile_saves_to_user(self, client, actor, db):
         login_actor(client, actor)
         client.post('/auditions/profile/edit', data={
-            'roles_auditioning_for': 'Hamlet',
-            'accept_other_role': 'yes',
             'comfortable_performing': 'yes',
             'equity_or_actra': 'no',
             'training': 'BFA Acting',
             'acting_experience_json': '[]',
         }, follow_redirects=True)
         db.session.refresh(actor)
-        assert actor.roles_auditioning_for == 'Hamlet'
         assert actor.training == 'BFA Acting'
+        assert actor.comfortable_performing is True
 
     def test_edit_profile_requires_login(self, client):
         r = client.get('/auditions/profile/edit', follow_redirects=False)

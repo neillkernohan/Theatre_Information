@@ -51,18 +51,12 @@ class ActorRegistrationForm(FlaskForm):
 
 class ActorProfileForm(FlaskForm):
     """Profile fields shown on audition registration and the Edit Profile page."""
-    roles_auditioning_for = StringField('What role(s) are you auditioning for?',
-                                        validators=[Optional(), Length(max=500)])
-    accept_other_role = SelectField('Will you accept another role if offered?',
-                                    choices=[('yes', 'Yes'), ('no', 'No')], default='yes')
     comfortable_performing = SelectField(
         'Are you comfortable performing the following on stage: kissing, smoking, physical violence, swearing, using weapons?',
         choices=[('yes', 'Yes'), ('no', 'No')], default='yes'
     )
     equity_or_actra = SelectField("Are you currently a member of Actor's Equity or ACTRA?",
                                   choices=[('no', 'No'), ('yes', 'Yes')], default='no')
-    schedule_conflicts = TextAreaField('Please list any potential conflicts with the rehearsal schedule',
-                                       validators=[Optional()])
     training = TextAreaField('Training', validators=[Optional()])
 
     # Volunteer interests
