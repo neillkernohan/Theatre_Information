@@ -1,0 +1,518 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}{{ show.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .slot-card { border-left: 4px solid #198754; }
+    .slot-card.full { border-left-color: #dc3545; }
+    .date-group { margin-bottom: 2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h2>{{ show.title }}</h2>
+        <div class="d-flex gap-2 align-items-center">
+            {% if show.status == 'open' %}
+            <span class="badge bg-success fs-6">Open</span>
+            {% elif show.status == 'draft' %}
+            <span class="badge bg-warning text-dark fs-6">Draft</span>
+            {% elif show.status == 'closed' %}
+            <span class="badge bg-danger fs-6">Closed</span>
+            {% else %}
+            <span class="badge bg-secondary fs-6">Archived</span>
+            {% endif %}
+            <span class="badge bg-secondary fs-6">{{ show.scheduling_mode | capitalize }} Mode</span>
+            {% if show.allow_choice %}
+            <span class="badge bg-info text-dark fs-6">Actor Choice</span>
+            {% else %}
+            <span class="badge bg-info text-dark fs-6">Auto-Assign</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('auditions.edit_show', show_id=show.id) }}" class="btn btn-outline-dark">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+        <!-- Status change dropdown -->
+        <div class="dropdown">
+            <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-toggles"></i> Status
+            </button>
+            <ul class="dropdown-menu">
+                {% for status in ['draft', 'open', 'closed', 'archived'] %}
+                {% if status != show.status %}
+                <li>
+                    <form method="POST" action="{{ url_for('auditions.update_show_status', show_id=show.id) }}" class="d-inline">
+                        {{ generate_form.hidden_tag() }}
+                        <input type="hidden" name="status" value="{{ status }}">
+                        <button type="submit" class="dropdown-item">
+                            Set to {{ status | capitalize }}
+                        </button>
+                    </form>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% if show.description %}
+<p class="text-muted mb-4">{{ show.description }}</p>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h3>{{ all_regs | selectattr('status', 'ne', 'cancelled') | list | length }}</h3>
+                <small class="text-muted">Total Registrations</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h3>{{ all_regs | selectattr('status', 'equalto', 'confirmed') | list | length }}</h3>
+                <small class="text-muted">Confirmed</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h3>{{ all_regs | selectattr('status', 'equalto', 'waitlisted') | list | length }}</h3>
+                <small class="text-muted">Waitlisted</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h3>{{ slots | length }}</h3>
+                <small class="text-muted">{{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audition Slots Section -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Audition {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}</strong>
+    </div>
+    <div class="card-body">
+        {% if slots_by_date %}
+            {% for date_str, date_slots in slots_by_date.items() %}
+            <div class="date-group">
+                <h5><i class="bi bi-calendar-event"></i> {{ date_str }}</h5>
+                <div class="row">
+                    {% for slot in date_slots %}
+                    <div class="col-md-4 col-lg-3 mb-2">
+                        <div class="card slot-card {{ 'full' if slot.is_full else '' }}">
+                            <div class="card-body py-2 px-3">
+                                <strong>{{ slot.start_time.strftime('%I:%M %p') }}</strong> - {{ slot.end_time.strftime('%I:%M %p') }}
+                                <br>
+                                <small class="{{ 'text-danger' if slot.is_full else 'text-success' }}">
+                                    {{ slot.current_count }}/{{ slot.capacity }}
+                                    {{ 'FULL' if slot.is_full else 'available' }}
+                                </small>
+                                {% set booked = slot.registrations.filter_by(status='confirmed').all() + slot.registrations.filter_by(status='callback').all() %}
+                                {% if booked %}
+                                <div class="mt-1">
+                                    {% for reg in booked %}
+                                    <a href="{{ url_for('auditions.registration_detail', reg_id=reg.id) }}"
+                                       class="d-block text-truncate text-decoration-none"
+                                       style="font-size:0.78rem; color:#212529;"
+                                       title="{{ reg.user.first_name }} {{ reg.user.last_name }}">
+                                        <i class="bi bi-person-fill"></i>
+                                        {{ reg.user.first_name }} {{ reg.user.last_name }}
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- Generate slots form -->
+            <div class="text-center py-3">
+                <p class="text-muted">No audition times have been generated yet.</p>
+                <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#generateSlotsModal">
+                    <i class="bi bi-calendar-plus"></i> Generate {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}
+                </button>
+            </div>
+        {% endif %}
+
+        {% if slots_by_date %}
+        <div class="mt-3 d-flex gap-2">
+            <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#addSlotsModal">
+                <i class="bi bi-plus-lg"></i> Add More {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}
+            </button>
+            <button type="button" class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#generateSlotsModal">
+                <i class="bi bi-arrow-repeat"></i> Regenerate All
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Registrations Table -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <strong>
+            Registrations
+            <span class="badge bg-secondary ms-1">
+                {{ all_regs | selectattr('status', 'ne', 'cancelled') | list | length }}
+            </span>
+        </strong>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="card-body border-bottom pb-3">
+        <form method="GET" action="{{ url_for('auditions.show_detail', show_id=show.id) }}" class="row g-2 align-items-end">
+            <div class="col-sm-4">
+                <label class="form-label small mb-1">Search</label>
+                <input type="text" name="q" class="form-control form-control-sm"
+                       placeholder="Name or email…" value="{{ search }}">
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label small mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    {% for s in ['confirmed', 'waitlisted', 'callback', 'cancelled'] %}
+                    <option value="{{ s }}" {{ 'selected' if status_filter == s else '' }}>
+                        {{ s | capitalize }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label small mb-1">Tag</label>
+                <select name="tag" class="form-select form-select-sm">
+                    <option value="">All tags</option>
+                    {% for tag in all_tags %}
+                    <option value="{{ tag.name }}" {{ 'selected' if tag_filter == tag.name else '' }}>
+                        {{ tag.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-dark btn-sm">Filter</button>
+                {% if status_filter or tag_filter or search %}
+                <a href="{{ url_for('auditions.show_detail', show_id=show.id) }}"
+                   class="btn btn-outline-secondary btn-sm ms-1">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <div class="card-body p-0">
+        {% if registrations %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Time Slot</th>
+                        <th>Tags</th>
+                        <th>Notes</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in registrations %}
+                    <tr style="cursor:pointer" onclick="window.location='{{ url_for('auditions.registration_detail', reg_id=reg.id) }}'">
+                        <td>
+                            <strong>{{ reg.user.first_name }} {{ reg.user.last_name }}</strong>
+                            {% if reg.user.pronouns %}
+                            <small class="text-muted">({{ reg.user.pronouns }})</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ reg.user.email }}</td>
+                        <td>
+                            {% if reg.status == 'confirmed' %}
+                            <span class="badge bg-success">Confirmed</span>
+                            {% elif reg.status == 'waitlisted' %}
+                            <span class="badge bg-warning text-dark">Waitlisted</span>
+                            {% elif reg.status == 'callback' %}
+                            <span class="badge bg-primary">Callback</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if reg.slot %}
+                            {{ reg.slot.date.strftime('%b %d') }}<br>
+                            <small>{{ reg.slot.start_time.strftime('%I:%M %p') }}</small>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% for tag in reg.tags %}
+                            <span class="badge bg-dark" style="font-size:0.72rem">{{ tag.name }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if reg.notes %}
+                            <i class="bi bi-journal-text text-muted" title="{{ reg.notes | truncate(60) }}"></i>
+                            {% endif %}
+                        </td>
+                        <td onclick="event.stopPropagation()">
+                            <a href="{{ url_for('auditions.registration_detail', reg_id=reg.id) }}"
+                               class="btn btn-sm btn-outline-dark">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-4 mb-0">
+            {% if status_filter or tag_filter or search %}
+            No registrations match your filter.
+            {% else %}
+            No registrations yet.
+            {% endif %}
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+{% if all_regs | length == 0 %}
+<div class="text-end">
+    <form method="POST" action="{{ url_for('auditions.delete_show', show_id=show.id) }}"
+          onsubmit="return confirm('Are you sure you want to delete this show?');">
+        {{ generate_form.hidden_tag() }}
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash"></i> Delete Show
+        </button>
+    </form>
+</div>
+{% endif %}
+
+<!-- Generate Slots Modal -->
+<div class="modal fade" id="generateSlotsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('auditions.generate_show_slots', show_id=show.id) }}" id="generateSlotsForm">
+                {{ generate_form.hidden_tag() }}
+                <input type="hidden" name="audition_dates_json" id="auditionDatesJson" value="[]">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Generate Audition {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">
+                        {% if show.scheduling_mode == 'block' %}
+                        Each night will have {{ show.block_duration_minutes }}-minute blocks with up to {{ show.max_per_block }} actors each.
+                        {% else %}
+                        Each night will have {{ show.slot_duration_minutes }}-minute individual slots.
+                        {% endif %}
+                    </p>
+
+                    <div id="auditionDatesList"></div>
+
+                    <button type="button" class="btn btn-outline-dark btn-sm mt-2" onclick="addAuditionDate()">
+                        <i class="bi bi-plus-lg"></i> Add Audition Date
+                    </button>
+
+                    {% if slots_by_date %}
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        This will replace all existing {{ 'blocks' if show.scheduling_mode == 'block' else 'slots' }}.
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark">Generate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add More Slots Modal -->
+<div class="modal fade" id="addSlotsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('auditions.add_show_slots', show_id=show.id) }}">
+                {{ generate_form.hidden_tag() }}
+                <input type="hidden" name="add_dates_json" id="addDatesJson" value="[]">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Add More {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">
+                        Add new audition dates/times. Existing {{ 'blocks' if show.scheduling_mode == 'block' else 'slots' }} will not be affected.
+                    </p>
+
+                    <div id="addDatesList"></div>
+
+                    <button type="button" class="btn btn-outline-dark btn-sm mt-2" onclick="addNewDate()">
+                        <i class="bi bi-plus-lg"></i> Add Date
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark">Add {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let auditionDates = [];
+
+    function renderAuditionDates() {
+        const list = document.getElementById('auditionDatesList');
+        list.innerHTML = '';
+        auditionDates.forEach((entry, idx) => {
+            const extraField = '{{ show.scheduling_mode }}' === 'block'
+                ? `<div class="col-auto">
+                     <label class="form-label small">Blocks</label>
+                     <input type="number" class="form-control form-control-sm" style="width:80px"
+                            value="${entry.blocks_per_night || 2}" min="1" max="10"
+                            onchange="updateAuditionDate(${idx}, 'blocks_per_night', parseInt(this.value))">
+                   </div>`
+                : `<div class="col-auto">
+                     <label class="form-label small">Hours</label>
+                     <input type="text" class="form-control form-control-sm" style="width:80px"
+                            value="${entry.total_hours || '3'}"
+                            onchange="updateAuditionDate(${idx}, 'total_hours', this.value)">
+                   </div>`;
+
+            list.innerHTML += `
+                <div class="row g-2 align-items-end mb-2">
+                    <div class="col-auto">
+                        <label class="form-label small">Date</label>
+                        <input type="date" class="form-control form-control-sm" value="${entry.date}"
+                               onchange="updateAuditionDate(${idx}, 'date', this.value)" required>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small">Start Time</label>
+                        <input type="time" class="form-control form-control-sm" value="${entry.start_time}"
+                               onchange="updateAuditionDate(${idx}, 'start_time', this.value)" required>
+                    </div>
+                    ${extraField}
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAuditionDate(${idx})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>`;
+        });
+        document.getElementById('auditionDatesJson').value = JSON.stringify(auditionDates);
+    }
+
+    function addAuditionDate() {
+        const defaults = { date: '', start_time: '19:00' };
+        if ('{{ show.scheduling_mode }}' === 'block') {
+            defaults.blocks_per_night = 2;
+        } else {
+            defaults.total_hours = '3';
+        }
+        auditionDates.push(defaults);
+        renderAuditionDates();
+    }
+
+    function updateAuditionDate(idx, key, value) {
+        auditionDates[idx][key] = value;
+        document.getElementById('auditionDatesJson').value = JSON.stringify(auditionDates);
+    }
+
+    function removeAuditionDate(idx) {
+        auditionDates.splice(idx, 1);
+        renderAuditionDates();
+    }
+
+    // Pre-populate from existing audition_dates if available
+    {% if show.audition_dates %}
+    auditionDates = {{ show.audition_dates | tojson }};
+    {% endif %}
+    renderAuditionDates();
+
+    // --- Add More Slots modal ---
+    let addDates = [];
+
+    function renderAddDates() {
+        const list = document.getElementById('addDatesList');
+        list.innerHTML = '';
+        addDates.forEach((entry, idx) => {
+            const extraField = '{{ show.scheduling_mode }}' === 'block'
+                ? `<div class="col-auto">
+                     <label class="form-label small">Blocks</label>
+                     <input type="number" class="form-control form-control-sm" style="width:80px"
+                            value="${entry.blocks_per_night || 2}" min="1" max="10"
+                            onchange="updateAddDate(${idx}, 'blocks_per_night', parseInt(this.value))">
+                   </div>`
+                : `<div class="col-auto">
+                     <label class="form-label small">Hours</label>
+                     <input type="text" class="form-control form-control-sm" style="width:80px"
+                            value="${entry.total_hours || '3'}"
+                            onchange="updateAddDate(${idx}, 'total_hours', this.value)">
+                   </div>`;
+
+            list.innerHTML += `
+                <div class="row g-2 align-items-end mb-2">
+                    <div class="col-auto">
+                        <label class="form-label small">Date</label>
+                        <input type="date" class="form-control form-control-sm" value="${entry.date}"
+                               onchange="updateAddDate(${idx}, 'date', this.value)" required>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small">Start Time</label>
+                        <input type="time" class="form-control form-control-sm" value="${entry.start_time}"
+                               onchange="updateAddDate(${idx}, 'start_time', this.value)" required>
+                    </div>
+                    ${extraField}
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAddDate(${idx})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>`;
+        });
+        document.getElementById('addDatesJson').value = JSON.stringify(addDates);
+    }
+
+    function addNewDate() {
+        const defaults = { date: '', start_time: '19:00' };
+        if ('{{ show.scheduling_mode }}' === 'block') {
+            defaults.blocks_per_night = 2;
+        } else {
+            defaults.total_hours = '3';
+        }
+        addDates.push(defaults);
+        renderAddDates();
+    }
+
+    function updateAddDate(idx, key, value) {
+        addDates[idx][key] = value;
+        document.getElementById('addDatesJson').value = JSON.stringify(addDates);
+    }
+
+    function removeAddDate(idx) {
+        addDates.splice(idx, 1);
+        renderAddDates();
+    }
+
+    renderAddDates();
+</script>
+{% endblock %}

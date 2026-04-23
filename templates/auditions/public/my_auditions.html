@@ -1,0 +1,65 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}My Auditions{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">My Auditions</h2>
+
+{% if registrations %}
+<div class="row">
+    {% for reg in registrations %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>{{ reg.show.title }}</strong>
+                {% if reg.status == 'confirmed' %}
+                <span class="badge bg-success">Confirmed</span>
+                {% elif reg.status == 'waitlisted' %}
+                <span class="badge bg-warning text-dark">Waitlisted</span>
+                {% elif reg.status == 'callback' %}
+                <span class="badge bg-info">Callback</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if reg.slot %}
+                <p class="mb-2">
+                    <i class="bi bi-calendar-event"></i>
+                    {{ reg.slot.date.strftime('%A, %B %d, %Y') }}
+                </p>
+                <p class="mb-2">
+                    <i class="bi bi-clock"></i>
+                    {{ reg.slot.start_time.strftime('%I:%M %p') }} - {{ reg.slot.end_time.strftime('%I:%M %p') }}
+                </p>
+                {% elif reg.status == 'waitlisted' %}
+                <p class="mb-2 text-muted">
+                    <i class="bi bi-hourglass-split"></i>
+                    You are on the waiting list. We will notify you if a spot opens up.
+                </p>
+                {% endif %}
+
+                {% if reg.show.description %}
+                <p class="text-muted small mt-2 mb-0">{{ reg.show.description | truncate(100) }}</p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Registered {{ reg.created_at.strftime('%b %d, %Y') }}</small>
+                    <form method="POST" action="{{ url_for('auditions.cancel_registration', reg_id=reg.id) }}"
+                          onsubmit="return confirm('Are you sure you want to cancel your registration for {{ reg.show.title }}?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Cancel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-clipboard-check" style="font-size: 3rem; color: #6c757d;"></i>
+    <h4 class="mt-3 text-muted">No audition registrations yet</h4>
+    <p class="text-muted">Browse <a href="{{ url_for('auditions.shows_list') }}">open auditions</a> to get started.</p>
+</div>
+{% endif %}
+{% endblock %}

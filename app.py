@@ -270,6 +270,72 @@ try:
             db.session.commit()
             click.echo(f'Password reset for {user.first_name} {user.last_name} ({user.email}).')
 
+    @app.cli.command('send-reminders')
+    @click.option('--dry-run', is_flag=True, default=False,
+                  help='Print who would be emailed without actually sending.')
+    def send_reminders(dry_run):
+        """Send audition reminder emails to actors whose slot is tomorrow."""
+        from datetime import date, timedelta
+        from auditions.models import AuditionSlot, Registration, EmailLog
+        from auditions.email import send_reminder_email
+
+        with app.app_context():
+            tomorrow = date.today() + timedelta(days=1)
+            click.echo(f'Looking for auditions on {tomorrow.strftime("%A, %B %d, %Y")}...')
+
+            slots = AuditionSlot.query.filter_by(date=tomorrow).all()
+            if not slots:
+                click.echo('No audition slots tomorrow. Nothing to send.')
+                return
+
+            sent = 0
+            skipped = 0
+            failed = 0
+
+            for slot in slots:
+                confirmed = Registration.query.filter_by(
+                    slot_id=slot.id, status='confirmed'
+                ).all()
+
+                for reg in confirmed:
+                    # Check if reminder already sent for this registration
+                    already_sent = EmailLog.query.filter_by(
+                        registration_id=reg.id,
+                        email_type='reminder',
+                        status='sent'
+                    ).first()
+
+                    if already_sent:
+                        click.echo(f'  SKIP  {reg.user.email} — reminder already sent')
+                        skipped += 1
+                        continue
+
+                    if dry_run:
+                        click.echo(
+                            f'  DRY   {reg.user.first_name} {reg.user.last_name} '
+                            f'<{reg.user.email}> — '
+                            f'{slot.start_time.strftime("%I:%M %p")}'
+                        )
+                        sent += 1
+                    else:
+                        success = send_reminder_email(reg)
+                        if success:
+                            click.echo(
+                                f'  SENT  {reg.user.first_name} {reg.user.last_name} '
+                                f'<{reg.user.email}> — '
+                                f'{slot.start_time.strftime("%I:%M %p")}'
+                            )
+                            sent += 1
+                        else:
+                            click.echo(
+                                f'  FAIL  {reg.user.email}',
+                                err=True
+                            )
+                            failed += 1
+
+            label = 'Would send' if dry_run else 'Sent'
+            click.echo(f'\nDone. {label}: {sent}  Skipped: {skipped}  Failed: {failed}')
+
     AUDITIONS_ENABLED = True
 except (ImportError, ModuleNotFoundError) as _auditions_err:
     import sys as _sys

@@ -1,0 +1,134 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}Register — {{ show.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .slot-btn { width: 100%; text-align: left; }
+    .slot-btn.active { background-color: #212529; color: white; }
+    .slot-btn:not(.active) { background-color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h2 class="mb-2">Register for Audition</h2>
+        <h4 class="text-muted mb-4">{{ show.title }}</h4>
+
+        {% if show.description %}
+        <p class="mb-4">{{ show.description }}</p>
+        {% endif %}
+
+        <form method="POST" id="auditionForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            {% if show.allow_choice %}
+            <!-- Slot/Block Selection -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Choose Your Audition Time</strong></div>
+                <div class="card-body">
+                    {% if slots_by_date %}
+                        {% for date_str, date_slots in slots_by_date.items() %}
+                        <h6 class="mt-3 mb-2"><i class="bi bi-calendar-event"></i> {{ date_str }}</h6>
+                        <div class="row g-2 mb-3">
+                            {% for slot in date_slots %}
+                            <div class="col-md-4 col-lg-3">
+                                <button type="button" class="btn btn-outline-dark slot-btn"
+                                        data-slot-id="{{ slot.id }}"
+                                        onclick="selectSlot(this, {{ slot.id }})">
+                                    <strong>{{ slot.start_time.strftime('%I:%M %p') }}</strong> - {{ slot.end_time.strftime('%I:%M %p') }}
+                                    {% if show.scheduling_mode == 'block' %}
+                                    <br><small>{{ slot.capacity - slot.current_count }} spot{{ 's' if (slot.capacity - slot.current_count) != 1 }} left</small>
+                                    {% endif %}
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                        <input type="hidden" name="slot_id" id="selectedSlotId" value="">
+                    {% else %}
+                        <p class="text-muted mb-0">All audition times are currently full. You can still register to be placed on the waiting list.</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> You will be automatically assigned an audition time.
+                If all times are full, you will be placed on the waiting list.
+            </div>
+            {% endif %}
+
+            {% if show.custom_fields %}
+            <!-- Custom Fields -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Additional Information</strong></div>
+                <div class="card-body">
+                    {% for field in show.custom_fields %}
+                    <div class="mb-3">
+                        <label class="form-label">
+                            {{ field.name }}
+                            {% if field.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        {% if field.type == 'text' %}
+                        <input type="text" class="form-control" name="custom_{{ field.name }}"
+                               {{ 'required' if field.required }}>
+                        {% elif field.type == 'textarea' %}
+                        <textarea class="form-control" name="custom_{{ field.name }}" rows="3"
+                                  {{ 'required' if field.required }}></textarea>
+                        {% elif field.type == 'select' %}
+                        <select class="form-select" name="custom_{{ field.name }}"
+                                {{ 'required' if field.required }}>
+                            <option value="">Select...</option>
+                            {% for opt in field.options.split(',') %}
+                            <option value="{{ opt.strip() }}">{{ opt.strip() }}</option>
+                            {% endfor %}
+                        </select>
+                        {% elif field.type == 'checkbox' %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="custom_{{ field.name }}" value="yes">
+                            <label class="form-check-label">Yes</label>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Optional Materials -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Optional Materials</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Video Link</label>
+                        <input type="url" class="form-control" name="video_link"
+                               placeholder="https://youtube.com/... or https://vimeo.com/...">
+                        <div class="form-text">Link to an audition video, monologue, or reel.</div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-dark btn-lg w-100">
+                {% if available_slots or not show.allow_choice %}
+                Confirm Registration
+                {% else %}
+                Join Waiting List
+                {% endif %}
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function selectSlot(btn, slotId) {
+        // Deselect all
+        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'));
+        // Select this one
+        btn.classList.add('active');
+        document.getElementById('selectedSlotId').value = slotId;
+    }
+</script>
+{% endblock %}

@@ -24,6 +24,7 @@ error.txt
 
 # shell files
 *.sh
+!send_reminders.sh
 
 # sql fils
 *.sql

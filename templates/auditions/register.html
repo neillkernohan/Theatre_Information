@@ -1,0 +1,288 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}Create Account{% endblock %}
+
+{% block extra_css %}
+<style>
+    .experience-row { background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+    .section-divider { border-top: 2px solid #dee2e6; margin: 1.5rem 0; padding-top: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="card-title text-center mb-4">Create Your Account</h3>
+
+                <!-- Google Sign Up -->
+                <a href="{{ url_for('auditions.google_login') }}" class="btn w-100 mb-3 d-flex align-items-center justify-content-center gap-2"
+                   style="background:#fff; border:1px solid #dadce0; color:#3c4043; font-weight:500;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                        <path fill="none" d="M0 0h48v48H0z"/>
+                    </svg>
+                    Sign up with Google
+                </a>
+                <div class="d-flex align-items-center gap-2 mb-4">
+                    <hr class="flex-grow-1 m-0">
+                    <small class="text-muted">or fill in the form below</small>
+                    <hr class="flex-grow-1 m-0">
+                </div>
+
+                <form method="POST" id="registrationForm">
+                    {{ form.hidden_tag() }}
+                    <input type="hidden" name="acting_experience_json" id="actingExperienceJson" value="[]">
+
+                    <!-- Personal Information -->
+                    <h5 class="mb-3">Personal Information</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.first_name.label(class="form-label") }}
+                            {{ form.first_name(class="form-control") }}
+                            {% for error in form.first_name.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.last_name.label(class="form-label") }}
+                            {{ form.last_name(class="form-control") }}
+                            {% for error in form.last_name.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control", placeholder="you@example.com") }}
+                        {% for error in form.email.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.phone.label(class="form-label") }}
+                        {{ form.phone(class="form-control", placeholder="(555) 123-4567") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.pronouns.label(class="form-label") }}
+                        {{ form.pronouns(class="form-select", id="pronounsSelect") }}
+                    </div>
+                    <div class="mb-3" id="pronounsOtherGroup" style="display:none;">
+                        {{ form.pronouns_other.label(class="form-label") }}
+                        {{ form.pronouns_other(class="form-control", placeholder="Your pronouns") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control") }}
+                        <div class="form-text">Minimum 8 characters.</div>
+                        {% for error in form.password.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.confirm_password.label(class="form-label") }}
+                        {{ form.confirm_password(class="form-control") }}
+                        {% for error in form.confirm_password.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Audition Preferences -->
+                    <div class="section-divider">
+                        <h5 class="mb-3">Audition Preferences</h5>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.contact_email_ok.label(class="form-label") }}
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="contact_email_ok" id="contactYes" value="yes" checked>
+                                <label class="form-check-label" for="contactYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="contact_email_ok" id="contactNo" value="no">
+                                <label class="form-check-label" for="contactNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.roles_auditioning_for.label(class="form-label") }}
+                        {{ form.roles_auditioning_for(class="form-control", placeholder="e.g. Juliet, Nurse") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.accept_other_role.label(class="form-label") }}
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptYes" value="yes" checked>
+                                <label class="form-check-label" for="acceptYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="accept_other_role" id="acceptNo" value="no">
+                                <label class="form-check-label" for="acceptNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.comfortable_performing.label(class="form-label") }}
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="comfortable_performing" id="comfortYes" value="yes" checked>
+                                <label class="form-check-label" for="comfortYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="comfortable_performing" id="comfortNo" value="no">
+                                <label class="form-check-label" for="comfortNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.equity_or_actra.label(class="form-label") }}
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="equity_or_actra" id="equityYes" value="yes">
+                                <label class="form-check-label" for="equityYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="equity_or_actra" id="equityNo" value="no" checked>
+                                <label class="form-check-label" for="equityNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.schedule_conflicts.label(class="form-label") }}
+                        {{ form.schedule_conflicts(class="form-control", rows=3, placeholder="List any dates or times you are unavailable during the rehearsal period...") }}
+                    </div>
+
+                    <!-- Volunteer Interests -->
+                    <div class="section-divider">
+                        <h5 class="mb-3">Other Interests at Theatre Aurora</h5>
+                        <p class="text-muted small">Check any roles you'd be interested in (select all that apply):</p>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check mb-2">{{ form.interest_choreographer(class="form-check-input") }} {{ form.interest_choreographer.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_concession(class="form-check-input") }} {{ form.interest_concession.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_costume_design(class="form-check-input") }} {{ form.interest_costume_design.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_director(class="form-check-input") }} {{ form.interest_director.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_lighting_design(class="form-check-input") }} {{ form.interest_lighting_design.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_lighting_operator(class="form-check-input") }} {{ form.interest_lighting_operator.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_music_director(class="form-check-input") }} {{ form.interest_music_director.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_photography(class="form-check-input") }} {{ form.interest_photography.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_producer(class="form-check-input") }} {{ form.interest_producer.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_props_master(class="form-check-input") }} {{ form.interest_props_master.label(class="form-check-label") }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mb-2">{{ form.interest_set_build(class="form-check-input") }} {{ form.interest_set_build.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_set_design(class="form-check-input") }} {{ form.interest_set_design.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_set_dressing(class="form-check-input") }} {{ form.interest_set_dressing.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_set_painting(class="form-check-input") }} {{ form.interest_set_painting.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_sound_design(class="form-check-input") }} {{ form.interest_sound_design.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_sound_operator(class="form-check-input") }} {{ form.interest_sound_operator.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_stagehand(class="form-check-input") }} {{ form.interest_stagehand.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_stage_manager(class="form-check-input") }} {{ form.interest_stage_manager.label(class="form-check-label") }}</div>
+                            <div class="form-check mb-2">{{ form.interest_usher(class="form-check-input") }} {{ form.interest_usher.label(class="form-check-label") }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Training & Experience -->
+                    <div class="section-divider">
+                        <h5 class="mb-3">Training & Experience</h5>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.training.label(class="form-label") }}
+                        {{ form.training(class="form-control", rows=3, placeholder="e.g. BFA in Theatre, Vocal coaching, Dance training...") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Acting Experience</label>
+                        <div id="experienceList"></div>
+                        <button type="button" class="btn btn-sm btn-outline-dark mt-2" onclick="addExperience()">
+                            <i class="bi bi-plus-lg"></i> Add Experience
+                        </button>
+                    </div>
+
+                    {{ form.submit(class="btn btn-dark w-100") }}
+                </form>
+                <p class="text-center mt-3 mb-0">
+                    <small>Already have an account? <a href="{{ url_for('auditions.actor_login') }}">Log in</a></small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Pronouns toggle
+    const pronounsSelect = document.getElementById('pronounsSelect');
+    const otherGroup = document.getElementById('pronounsOtherGroup');
+    pronounsSelect.addEventListener('change', () => {
+        otherGroup.style.display = pronounsSelect.value === 'other' ? 'block' : 'none';
+    });
+
+    // Acting experience management
+    let experiences = [];
+
+    function renderExperiences() {
+        const list = document.getElementById('experienceList');
+        list.innerHTML = '';
+        experiences.forEach((exp, idx) => {
+            list.innerHTML += `
+                <div class="experience-row">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small">Show</label>
+                            <input type="text" class="form-control form-control-sm" value="${exp.show || ''}"
+                                   onchange="updateExperience(${idx}, 'show', this.value)" placeholder="Show name">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Role</label>
+                            <input type="text" class="form-control form-control-sm" value="${exp.role || ''}"
+                                   onchange="updateExperience(${idx}, 'role', this.value)" placeholder="Role played">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Theatre Group</label>
+                            <input type="text" class="form-control form-control-sm" value="${exp.theatre_group || ''}"
+                                   onchange="updateExperience(${idx}, 'theatre_group', this.value)" placeholder="Theatre company">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeExperience(${idx})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        });
+        document.getElementById('actingExperienceJson').value = JSON.stringify(experiences);
+    }
+
+    function addExperience() {
+        experiences.push({ show: '', role: '', theatre_group: '' });
+        renderExperiences();
+    }
+
+    function updateExperience(idx, key, value) {
+        experiences[idx][key] = value;
+        document.getElementById('actingExperienceJson').value = JSON.stringify(experiences);
+    }
+
+    function removeExperience(idx) {
+        experiences.splice(idx, 1);
+        renderExperiences();
+    }
+
+    renderExperiences();
+</script>
+{% endblock %}

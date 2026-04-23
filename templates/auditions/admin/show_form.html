@@ -1,0 +1,202 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}{{ 'Edit' if editing else 'New' }} Show{% endblock %}
+
+{% block extra_css %}
+<style>
+    .mode-fields { display: none; }
+    .mode-fields.active { display: block; }
+    .custom-field-row { background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h2 class="mb-4">{{ 'Edit' if editing else 'Create New' }} Show</h2>
+
+        <form method="POST" id="showForm">
+            {{ form.hidden_tag() }}
+            <input type="hidden" name="custom_fields_json" id="customFieldsJson" value='{{ show.custom_fields | tojson if editing and show.custom_fields else "[]" }}'>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Show Details</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control", placeholder="e.g. A Midsummer Night's Dream") }}
+                        {% for error in form.title.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows=3, placeholder="Brief description of the show and audition requirements...") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Scheduling</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {{ form.scheduling_mode.label(class="form-label") }}
+                        {{ form.scheduling_mode(class="form-select", id="schedulingMode") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.allow_choice(class="form-check-input") }}
+                            {{ form.allow_choice.label(class="form-check-label") }}
+                        </div>
+                        <small class="text-muted">If unchecked, actors will be auto-assigned to the next available time.</small>
+                    </div>
+
+                    <!-- Block mode fields -->
+                    <div id="blockFields" class="mode-fields">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                {{ form.max_per_block.label(class="form-label") }}
+                                {{ form.max_per_block(class="form-control", placeholder="10") }}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                {{ form.block_duration_minutes.label(class="form-label") }}
+                                {{ form.block_duration_minutes(class="form-control") }}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                {{ form.blocks_per_night.label(class="form-label") }}
+                                {{ form.blocks_per_night(class="form-control") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slot mode fields -->
+                    <div id="slotFields" class="mode-fields">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.slot_duration_minutes.label(class="form-label") }}
+                                {{ form.slot_duration_minutes(class="form-select") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.total_slot_hours.label(class="form-label") }}
+                                {{ form.total_slot_hours(class="form-control", placeholder="3") }}
+                                <small class="text-muted">Total audition time per night (in hours)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Registration Window</strong></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.registration_open.label(class="form-label") }}
+                            {{ form.registration_open(class="form-control", type="datetime-local") }}
+                            {% for error in form.registration_open.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.registration_close.label(class="form-label") }}
+                            {{ form.registration_close(class="form-control", type="datetime-local") }}
+                            {% for error in form.registration_close.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Custom Registration Fields</strong>
+                    <button type="button" class="btn btn-sm btn-outline-dark" onclick="addCustomField()">
+                        <i class="bi bi-plus-lg"></i> Add Field
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Add custom fields that actors will fill out when registering for this audition
+                        (e.g. "Previous Roles", "Vocal Range", "Preferred Role").
+                    </p>
+                    <div id="customFieldsList"></div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                {{ form.submit(class="btn btn-dark") }}
+                <a href="{{ url_for('auditions.admin_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const modeSelect = document.getElementById('schedulingMode');
+    const blockFields = document.getElementById('blockFields');
+    const slotFields = document.getElementById('slotFields');
+
+    function toggleModeFields() {
+        blockFields.classList.toggle('active', modeSelect.value === 'block');
+        slotFields.classList.toggle('active', modeSelect.value === 'slot');
+    }
+    modeSelect.addEventListener('change', toggleModeFields);
+    toggleModeFields();
+
+    // Custom fields management
+    let customFields = JSON.parse(document.getElementById('customFieldsJson').value || '[]');
+
+    function renderCustomFields() {
+        const list = document.getElementById('customFieldsList');
+        list.innerHTML = '';
+        customFields.forEach((field, idx) => {
+            list.innerHTML += `
+                <div class="custom-field-row d-flex align-items-center gap-2">
+                    <input type="text" class="form-control form-control-sm" value="${field.name}"
+                           onchange="updateCustomField(${idx}, 'name', this.value)" placeholder="Field name">
+                    <select class="form-select form-select-sm" style="max-width:140px"
+                            onchange="updateCustomField(${idx}, 'type', this.value)">
+                        <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
+                        <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Long Text</option>
+                        <option value="select" ${field.type === 'select' ? 'selected' : ''}>Dropdown</option>
+                        <option value="checkbox" ${field.type === 'checkbox' ? 'selected' : ''}>Checkbox</option>
+                    </select>
+                    <input type="text" class="form-control form-control-sm" value="${field.options || ''}"
+                           onchange="updateCustomField(${idx}, 'options', this.value)"
+                           placeholder="Options (comma-sep)" style="display:${field.type === 'select' ? 'block' : 'none'}">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" ${field.required ? 'checked' : ''}
+                               onchange="updateCustomField(${idx}, 'required', this.checked)">
+                        <label class="form-check-label small">Req</label>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeCustomField(${idx})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>`;
+        });
+        document.getElementById('customFieldsJson').value = JSON.stringify(customFields);
+    }
+
+    function addCustomField() {
+        customFields.push({ name: '', type: 'text', required: false, options: '' });
+        renderCustomFields();
+    }
+
+    function updateCustomField(idx, key, value) {
+        customFields[idx][key] = value;
+        document.getElementById('customFieldsJson').value = JSON.stringify(customFields);
+        if (key === 'type') renderCustomFields();
+    }
+
+    function removeCustomField(idx) {
+        customFields.splice(idx, 1);
+        renderCustomFields();
+    }
+
+    renderCustomFields();
+</script>
+{% endblock %}

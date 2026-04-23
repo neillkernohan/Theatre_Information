@@ -1,0 +1,149 @@
+from flask_wtf import FlaskForm
+from wtforms import (
+    StringField, PasswordField, SubmitField, TelField, TextAreaField,
+    SelectField, IntegerField, BooleanField, DateTimeLocalField, FieldList,
+    FormField
+)
+from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Optional, NumberRange
+from auditions.models import User
+
+
+class ActorRegistrationForm(FlaskForm):
+    first_name = StringField('First Name', validators=[DataRequired(), Length(max=100)])
+    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=100)])
+    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=255)])
+    phone = TelField('Phone Number')
+    pronouns = SelectField('Pronouns', choices=[
+        ('', 'Select pronouns (optional)'),
+        ('he/him', 'He/Him'),
+        ('she/her', 'She/Her'),
+        ('they/them', 'They/Them'),
+        ('he/they', 'He/They'),
+        ('she/they', 'She/They'),
+        ('other', 'Other / Prefer to self-describe'),
+    ], validators=[Optional()])
+    pronouns_other = StringField('Pronouns (self-describe)', validators=[Optional(), Length(max=50)])
+    contact_email_ok = SelectField('May we contact you via email about the outcome of auditions?', choices=[
+        ('yes', 'Yes'),
+        ('no', 'No'),
+    ], default='yes')
+    roles_auditioning_for = StringField('What role(s) are you auditioning for?', validators=[Optional(), Length(max=500)])
+    accept_other_role = SelectField('Will you accept another role if offered?', choices=[
+        ('yes', 'Yes'),
+        ('no', 'No'),
+    ], default='yes')
+    comfortable_performing = SelectField(
+        'Are you comfortable performing the following on stage: kissing, smoking, physical violence, swearing, using weapons?',
+        choices=[('yes', 'Yes'), ('no', 'No')],
+        default='yes'
+    )
+    equity_or_actra = SelectField("Are you currently a member of Actor's Equity or ACTRA?", choices=[
+        ('no', 'No'),
+        ('yes', 'Yes'),
+    ], default='no')
+    schedule_conflicts = TextAreaField('Please list any potential conflicts with the rehearsal schedule',
+                                       validators=[Optional()])
+    training = TextAreaField('Training', validators=[Optional()])
+
+    # Volunteer interests - each is a BooleanField
+    interest_choreographer = BooleanField('Choreographer')
+    interest_concession = BooleanField('Concession Assistant (Smart Serve Certified)')
+    interest_costume_design = BooleanField('Costume Design')
+    interest_director = BooleanField('Director')
+    interest_lighting_design = BooleanField('Lighting Design')
+    interest_lighting_operator = BooleanField('Lighting Operator')
+    interest_music_director = BooleanField('Music Director')
+    interest_photography = BooleanField('Photography')
+    interest_producer = BooleanField('Producer')
+    interest_props_master = BooleanField('Props Master')
+    interest_set_build = BooleanField('Set Build')
+    interest_set_design = BooleanField('Set Design')
+    interest_set_dressing = BooleanField('Set Dressing')
+    interest_set_painting = BooleanField('Set Painting')
+    interest_sound_design = BooleanField('Sound Design')
+    interest_sound_operator = BooleanField('Sound Operator')
+    interest_stagehand = BooleanField('Stagehand')
+    interest_stage_manager = BooleanField('Stage Manager')
+    interest_usher = BooleanField('Usher')
+
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        DataRequired(), EqualTo('password', message='Passwords must match.')
+    ])
+    submit = SubmitField('Create Account')
+
+    def validate_email(self, field):
+        if User.query.filter_by(email=field.data.lower()).first():
+            raise ValidationError('An account with this email already exists.')
+
+
+class LoginForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Log In')
+
+
+class CustomFieldForm(FlaskForm):
+    """Sub-form for a single custom registration field."""
+    class Meta:
+        csrf = False
+
+    field_name = StringField('Field Name', validators=[DataRequired(), Length(max=100)])
+    field_type = SelectField('Type', choices=[
+        ('text', 'Text'),
+        ('textarea', 'Long Text'),
+        ('select', 'Dropdown'),
+        ('checkbox', 'Checkbox'),
+    ])
+    required = BooleanField('Required')
+    options = StringField('Options (comma-separated, for dropdowns)')
+
+
+class AuditionDateForm(FlaskForm):
+    """Sub-form for a single audition date with start time."""
+    class Meta:
+        csrf = False
+
+    date = StringField('Date', validators=[DataRequired()])
+    start_time = StringField('Start Time', validators=[DataRequired()])
+
+
+class ShowForm(FlaskForm):
+    title = StringField('Show Title', validators=[DataRequired(), Length(max=255)])
+    description = TextAreaField('Description')
+    scheduling_mode = SelectField('Scheduling Mode', choices=[
+        ('block', 'Time Blocks (multiple people per block)'),
+        ('slot', 'Individual Slots (one person per slot)')
+    ], validators=[DataRequired()])
+    allow_choice = BooleanField('Allow actors to choose their time', default=True)
+
+    # Block mode fields
+    max_per_block = IntegerField('Max People per Block', validators=[Optional(), NumberRange(min=1)])
+    block_duration_minutes = IntegerField('Block Duration (minutes)', default=90,
+                                          validators=[Optional(), NumberRange(min=15)])
+    blocks_per_night = IntegerField('Blocks per Night', default=2,
+                                    validators=[Optional(), NumberRange(min=1, max=10)])
+
+    # Slot mode fields
+    slot_duration_minutes = SelectField('Slot Duration', choices=[
+        ('10', '10 minutes'),
+        ('15', '15 minutes'),
+        ('20', '20 minutes'),
+    ], validators=[Optional()])
+    total_slot_hours = StringField('Total Hours per Night', default='3',
+                                   validators=[Optional()])
+
+    # Registration window
+    registration_open = DateTimeLocalField('Registration Opens',
+                                           format='%Y-%m-%dT%H:%M',
+                                           validators=[DataRequired()])
+    registration_close = DateTimeLocalField('Registration Closes',
+                                            format='%Y-%m-%dT%H:%M',
+                                            validators=[DataRequired()])
+
+    submit = SubmitField('Save Show')
+
+
+class GenerateSlotsForm(FlaskForm):
+    """Form for adding audition dates and generating slots."""
+    submit = SubmitField('Generate Slots')

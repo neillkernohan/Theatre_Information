@@ -1,0 +1,63 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Auditions Dashboard</h2>
+    <a href="{{ url_for('auditions.create_show') }}" class="btn btn-dark">
+        <i class="bi bi-plus-lg"></i> New Show
+    </a>
+</div>
+
+{% if shows %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Show</th>
+                <th>Mode</th>
+                <th>Status</th>
+                <th>Registration Opens</th>
+                <th>Registration Closes</th>
+                <th>Registrations</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for show in shows %}
+            <tr>
+                <td><strong>{{ show.title }}</strong></td>
+                <td>
+                    <span class="badge bg-secondary">{{ show.scheduling_mode | capitalize }}</span>
+                </td>
+                <td>
+                    {% if show.status == 'open' %}
+                    <span class="badge bg-success">Open</span>
+                    {% elif show.status == 'draft' %}
+                    <span class="badge bg-warning text-dark">Draft</span>
+                    {% elif show.status == 'closed' %}
+                    <span class="badge bg-danger">Closed</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Archived</span>
+                    {% endif %}
+                </td>
+                <td>{{ show.registration_open.strftime('%b %d, %Y') if show.registration_open else '—' }}</td>
+                <td>{{ show.registration_close.strftime('%b %d, %Y') if show.registration_close else '—' }}</td>
+                <td>{{ show.registrations.filter_by(status='confirmed').count() + show.registrations.filter_by(status='waitlisted').count() + show.registrations.filter_by(status='callback').count() }}</td>
+                <td>
+                    <a href="{{ url_for('auditions.show_detail', show_id=show.id) }}" class="btn btn-sm btn-outline-dark">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-theatre-masks" style="font-size: 3rem; color: #6c757d;"></i>
+    <h4 class="mt-3 text-muted">No shows yet</h4>
+    <p class="text-muted">Create your first show to start managing auditions.</p>
+</div>
+{% endif %}
+{% endblock %}

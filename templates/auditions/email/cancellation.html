@@ -1,0 +1,23 @@
+{% extends "auditions/email/_base.html" %}
+
+{% block content %}
+<h2 style="margin: 0 0 16px; color: #212529; font-size: 20px;">Registration Cancelled</h2>
+
+<p style="margin: 0 0 12px; color: #495057; font-size: 15px; line-height: 1.6;">
+    Hi {{ user.first_name }},
+</p>
+
+<p style="margin: 0 0 20px; color: #495057; font-size: 15px; line-height: 1.6;">
+    Your audition registration for <strong>{{ show.title }}</strong> has been cancelled.
+</p>
+
+<p style="margin: 0 0 12px; color: #495057; font-size: 15px; line-height: 1.6;">
+    If this was a mistake, you can register again from the
+    <strong>Open Auditions</strong> page (subject to availability).
+</p>
+
+<p style="margin: 24px 0 0; color: #495057; font-size: 15px; line-height: 1.6;">
+    Thank you,<br>
+    <strong>Theatre Aurora Auditions Team</strong>
+</p>
+{% endblock %}

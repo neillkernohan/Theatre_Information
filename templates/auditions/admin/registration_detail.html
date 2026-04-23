@@ -1,0 +1,368 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}{{ reg.user.first_name }} {{ reg.user.last_name }} — {{ reg.show.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; margin-bottom: 2px; }
+    .info-value { font-size: 0.95rem; margin-bottom: 0; }
+    .section-card { margin-bottom: 1.25rem; }
+    .tag-badge { font-size: 0.8rem; padding: 4px 10px; }
+    .yes-badge { background-color: #198754; color: white; }
+    .no-badge { background-color: #6c757d; color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('auditions.admin_dashboard') }}">Shows</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('auditions.show_detail', show_id=reg.show.id) }}">{{ reg.show.title }}</a></li>
+        <li class="breadcrumb-item active">{{ reg.user.first_name }} {{ reg.user.last_name }}</li>
+    </ol>
+</nav>
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+    <div>
+        <h2 class="mb-1">{{ reg.user.first_name }} {{ reg.user.last_name }}</h2>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            {% if reg.status == 'confirmed' %}
+            <span class="badge bg-success fs-6">Confirmed</span>
+            {% elif reg.status == 'waitlisted' %}
+            <span class="badge bg-warning text-dark fs-6">Waitlisted</span>
+            {% elif reg.status == 'callback' %}
+            <span class="badge bg-primary fs-6">Callback</span>
+            {% elif reg.status == 'cancelled' %}
+            <span class="badge bg-secondary fs-6">Cancelled</span>
+            {% endif %}
+            {% if reg.slot %}
+            <span class="badge bg-light text-dark border fs-6">
+                <i class="bi bi-clock"></i>
+                {{ reg.slot.date.strftime('%b %d') }} · {{ reg.slot.start_time.strftime('%I:%M %p') }}
+            </span>
+            {% endif %}
+            {% for tag in reg.tags %}
+            <span class="badge bg-dark tag-badge">{{ tag.name }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    <!-- Quick status change -->
+    <div class="dropdown">
+        <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="bi bi-toggles"></i> Change Status
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            {% for s in ['confirmed', 'waitlisted', 'callback', 'cancelled'] %}
+            {% if s != reg.status %}
+            <li>
+                <form method="POST" action="{{ url_for('auditions.update_registration_status', reg_id=reg.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="status" value="{{ s }}">
+                    <button type="submit" class="dropdown-item">Set to {{ s | capitalize }}</button>
+                </form>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="row">
+    <!-- LEFT COLUMN: Actor info -->
+    <div class="col-lg-7">
+
+        <!-- Contact -->
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-person"></i> Contact Information</strong></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <p class="info-label">Email</p>
+                        <p class="info-value"><a href="mailto:{{ reg.user.email }}">{{ reg.user.email }}</a></p>
+                    </div>
+                    <div class="col-sm-6">
+                        <p class="info-label">Phone</p>
+                        <p class="info-value">{{ reg.user.phone or '—' }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <p class="info-label">Pronouns</p>
+                        <p class="info-value">{{ reg.user.pronouns or '—' }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <p class="info-label">Email Contact OK</p>
+                        <p class="info-value">
+                            {% if reg.user.contact_email_ok %}
+                            <span class="badge yes-badge">Yes</span>
+                            {% else %}
+                            <span class="badge no-badge">No</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audition Preferences -->
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-star"></i> Audition Preferences</strong></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <p class="info-label">Roles Auditioning For</p>
+                        <p class="info-value">{{ reg.user.roles_auditioning_for or '—' }}</p>
+                    </div>
+                    <div class="col-sm-4">
+                        <p class="info-label">Accept Other Role</p>
+                        <p class="info-value">
+                            <span class="badge {{ 'yes-badge' if reg.user.accept_other_role else 'no-badge' }}">
+                                {{ 'Yes' if reg.user.accept_other_role else 'No' }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-sm-4">
+                        <p class="info-label">Comfortable Performing</p>
+                        <p class="info-value">
+                            <span class="badge {{ 'yes-badge' if reg.user.comfortable_performing else 'no-badge' }}">
+                                {{ 'Yes' if reg.user.comfortable_performing else 'No' }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-sm-4">
+                        <p class="info-label">Equity / ACTRA</p>
+                        <p class="info-value">
+                            <span class="badge {{ 'yes-badge' if reg.user.equity_or_actra else 'no-badge' }}">
+                                {{ 'Yes' if reg.user.equity_or_actra else 'No' }}
+                            </span>
+                        </p>
+                    </div>
+                    {% if reg.user.schedule_conflicts %}
+                    <div class="col-12">
+                        <p class="info-label">Schedule Conflicts</p>
+                        <p class="info-value">{{ reg.user.schedule_conflicts }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Training & Experience -->
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-mortarboard"></i> Training &amp; Experience</strong></div>
+            <div class="card-body">
+                {% if reg.user.training %}
+                <p class="info-label">Training</p>
+                <p class="info-value mb-3">{{ reg.user.training }}</p>
+                {% endif %}
+
+                {% if reg.user.acting_experience %}
+                <p class="info-label">Acting Experience</p>
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Show</th>
+                            <th>Role</th>
+                            <th>Theatre Group</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exp in reg.user.acting_experience %}
+                        <tr>
+                            <td>{{ exp.show or '—' }}</td>
+                            <td>{{ exp.role or '—' }}</td>
+                            <td>{{ exp.theatre_group or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted mb-0">No acting experience listed.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Volunteer Interests -->
+        {% if reg.user.volunteer_interests %}
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-people"></i> Volunteer Interests</strong></div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    {% for interest in reg.user.volunteer_interests %}
+                    <span class="badge bg-light text-dark border">{{ interest }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Custom Fields -->
+        {% if reg.show.custom_fields and reg.custom_field_data %}
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-list-check"></i> Show-Specific Responses</strong></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for field in reg.show.custom_fields %}
+                    <div class="col-12">
+                        <p class="info-label">{{ field.label }}</p>
+                        <p class="info-value">{{ reg.custom_field_data.get(field.name, '—') or '—' }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Video Link -->
+        {% if reg.video_link %}
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-camera-video"></i> Video Link</strong></div>
+            <div class="card-body">
+                <a href="{{ reg.video_link }}" target="_blank" rel="noopener">{{ reg.video_link }}</a>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- RIGHT COLUMN: Admin actions -->
+    <div class="col-lg-5">
+
+        <!-- Notes -->
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-journal-text"></i> Admin Notes</strong></div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('auditions.update_registration_notes', reg_id=reg.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <textarea name="notes" class="form-control mb-2" rows="4"
+                              placeholder="Add private notes about this actor...">{{ reg.notes or '' }}</textarea>
+                    <button type="submit" class="btn btn-dark btn-sm">
+                        <i class="bi bi-save"></i> Save Notes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tags -->
+        <div class="card section-card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-tags"></i> Tags</strong>
+                <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#newTagModal">
+                    <i class="bi bi-plus-lg"></i> New Tag
+                </button>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('auditions.update_registration_tags', reg_id=reg.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        {% if all_tags %}
+                        {% for tag in all_tags %}
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="tag_ids"
+                                   value="{{ tag.id }}" id="tag_{{ tag.id }}"
+                                   {{ 'checked' if tag.id in reg_tag_ids else '' }}>
+                            <label class="form-check-label" for="tag_{{ tag.id }}">{{ tag.name }}</label>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted small mb-0">No tags yet. Create one to get started.</p>
+                        {% endif %}
+                    </div>
+                    {% if all_tags %}
+                    <button type="submit" class="btn btn-dark btn-sm">
+                        <i class="bi bi-check2"></i> Update Tags
+                    </button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <!-- Send Callback -->
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-envelope-check"></i> Send Callback</strong></div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('auditions.send_callback', reg_id=reg.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-2">
+                        <label class="form-label small">Callback details <span class="text-muted">(optional)</span></label>
+                        <textarea name="callback_details" class="form-control form-control-sm" rows="3"
+                                  placeholder="Date, time, what to prepare, etc."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-send"></i> Send Callback Email &amp; Mark Status
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Request Materials -->
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-paperclip"></i> Request Materials</strong></div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('auditions.request_materials', reg_id=reg.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="items" value="Headshot" id="req_headshot">
+                            <label class="form-check-label" for="req_headshot">Headshot (photo)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="items" value="Résumé" id="req_resume">
+                            <label class="form-check-label" for="req_resume">Résumé</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="items" value="Video audition link" id="req_video">
+                            <label class="form-check-label" for="req_video">Video audition link</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-outline-dark btn-sm w-100">
+                        <i class="bi bi-send"></i> Send Request Email
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Resend Confirmation -->
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-envelope-arrow-up"></i> Email Actions</strong></div>
+            <div class="card-body d-flex flex-column gap-2">
+                <form method="POST" action="{{ url_for('auditions.resend_confirmation', reg_id=reg.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-dark btn-sm w-100">
+                        <i class="bi bi-envelope-arrow-up"></i> Resend Confirmation
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Registered -->
+        <p class="text-muted small text-end mt-2">
+            Registered {{ reg.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+        </p>
+
+    </div>
+</div>
+
+<!-- New Tag Modal -->
+<div class="modal fade" id="newTagModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('auditions.create_tag') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">New Tag</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" name="name" class="form-control" placeholder="e.g. strong singer"
+                           autofocus required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark btn-sm">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
