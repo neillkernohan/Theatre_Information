@@ -4,7 +4,7 @@ import secrets
 from flask_login import login_user, logout_user, login_required, current_user
 from auditions import auditions_bp
 from auditions.models import db, User, Registration, Show, AuditionSlot
-from auditions.forms import ActorRegistrationForm, LoginForm
+from auditions.forms import ActorRegistrationForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
 
 
 @auditions_bp.route('/register', methods=['GET', 'POST'])
@@ -54,6 +54,9 @@ def actor_register():
         except (json.JSONDecodeError, TypeError):
             acting_experience = []
 
+        is_past_member = (form.past_member.data == 'yes')
+        hear_about_us = None if is_past_member else (form.hear_about_us.data.strip() or None)
+
         user = User(
             email=form.email.data.lower().strip(),
             first_name=form.first_name.data.strip(),
@@ -69,6 +72,8 @@ def actor_register():
             training=form.training.data.strip() if form.training.data else None,
             acting_experience=acting_experience if acting_experience else None,
             volunteer_interests=volunteer_interests if volunteer_interests else None,
+            past_member=is_past_member,
+            hear_about_us=hear_about_us,
             role='actor'
         )
         user.set_password(form.password.data)
@@ -119,6 +124,63 @@ def admin_login():
         flash('Invalid admin credentials.', 'danger')
 
     return render_template('auditions/admin/login.html', form=form)
+
+
+@auditions_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    from flask import current_app
+    from itsdangerous import URLSafeTimedSerializer
+    from auditions.email import send_password_reset_email
+
+    if current_user.is_authenticated:
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    form = ForgotPasswordForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data.lower().strip()).first()
+        # Always show the same message to avoid email enumeration
+        if user and user.role == 'actor':
+            s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+            token = s.dumps(user.email, salt='password-reset')
+            reset_url = url_for('auditions.reset_password', token=token, _external=True)
+            send_password_reset_email(user, reset_url)
+        flash('If that email is registered, a reset link has been sent.', 'info')
+        return redirect(url_for('auditions.actor_login'))
+
+    return render_template('auditions/forgot_password.html', form=form)
+
+
+@auditions_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    from flask import current_app
+    from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+
+    if current_user.is_authenticated:
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        email = s.loads(token, salt='password-reset', max_age=3600)  # 1 hour
+    except SignatureExpired:
+        flash('That reset link has expired. Please request a new one.', 'warning')
+        return redirect(url_for('auditions.forgot_password'))
+    except BadSignature:
+        flash('That reset link is invalid.', 'danger')
+        return redirect(url_for('auditions.forgot_password'))
+
+    user = User.query.filter_by(email=email, role='actor').first()
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('auditions.forgot_password'))
+
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.session.commit()
+        flash('Your password has been reset. Please log in.', 'success')
+        return redirect(url_for('auditions.actor_login'))
+
+    return render_template('auditions/reset_password.html', form=form)
 
 
 @auditions_bp.route('/google/login')

@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import (
     StringField, PasswordField, SubmitField, TelField, TextAreaField,
     SelectField, IntegerField, BooleanField, DateTimeLocalField, FieldList,
-    FormField
+    FormField, RadioField
 )
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Optional, NumberRange
 from auditions.models import User
@@ -66,6 +66,16 @@ class ActorRegistrationForm(FlaskForm):
     interest_stage_manager = BooleanField('Stage Manager')
     interest_usher = BooleanField('Usher')
 
+    past_member = RadioField(
+        'Have you been a member of Theatre Aurora in the past?',
+        choices=[('yes', 'Yes'), ('no', 'No')],
+        validators=[DataRequired()]
+    )
+    hear_about_us = StringField(
+        'How did you hear about us?',
+        validators=[Optional(), Length(max=255)]
+    )
+
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
     confirm_password = PasswordField('Confirm Password', validators=[
         DataRequired(), EqualTo('password', message='Passwords must match.')
@@ -81,6 +91,19 @@ class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Log In')
+
+
+class ForgotPasswordForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Send Reset Link')
+
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('New Password', validators=[DataRequired(), Length(min=8)])
+    confirm_password = PasswordField('Confirm New Password', validators=[
+        DataRequired(), EqualTo('password', message='Passwords must match.')
+    ])
+    submit = SubmitField('Reset Password')
 
 
 class CustomFieldForm(FlaskForm):

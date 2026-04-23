@@ -91,6 +91,33 @@
                         {% endfor %}
                     </div>
 
+                    <!-- Theatre Aurora Membership -->
+                    <div class="section-divider">
+                        <h5 class="mb-3">Theatre Aurora</h5>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.past_member.label.text }}</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="past_member" id="pastMemberYes" value="yes">
+                                <label class="form-check-label" for="pastMemberYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="past_member" id="pastMemberNo" value="no">
+                                <label class="form-check-label" for="pastMemberNo">No</label>
+                            </div>
+                        </div>
+                        {% for error in form.past_member.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3" id="hearAboutUsGroup" style="display:none;">
+                        {{ form.hear_about_us.label(class="form-label") }}
+                        {{ form.hear_about_us(class="form-control", placeholder="e.g. Facebook, friend, poster...") }}
+                    </div>
+
                     <!-- Audition Preferences -->
                     <div class="section-divider">
                         <h5 class="mb-3">Audition Preferences</h5>
@@ -225,6 +252,16 @@
 
 {% block extra_js %}
 <script>
+    // Past member / hear about us toggle
+    const pastMemberRadios = document.querySelectorAll('input[name="past_member"]');
+    const hearAboutUsGroup = document.getElementById('hearAboutUsGroup');
+    function updateHearAboutUs() {
+        const selected = document.querySelector('input[name="past_member"]:checked');
+        hearAboutUsGroup.style.display = (selected && selected.value === 'no') ? 'block' : 'none';
+    }
+    pastMemberRadios.forEach(r => r.addEventListener('change', updateHearAboutUs));
+    updateHearAboutUs();
+
     // Pronouns toggle
     const pronounsSelect = document.getElementById('pronounsSelect');
     const otherGroup = document.getElementById('pronounsOtherGroup');

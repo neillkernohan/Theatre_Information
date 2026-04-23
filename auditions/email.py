@@ -139,6 +139,17 @@ def send_info_request_email(registration, requested_items=None):
     )
 
 
+def send_password_reset_email(user, reset_url):
+    """Send a password reset link to the user."""
+    return send_email(
+        to=user.email,
+        subject='Reset Your Password — Theatre Aurora Auditions',
+        template='password_reset',
+        user=user,
+        reset_url=reset_url
+    )
+
+
 def send_cancellation_email(registration):
     """Send cancellation confirmation email to the actor."""
     user = registration.user

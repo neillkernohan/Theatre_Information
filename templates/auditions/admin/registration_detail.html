@@ -100,6 +100,24 @@
                             {% endif %}
                         </p>
                     </div>
+                    <div class="col-sm-6">
+                        <p class="info-label">Past Theatre Aurora Member</p>
+                        <p class="info-value">
+                            {% if reg.user.past_member is none %}
+                            <span class="text-muted">—</span>
+                            {% elif reg.user.past_member %}
+                            <span class="badge yes-badge">Yes</span>
+                            {% else %}
+                            <span class="badge no-badge">No</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if reg.user.hear_about_us %}
+                    <div class="col-sm-6">
+                        <p class="info-label">How They Heard About Us</p>
+                        <p class="info-value">{{ reg.user.hear_about_us }}</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

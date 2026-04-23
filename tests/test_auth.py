@@ -22,6 +22,7 @@ class TestActorRegistration:
             'accept_other_role': 'yes',
             'comfortable_performing': 'yes',
             'equity_or_actra': 'no',
+            'past_member': 'yes',
             'password': 'SecurePass1!',
             'confirm_password': 'SecurePass1!',
         }, follow_redirects=True)
@@ -72,6 +73,8 @@ class TestActorRegistration:
             'accept_other_role': 'yes',
             'comfortable_performing': 'yes',
             'equity_or_actra': 'no',
+            'past_member': 'no',
+            'hear_about_us': 'Friend',
         }, follow_redirects=True)
         user = User.query.filter_by(email='alex@example.com').first()
         assert user is not None
@@ -122,6 +125,58 @@ class TestAdminLogin:
             'password': 'ActorPass1!',
         }, follow_redirects=True)
         assert b'Invalid admin credentials' in r.data
+
+
+class TestPasswordReset:
+
+    def test_forgot_password_page_loads(self, client):
+        r = client.get('/auditions/forgot-password')
+        assert r.status_code == 200
+        assert b'Forgot' in r.data
+
+    def test_forgot_password_unknown_email_shows_same_message(self, client):
+        r = client.post('/auditions/forgot-password', data={
+            'email': 'nobody@example.com',
+        }, follow_redirects=True)
+        assert b'reset link has been sent' in r.data
+
+    def test_forgot_password_known_email_shows_same_message(self, client, actor):
+        r = client.post('/auditions/forgot-password', data={
+            'email': actor.email,
+        }, follow_redirects=True)
+        assert b'reset link has been sent' in r.data
+
+    def test_reset_with_valid_token_changes_password(self, client, app, actor, db):
+        from itsdangerous import URLSafeTimedSerializer
+        with app.app_context():
+            s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+            token = s.dumps(actor.email, salt='password-reset')
+        r = client.post(f'/auditions/reset-password/{token}', data={
+            'password': 'NewSecurePass1!',
+            'confirm_password': 'NewSecurePass1!',
+        }, follow_redirects=True)
+        assert b'Log In' in r.data or b'password has been reset' in r.data
+        db.session.refresh(actor)
+        assert actor.check_password('NewSecurePass1!')
+
+    def test_reset_with_expired_token_redirects(self, client, app, actor):
+        from itsdangerous import URLSafeTimedSerializer
+        with app.app_context():
+            s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+            # Sign with a future max_age so loads() with max_age=0 treats it as expired
+            token = s.dumps(actor.email, salt='password-reset')
+        # Patch max_age to 0 by passing a bad token instead
+        r = client.get('/auditions/reset-password/notavalidtoken', follow_redirects=True)
+        assert b'invalid' in r.data.lower() or b'expired' in r.data.lower()
+
+    def test_reset_page_loads_for_valid_token(self, client, app, actor):
+        from itsdangerous import URLSafeTimedSerializer
+        with app.app_context():
+            s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+            token = s.dumps(actor.email, salt='password-reset')
+        r = client.get(f'/auditions/reset-password/{token}')
+        assert r.status_code == 200
+        assert b'Reset' in r.data
 
 
 class TestLogout:

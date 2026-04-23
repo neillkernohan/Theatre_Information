@@ -26,6 +26,8 @@ class User(UserMixin, db.Model):
     training = db.Column(db.Text)
     acting_experience = db.Column(db.JSON)  # List of {show, role, theatre_group}
     volunteer_interests = db.Column(db.JSON)  # List of role strings
+    past_member = db.Column(db.Boolean)
+    hear_about_us = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     registrations = db.relationship('Registration', backref='user', lazy='dynamic')

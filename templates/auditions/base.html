@@ -14,10 +14,10 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('auditions.index') }}">
-                <img src="{{ url_for('static', filename='Media/Wide Logo Centred Black.png') }}" alt="Theatre Aurora" class="d-inline-block align-text-top" style="filter: invert(1);">
+                <img src="{{ url_for('static', filename='Media/Wide Logo Centred Black.png') }}" alt="Theatre Aurora" class="d-inline-block align-text-top">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#auditionsNav">
                 <span class="navbar-toggler-icon"></span>
