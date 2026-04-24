@@ -218,14 +218,7 @@
                     <td><input type="checkbox" class="row-check" data-email="{{ row.email }}"
                         {% if row.is_unsubscribed %}disabled title="Unsubscribed — cannot be added to email list"{% endif %}></td>
                     <td>{{ row.last_name }}{% if row.last_name and row.first_name %}, {% endif %}{{ row.first_name }}</td>
-                    <td>
-                        {{ row.email }}
-                        {% if row.email %}
-                        <a href="#" title="Copy unsubscribe link for this person"
-                           onclick="copyUnsubLink('{{ request.host_url }}unsubscribe?email={{ row.email | urlencode }}&token={{ row.unsubscribe_token }}', this); return false;"
-                           style="margin-left: 6px; font-size: 0.72rem; color: #adb5bd; text-decoration: none;">unsub link</a>
-                        {% endif %}
-                    </td>
+                    <td>{{ row.email }}</td>
                     <td>
                         {% for r in row.roles %}
                         <div><span style="color: #0d6efd;">{{ r.show }}</span> // {{ r.role }}</div>
@@ -389,14 +382,6 @@
             emailListContainer.classList.toggle('has-emails', emailArray.length > 0);
         }
 
-        function copyUnsubLink(url, el) {
-            navigator.clipboard.writeText(url).then(() => {
-                const orig = el.title;
-                el.title = 'Copied!';
-                el.style.color = '#198754';
-                setTimeout(() => { el.title = orig; el.style.color = '#adb5bd'; }, 1500);
-            });
-        }
 
         function updateSelectAllState() {
             const visibleChecks = document.querySelectorAll('.people-row:not([style*="display: none"]) .row-check');
