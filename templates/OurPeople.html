@@ -221,9 +221,9 @@
                     <td>
                         {{ row.email }}
                         {% if row.email %}
-                        <a href="#" title="Copy unsubscribe link"
+                        <a href="#" title="Copy unsubscribe link for this person"
                            onclick="copyUnsubLink('{{ request.host_url }}unsubscribe?email={{ row.email | urlencode }}&token={{ row.unsubscribe_token }}', this); return false;"
-                           style="margin-left: 6px; font-size: 0.75rem; color: #adb5bd; text-decoration: none;">&#128279;</a>
+                           style="margin-left: 6px; font-size: 0.72rem; color: #adb5bd; text-decoration: none;">unsub link</a>
                         {% endif %}
                     </td>
                     <td>
