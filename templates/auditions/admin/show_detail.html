@@ -6,6 +6,7 @@
 <style>
     .slot-card { border-left: 4px solid #198754; }
     .slot-card.full { border-left-color: #dc3545; }
+    .slot-card.reserved { border-left-color: #6f42c1; background: #f5f0ff; }
     .date-group { margin-bottom: 2rem; }
 </style>
 {% endblock %}
@@ -130,6 +131,17 @@
                 <div class="row">
                     {% for slot in date_slots %}
                     <div class="col-md-4 col-lg-3 mb-2">
+                        {% if slot.slot_type == 'reserved' %}
+                        <div class="card slot-card reserved">
+                            <div class="card-body py-2 px-3">
+                                <strong>{{ slot.start_time.strftime('%I:%M %p') }}</strong> – {{ slot.end_time.strftime('%I:%M %p') }}
+                                <br>
+                                <small class="text-purple fw-semibold" style="color:#6f42c1">
+                                    <i class="bi bi-people-fill"></i> {{ slot.label or 'Group Audition' }}
+                                </small>
+                            </div>
+                        </div>
+                        {% else %}
                         <div class="card slot-card {{ 'full' if slot.is_full else '' }}">
                             <div class="card-body py-2 px-3">
                                 <strong>{{ slot.start_time.strftime('%I:%M %p') }}</strong> - {{ slot.end_time.strftime('%I:%M %p') }}
@@ -154,6 +166,7 @@
                                 {% endif %}
                             </div>
                         </div>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
@@ -396,28 +409,68 @@
 
 {% block extra_js %}
 <script>
+    const isSlotMode = '{{ show.scheduling_mode }}' === 'slot';
     let auditionDates = [];
 
     function renderAuditionDates() {
         const list = document.getElementById('auditionDatesList');
         list.innerHTML = '';
         auditionDates.forEach((entry, idx) => {
-            const extraField = '{{ show.scheduling_mode }}' === 'block'
-                ? `<div class="col-auto">
+            let extraField;
+            if (!isSlotMode) {
+                extraField = `<div class="col-auto">
                      <label class="form-label small">Blocks</label>
                      <input type="number" class="form-control form-control-sm" style="width:80px"
                             value="${entry.blocks_per_night || 2}" min="1" max="10"
                             onchange="updateAuditionDate(${idx}, 'blocks_per_night', parseInt(this.value))">
-                   </div>`
-                : `<div class="col-auto">
+                   </div>`;
+            } else {
+                const hasReserved = !!(entry.reserved_time);
+                extraField = `
+                   <div class="col-auto">
                      <label class="form-label small">Hours</label>
                      <input type="text" class="form-control form-control-sm" style="width:80px"
                             value="${entry.total_hours || '3'}"
                             onchange="updateAuditionDate(${idx}, 'total_hours', this.value)">
+                   </div>
+                   <div class="col-12 mt-1">
+                     <div class="form-check form-check-inline">
+                       <input class="form-check-input" type="checkbox" id="hasReserved_${idx}"
+                              ${hasReserved ? 'checked' : ''}
+                              onchange="toggleReserved(${idx}, this.checked)">
+                       <label class="form-check-label small" for="hasReserved_${idx}">
+                         Add group audition block (e.g. dance call)
+                       </label>
+                     </div>
+                   </div>
+                   <div class="col-12 mt-1 reserved-fields-${idx}" style="display:${hasReserved ? 'block' : 'none'}">
+                     <div class="row g-2 align-items-end">
+                       <div class="col-auto">
+                         <label class="form-label small">Block Label</label>
+                         <input type="text" class="form-control form-control-sm" style="width:160px"
+                                value="${entry.reserved_label || 'Dance Audition'}"
+                                placeholder="e.g. Dance Audition"
+                                onchange="updateAuditionDate(${idx}, 'reserved_label', this.value)">
+                       </div>
+                       <div class="col-auto">
+                         <label class="form-label small">Start Time</label>
+                         <input type="time" class="form-control form-control-sm" style="width:110px"
+                                value="${entry.reserved_time || ''}"
+                                onchange="updateAuditionDate(${idx}, 'reserved_time', this.value)">
+                       </div>
+                       <div class="col-auto">
+                         <label class="form-label small">Duration (min)</label>
+                         <input type="number" class="form-control form-control-sm" style="width:90px"
+                                value="${entry.reserved_duration || 30}" min="5" step="5"
+                                onchange="updateAuditionDate(${idx}, 'reserved_duration', parseInt(this.value))">
+                       </div>
+                     </div>
                    </div>`;
+            }
 
             list.innerHTML += `
-                <div class="row g-2 align-items-end mb-2">
+                <div class="border rounded p-2 mb-2">
+                  <div class="row g-2 align-items-end flex-wrap">
                     <div class="col-auto">
                         <label class="form-label small">Date</label>
                         <input type="date" class="form-control form-control-sm" value="${entry.date}"
@@ -429,19 +482,31 @@
                                onchange="updateAuditionDate(${idx}, 'start_time', this.value)" required>
                     </div>
                     ${extraField}
-                    <div class="col-auto">
+                    <div class="col-auto align-self-start mt-4">
                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAuditionDate(${idx})">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
+                  </div>
                 </div>`;
         });
         document.getElementById('auditionDatesJson').value = JSON.stringify(auditionDates);
     }
 
+    function toggleReserved(idx, enabled) {
+        const fields = document.querySelector(`.reserved-fields-${idx}`);
+        if (fields) fields.style.display = enabled ? 'block' : 'none';
+        if (!enabled) {
+            auditionDates[idx].reserved_time = '';
+            auditionDates[idx].reserved_label = '';
+            auditionDates[idx].reserved_duration = 30;
+        }
+        document.getElementById('auditionDatesJson').value = JSON.stringify(auditionDates);
+    }
+
     function addAuditionDate() {
         const defaults = { date: '', start_time: '19:00' };
-        if ('{{ show.scheduling_mode }}' === 'block') {
+        if (!isSlotMode) {
             defaults.blocks_per_night = 2;
         } else {
             defaults.total_hours = '3';
@@ -473,22 +538,61 @@
         const list = document.getElementById('addDatesList');
         list.innerHTML = '';
         addDates.forEach((entry, idx) => {
-            const extraField = '{{ show.scheduling_mode }}' === 'block'
-                ? `<div class="col-auto">
+            let extraField;
+            if (!isSlotMode) {
+                extraField = `<div class="col-auto">
                      <label class="form-label small">Blocks</label>
                      <input type="number" class="form-control form-control-sm" style="width:80px"
                             value="${entry.blocks_per_night || 2}" min="1" max="10"
                             onchange="updateAddDate(${idx}, 'blocks_per_night', parseInt(this.value))">
-                   </div>`
-                : `<div class="col-auto">
+                   </div>`;
+            } else {
+                const hasReserved = !!(entry.reserved_time);
+                extraField = `
+                   <div class="col-auto">
                      <label class="form-label small">Hours</label>
                      <input type="text" class="form-control form-control-sm" style="width:80px"
                             value="${entry.total_hours || '3'}"
                             onchange="updateAddDate(${idx}, 'total_hours', this.value)">
+                   </div>
+                   <div class="col-12 mt-1">
+                     <div class="form-check form-check-inline">
+                       <input class="form-check-input" type="checkbox" id="addHasReserved_${idx}"
+                              ${hasReserved ? 'checked' : ''}
+                              onchange="toggleAddReserved(${idx}, this.checked)">
+                       <label class="form-check-label small" for="addHasReserved_${idx}">
+                         Add group audition block (e.g. dance call)
+                       </label>
+                     </div>
+                   </div>
+                   <div class="col-12 mt-1 add-reserved-fields-${idx}" style="display:${hasReserved ? 'block' : 'none'}">
+                     <div class="row g-2 align-items-end">
+                       <div class="col-auto">
+                         <label class="form-label small">Block Label</label>
+                         <input type="text" class="form-control form-control-sm" style="width:160px"
+                                value="${entry.reserved_label || 'Dance Audition'}"
+                                placeholder="e.g. Dance Audition"
+                                onchange="updateAddDate(${idx}, 'reserved_label', this.value)">
+                       </div>
+                       <div class="col-auto">
+                         <label class="form-label small">Start Time</label>
+                         <input type="time" class="form-control form-control-sm" style="width:110px"
+                                value="${entry.reserved_time || ''}"
+                                onchange="updateAddDate(${idx}, 'reserved_time', this.value)">
+                       </div>
+                       <div class="col-auto">
+                         <label class="form-label small">Duration (min)</label>
+                         <input type="number" class="form-control form-control-sm" style="width:90px"
+                                value="${entry.reserved_duration || 30}" min="5" step="5"
+                                onchange="updateAddDate(${idx}, 'reserved_duration', parseInt(this.value))">
+                       </div>
+                     </div>
                    </div>`;
+            }
 
             list.innerHTML += `
-                <div class="row g-2 align-items-end mb-2">
+                <div class="border rounded p-2 mb-2">
+                  <div class="row g-2 align-items-end flex-wrap">
                     <div class="col-auto">
                         <label class="form-label small">Date</label>
                         <input type="date" class="form-control form-control-sm" value="${entry.date}"
@@ -500,19 +604,31 @@
                                onchange="updateAddDate(${idx}, 'start_time', this.value)" required>
                     </div>
                     ${extraField}
-                    <div class="col-auto">
+                    <div class="col-auto align-self-start mt-4">
                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAddDate(${idx})">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
+                  </div>
                 </div>`;
         });
         document.getElementById('addDatesJson').value = JSON.stringify(addDates);
     }
 
+    function toggleAddReserved(idx, enabled) {
+        const fields = document.querySelector(`.add-reserved-fields-${idx}`);
+        if (fields) fields.style.display = enabled ? 'block' : 'none';
+        if (!enabled) {
+            addDates[idx].reserved_time = '';
+            addDates[idx].reserved_label = '';
+            addDates[idx].reserved_duration = 30;
+        }
+        document.getElementById('addDatesJson').value = JSON.stringify(addDates);
+    }
+
     function addNewDate() {
         const defaults = { date: '', start_time: '19:00' };
-        if ('{{ show.scheduling_mode }}' === 'block') {
+        if (!isSlotMode) {
             defaults.blocks_per_night = 2;
         } else {
             defaults.total_hours = '3';

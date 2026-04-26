@@ -42,21 +42,53 @@ def generate_slots(show, audition_dates):
         elif show.scheduling_mode == 'slot':
             total_minutes = float(entry.get('total_hours', 3)) * 60
             duration = show.slot_duration_minutes
-            num_slots = int(total_minutes // duration)
 
-            for i in range(num_slots):
-                slot_start = start + timedelta(minutes=duration * i)
+            # Build reserved period window if provided
+            reserved_start = reserved_end = None
+            reserved_label = entry.get('reserved_label', 'Group Audition').strip() or 'Group Audition'
+            reserved_time_str = entry.get('reserved_time', '').strip()
+            reserved_duration = int(entry.get('reserved_duration', 30) or 30)
+
+            if reserved_time_str:
+                try:
+                    reserved_start = datetime.strptime(reserved_time_str, '%H:%M')
+                    reserved_end = reserved_start + timedelta(minutes=reserved_duration)
+                    # Create the reserved slot
+                    db.session.add(AuditionSlot(
+                        show_id=show.id,
+                        date=slot_date,
+                        start_time=reserved_start.time(),
+                        end_time=reserved_end.time(),
+                        capacity=0,
+                        current_count=0,
+                        slot_type='reserved',
+                        label=reserved_label,
+                    ))
+                    slots_created += 1
+                except ValueError:
+                    reserved_start = reserved_end = None
+
+            # Generate individual slots, skipping any that overlap the reserved window
+            elapsed = 0
+            while elapsed + duration <= total_minutes:
+                slot_start = start + timedelta(minutes=elapsed)
                 slot_end = slot_start + timedelta(minutes=duration)
+                elapsed += duration
 
-                slot = AuditionSlot(
+                # Skip if overlaps reserved period
+                if reserved_start and reserved_end:
+                    if not (slot_end <= reserved_start or slot_start >= reserved_end):
+                        continue
+
+                db.session.add(AuditionSlot(
                     show_id=show.id,
                     date=slot_date,
                     start_time=slot_start.time(),
                     end_time=slot_end.time(),
                     capacity=1,
-                    current_count=0
-                )
-                db.session.add(slot)
+                    current_count=0,
+                    slot_type='individual',
+                ))
                 slots_created += 1
 
     db.session.commit()
@@ -100,21 +132,52 @@ def add_slots(show, audition_dates):
         elif show.scheduling_mode == 'slot':
             total_minutes = float(entry.get('total_hours', 3)) * 60
             duration = show.slot_duration_minutes
-            num_slots = int(total_minutes // duration)
 
-            for i in range(num_slots):
-                slot_start = start + timedelta(minutes=duration * i)
+            # Build reserved period window if provided
+            reserved_start = reserved_end = None
+            reserved_label = entry.get('reserved_label', 'Group Audition').strip() or 'Group Audition'
+            reserved_time_str = entry.get('reserved_time', '').strip()
+            reserved_duration = int(entry.get('reserved_duration', 30) or 30)
+
+            if reserved_time_str:
+                try:
+                    reserved_start = datetime.strptime(reserved_time_str, '%H:%M')
+                    reserved_end = reserved_start + timedelta(minutes=reserved_duration)
+                    db.session.add(AuditionSlot(
+                        show_id=show.id,
+                        date=slot_date,
+                        start_time=reserved_start.time(),
+                        end_time=reserved_end.time(),
+                        capacity=0,
+                        current_count=0,
+                        slot_type='reserved',
+                        label=reserved_label,
+                    ))
+                    slots_created += 1
+                except ValueError:
+                    reserved_start = reserved_end = None
+
+            # Generate individual slots, skipping any that overlap the reserved window
+            elapsed = 0
+            while elapsed + duration <= total_minutes:
+                slot_start = start + timedelta(minutes=elapsed)
                 slot_end = slot_start + timedelta(minutes=duration)
+                elapsed += duration
 
-                slot = AuditionSlot(
+                # Skip if overlaps reserved period
+                if reserved_start and reserved_end:
+                    if not (slot_end <= reserved_start or slot_start >= reserved_end):
+                        continue
+
+                db.session.add(AuditionSlot(
                     show_id=show.id,
                     date=slot_date,
                     start_time=slot_start.time(),
                     end_time=slot_end.time(),
                     capacity=1,
-                    current_count=0
-                )
-                db.session.add(slot)
+                    current_count=0,
+                    slot_type='individual',
+                ))
                 slots_created += 1
 
     db.session.commit()

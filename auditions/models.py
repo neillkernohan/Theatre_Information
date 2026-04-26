@@ -75,13 +75,17 @@ class AuditionSlot(db.Model):
     date = db.Column(db.Date, nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
-    capacity = db.Column(db.Integer, nullable=False)
+    capacity = db.Column(db.Integer, nullable=False, default=1)
     current_count = db.Column(db.Integer, default=0)
+    slot_type = db.Column(db.String(20), nullable=False, default='individual')
+    label = db.Column(db.String(100))
 
     registrations = db.relationship('Registration', backref='slot', lazy='dynamic')
 
     @property
     def is_full(self):
+        if self.slot_type == 'reserved':
+            return True
         return self.current_count >= self.capacity
 
     def __repr__(self):
