@@ -116,8 +116,8 @@
                     <input type="hidden" name="acting_experience_json" id="actingExperienceJson" value="{{ acting_experience_json }}">
 
                     <div class="mb-3">
-                        <label class="form-label">What role(s) are you auditioning for?</label>
-                        <input type="text" class="form-control" name="roles_auditioning_for" placeholder="e.g. Juliet, Nurse">
+                        <label class="form-label">What role(s) are you auditioning for? <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="roles_auditioning_for" placeholder="e.g. Juliet, Nurse" required>
                     </div>
 
                     <div class="mb-3">
@@ -163,9 +163,9 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Please list any potential conflicts with the rehearsal schedule</label>
+                        <label class="form-label">Please list any potential conflicts with the rehearsal schedule <span class="text-danger">*</span></label>
                         <textarea class="form-control" name="schedule_conflicts" rows="3"
-                                  placeholder="List any dates or times you are unavailable during the rehearsal period..."></textarea>
+                                  placeholder="List any dates or times you are unavailable during the rehearsal period, or write 'None'." required></textarea>
                     </div>
 
                     <div class="mb-3">
