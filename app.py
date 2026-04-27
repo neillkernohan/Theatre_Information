@@ -227,11 +227,6 @@ try:
     # Register auditions blueprint
     app.register_blueprint(auditions_bp)
 
-    # Inject Canada Post API key into all auditions templates
-    @auditions_bp.context_processor
-    def inject_canada_post_key():
-        return {'canada_post_api_key': CANADA_POST_API_KEY}
-
     # CLI commands for auditions
     @app.cli.command('init-auditions-db')
     def init_auditions_db():
