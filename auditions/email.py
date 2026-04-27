@@ -206,7 +206,7 @@ def send_admin_notification(registration, event):
 
     mail = _get_mail()
     msg = Message(
-        subject=f'{event} — {show.title}',
+        subject=f'{event} — {user.first_name} {user.last_name} — {show.title}',
         recipients=recipients,
         html=html_body
     )
