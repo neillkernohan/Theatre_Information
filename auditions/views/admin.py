@@ -384,6 +384,10 @@ def edit_actor(user_id):
         user.first_name = request.form.get('first_name', '').strip() or user.first_name
         user.last_name = request.form.get('last_name', '').strip() or user.last_name
         user.phone = request.form.get('phone', '').strip() or None
+        user.address = request.form.get('address', '').strip() or None
+        user.city = request.form.get('city', '').strip() or None
+        user.province = request.form.get('province', '').strip() or None
+        user.postal_code = request.form.get('postal_code', '').strip() or None
         user.pronouns = request.form.get('pronouns', '').strip() or None
         user.contact_email_ok = (request.form.get('contact_email_ok') == 'yes')
         past_raw = request.form.get('past_member')

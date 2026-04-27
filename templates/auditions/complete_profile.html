@@ -16,15 +16,35 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <div class="mb-3">
-                        <label class="form-label">Phone Number <span class="text-muted small">(optional)</span></label>
+                        <label class="form-label">Phone Number <span class="text-danger">*</span></label>
                         <input type="tel" class="form-control" name="phone"
-                               placeholder="e.g. 905-555-1234">
+                               placeholder="e.g. 905-555-1234" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Pronouns <span class="text-muted small">(optional)</span></label>
-                        <select class="form-select" name="pronouns" id="pronounsSelect">
-                            <option value="">Select pronouns (optional)</option>
+                        <label class="form-label">Street Address</label>
+                        <input type="text" class="form-control" name="address"
+                               placeholder="123 Main St">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5 mb-3">
+                            <label class="form-label">City</label>
+                            <input type="text" class="form-control" name="city">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Province</label>
+                            <input type="text" class="form-control" name="province" placeholder="ON">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Postal Code</label>
+                            <input type="text" class="form-control" name="postal_code" placeholder="A1B 2C3">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Pronouns <span class="text-danger">*</span></label>
+                        <select class="form-select" name="pronouns" id="pronounsSelect" required>
+                            <option value="">Select pronouns…</option>
                             <option value="he/him">He/Him</option>
                             <option value="she/her">She/Her</option>
                             <option value="they/them">They/Them</option>
@@ -41,16 +61,20 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">May we contact you via email about audition outcomes?</label>
+                        <label class="form-label fw-semibold">Email Communication Consent <span class="text-danger">*</span></label>
+                        <p class="text-muted small mb-2">
+                            Theatre Aurora will send you emails related to your audition — such as confirmation,
+                            callback notifications, and results. Do you consent to receiving these emails?
+                        </p>
                         <div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="contact_email_ok"
-                                       id="emailYes" value="yes" checked>
-                                <label class="form-check-label" for="emailYes">Yes</label>
+                                       id="emailYes" value="yes" checked required>
+                                <label class="form-check-label" for="emailYes">Yes, I consent</label>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="contact_email_ok"
-                                       id="emailNo" value="no">
+                                       id="emailNo" value="no" required>
                                 <label class="form-check-label" for="emailNo">No</label>
                             </div>
                         </div>

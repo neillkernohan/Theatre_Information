@@ -28,6 +28,10 @@ def actor_register():
             first_name=form.first_name.data.strip(),
             last_name=form.last_name.data.strip(),
             phone=form.phone.data.strip() if form.phone.data else None,
+            address=form.address.data.strip() if form.address.data else None,
+            city=form.city.data.strip() if form.city.data else None,
+            province=form.province.data.strip() if form.province.data else None,
+            postal_code=form.postal_code.data.strip() if form.postal_code.data else None,
             pronouns=pronouns,
             contact_email_ok=(form.contact_email_ok.data == 'yes'),
             past_member=is_past_member,
@@ -207,6 +211,10 @@ def complete_profile():
     """Collect missing fields for accounts created via Google OAuth."""
     if request.method == 'POST':
         current_user.phone = request.form.get('phone', '').strip() or None
+        current_user.address = request.form.get('address', '').strip() or None
+        current_user.city = request.form.get('city', '').strip() or None
+        current_user.province = request.form.get('province', '').strip() or None
+        current_user.postal_code = request.form.get('postal_code', '').strip() or None
         pronouns_val = request.form.get('pronouns', '').strip()
         if pronouns_val == 'other':
             pronouns_val = request.form.get('pronouns_other', '').strip() or 'other'
@@ -247,6 +255,13 @@ def edit_profile():
     form = ActorProfileForm()
 
     if form.validate_on_submit():
+        # Save contact fields (plain request.form — not in ActorProfileForm)
+        current_user.phone = request.form.get('phone', '').strip() or None
+        current_user.address = request.form.get('address', '').strip() or None
+        current_user.city = request.form.get('city', '').strip() or None
+        current_user.province = request.form.get('province', '').strip() or None
+        current_user.postal_code = request.form.get('postal_code', '').strip() or None
+        current_user.pronouns = request.form.get('pronouns', '').strip() or None
         _save_profile_from_form(form, current_user)
         db.session.commit()
         flash('Your profile has been updated.', 'success')

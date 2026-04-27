@@ -58,6 +58,7 @@ class TestActorRegistration:
             'first_name': 'Alex',
             'last_name': 'Jones',
             'email': 'alex@example.com',
+            'phone': '416-555-9999',
             'pronouns': 'other',
             'pronouns_other': 'ze/zir',
             'password': 'SecurePass1!',

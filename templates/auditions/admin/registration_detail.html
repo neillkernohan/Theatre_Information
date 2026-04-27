@@ -96,6 +96,17 @@
                         <p class="info-label">Pronouns</p>
                         <p class="info-value">{{ reg.user.pronouns or '—' }}</p>
                     </div>
+                    {% if reg.user.address or reg.user.city %}
+                    <div class="col-12">
+                        <p class="info-label">Address</p>
+                        <p class="info-value">
+                            {% if reg.user.address %}{{ reg.user.address }}<br>{% endif %}
+                            {% if reg.user.city %}{{ reg.user.city }}{% endif %}
+                            {% if reg.user.province %}, {{ reg.user.province }}{% endif %}
+                            {% if reg.user.postal_code %} &nbsp;{{ reg.user.postal_code }}{% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
                     <div class="col-sm-6">
                         <p class="info-label">Email Contact OK</p>
                         <p class="info-value">

@@ -12,21 +12,25 @@ class ActorRegistrationForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=100)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(max=100)])
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=255)])
-    phone = TelField('Phone Number')
+    phone = TelField('Phone Number', validators=[DataRequired()])
+    address = StringField('Street Address', validators=[Optional(), Length(max=255)])
+    city = StringField('City', validators=[Optional(), Length(max=100)])
+    province = StringField('Province', validators=[Optional(), Length(max=100)])
+    postal_code = StringField('Postal Code', validators=[Optional(), Length(max=20)])
     pronouns = SelectField('Pronouns', choices=[
-        ('', 'Select pronouns (optional)'),
         ('he/him', 'He/Him'),
         ('she/her', 'She/Her'),
         ('they/them', 'They/Them'),
         ('he/they', 'He/They'),
         ('she/they', 'She/They'),
         ('other', 'Other / Prefer to self-describe'),
-    ], validators=[Optional()])
+    ], validators=[DataRequired()])
     pronouns_other = StringField('Pronouns (self-describe)', validators=[Optional(), Length(max=50)])
-    contact_email_ok = SelectField('May we contact you via email about the outcome of auditions?', choices=[
-        ('yes', 'Yes'),
-        ('no', 'No'),
-    ], default='yes')
+    contact_email_ok = SelectField(
+        'Email consent',
+        choices=[('yes', 'Yes'), ('no', 'No')],
+        default='yes'
+    )
 
     past_member = RadioField(
         'Have you been a member of Theatre Aurora in the past?',

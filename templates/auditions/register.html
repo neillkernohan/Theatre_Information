@@ -63,11 +63,29 @@
                         {% endfor %}
                     </div>
                     <div class="mb-3">
-                        {{ form.phone.label(class="form-label") }}
+                        {{ form.phone.label(class="form-label") }} <span class="text-danger">*</span>
                         {{ form.phone(class="form-control", placeholder="(555) 123-4567") }}
                     </div>
                     <div class="mb-3">
-                        {{ form.pronouns.label(class="form-label") }}
+                        {{ form.address.label(class="form-label") }}
+                        {{ form.address(class="form-control", placeholder="123 Main St") }}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5 mb-3">
+                            {{ form.city.label(class="form-label") }}
+                            {{ form.city(class="form-control") }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.province.label(class="form-label") }}
+                            {{ form.province(class="form-control", placeholder="ON") }}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            {{ form.postal_code.label(class="form-label") }}
+                            {{ form.postal_code(class="form-control", placeholder="A1B 2C3") }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        {{ form.pronouns.label(class="form-label") }} <span class="text-danger">*</span>
                         {{ form.pronouns(class="form-select", id="pronounsSelect") }}
                     </div>
                     <div class="mb-3" id="pronounsOtherGroup" style="display:none;">
@@ -123,14 +141,18 @@
                     </div>
 
                     <div class="mb-3">
-                        {{ form.contact_email_ok.label(class="form-label") }}
+                        <label class="form-label fw-semibold">Email Communication Consent <span class="text-danger">*</span></label>
+                        <p class="text-muted small mb-2">
+                            Theatre Aurora will send you emails related to your audition — such as confirmation,
+                            callback notifications, and results. Do you consent to receiving these emails?
+                        </p>
                         <div>
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="contact_email_ok" id="contactYes" value="yes" checked>
-                                <label class="form-check-label" for="contactYes">Yes</label>
+                                <input class="form-check-input" type="radio" name="contact_email_ok" id="contactYes" value="yes" checked required>
+                                <label class="form-check-label" for="contactYes">Yes, I consent</label>
                             </div>
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="contact_email_ok" id="contactNo" value="no">
+                                <input class="form-check-input" type="radio" name="contact_email_ok" id="contactNo" value="no" required>
                                 <label class="form-check-label" for="contactNo">No</label>
                             </div>
                         </div>
