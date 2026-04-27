@@ -158,8 +158,9 @@ def send_password_reset_email(user, reset_url):
 
 def send_admin_notification(registration, event):
     """
-    Send a notification to the show's notify_email address when a registration
-    is created, cancelled, or its status changes.
+    Send a notification to all addresses in the show's notify_email field
+    (comma-separated) when a registration is created, cancelled, or its
+    status changes.
 
     event: a short string like 'New Registration', 'Cancelled', 'Status → callback'
     """
@@ -167,20 +168,47 @@ def send_admin_notification(registration, event):
     if not notify_email:
         return  # No notification address configured for this show
 
+    recipients = [a.strip() for a in notify_email.split(',') if a.strip()]
+    if not recipients:
+        return
+
     user = registration.user
     show = registration.show
     reg_url = url_for('auditions.registration_detail', reg_id=registration.id, _external=True)
 
-    return send_email(
-        to=notify_email,
-        subject=f'{event} — {show.title}',
-        template='admin_notification',
+    html_body = render_template(
+        'auditions/email/admin_notification.html',
         registration=registration,
         user=user,
         show=show,
         event=event,
         reg_url=reg_url
     )
+
+    mail = _get_mail()
+    msg = Message(
+        subject=f'{event} — {show.title}',
+        recipients=recipients,
+        html=html_body
+    )
+
+    log = EmailLog(
+        registration_id=registration.id,
+        user_id=registration.user_id,
+        email_type='admin_notification',
+        sent_at=datetime.utcnow()
+    )
+
+    try:
+        mail.send(msg)
+        log.status = 'sent'
+    except Exception as e:
+        log.status = 'failed'
+        log.error_message = str(e)
+        current_app.logger.error(f'Admin notification email failed: {e}')
+
+    db.session.add(log)
+    db.session.commit()
 
 
 def send_cancellation_email(registration):

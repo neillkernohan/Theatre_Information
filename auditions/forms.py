@@ -6,6 +6,19 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Optional, NumberRange
 from auditions.models import User
+import re
+
+_email_re = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+
+def validate_email_list(form, field):
+    """Accept a comma-separated list of email addresses."""
+    if not field.data:
+        return
+    for addr in field.data.split(','):
+        addr = addr.strip()
+        if addr and not _email_re.match(addr):
+            raise ValidationError(f'"{addr}" is not a valid email address.')
 
 
 class ActorRegistrationForm(FlaskForm):
@@ -165,7 +178,7 @@ class ShowForm(FlaskForm):
                                             validators=[DataRequired()])
 
     # Admin notifications
-    notify_email = StringField('Notify Email', validators=[Optional(), Email(), Length(max=255)])
+    notify_email = StringField('Notify Email(s)', validators=[Optional(), Length(max=255), validate_email_list])
 
     submit = SubmitField('Save Show')
 

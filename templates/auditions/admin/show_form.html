@@ -114,8 +114,8 @@
                 <div class="card-body">
                     <div class="mb-0">
                         {{ form.notify_email.label(class="form-label") }}
-                        {{ form.notify_email(class="form-control", placeholder="e.g. director@theatreaurora.com") }}
-                        <div class="form-text">An email will be sent here whenever someone registers, cancels, or has their status changed. Leave blank for no notifications.</div>
+                        {{ form.notify_email(class="form-control", placeholder="e.g. director@theatreaurora.com, producer@theatreaurora.com") }}
+                        <div class="form-text">Enter one or more email addresses separated by commas. An email will be sent whenever someone registers, cancels, or has their status changed. Leave blank for no notifications.</div>
                         {% for error in form.notify_email.errors %}
                         <div class="invalid-feedback d-block">{{ error }}</div>
                         {% endfor %}
