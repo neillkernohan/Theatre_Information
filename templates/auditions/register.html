@@ -176,11 +176,11 @@
 <script src="https://ws1.postescanada-canadapost.ca/js/addresscomplete-2.30.min.js?key={{ canada_post_api_key }}"></script>
 <script>
     var pcaControl = new pca.Address([
-        { element: "address",     field: "Line1" },
-        { element: "city",        field: "City" },
-        { element: "province",    field: "ProvinceCode" },
-        { element: "postal_code", field: "PostalCode" }
-    ], { key: "{{ canada_post_api_key }}" });
+        { element: "address",     field: "Line1",        mode: 0 },
+        { element: "city",        field: "City",         mode: 1 },
+        { element: "province",    field: "ProvinceCode", mode: 1 },
+        { element: "postal_code", field: "PostalCode",   mode: 1 }
+    ], { key: "{{ canada_post_api_key }}", culture: "en-CA" });
 </script>
 {% endif %}
 <script>
