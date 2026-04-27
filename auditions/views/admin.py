@@ -362,6 +362,75 @@ def create_tag():
 
 
 # ---------------------------------------------------------------------------
+# Actor Profile Editing (admin)
+# ---------------------------------------------------------------------------
+
+VOLUNTEER_INTEREST_FIELDS = [
+    'choreographer', 'concession', 'costume_design', 'director',
+    'lighting_design', 'lighting_operator', 'music_director', 'photography',
+    'producer', 'props_master', 'set_build', 'set_design', 'set_dressing',
+    'set_painting', 'sound_design', 'sound_operator', 'stagehand',
+    'stage_manager', 'usher',
+]
+
+
+@auditions_bp.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def edit_actor(user_id):
+    user = User.query.get_or_404(user_id)
+    back = request.args.get('back') or request.form.get('back', '')
+
+    if request.method == 'POST':
+        user.first_name = request.form.get('first_name', '').strip() or user.first_name
+        user.last_name = request.form.get('last_name', '').strip() or user.last_name
+        user.phone = request.form.get('phone', '').strip() or None
+        user.pronouns = request.form.get('pronouns', '').strip() or None
+        user.contact_email_ok = (request.form.get('contact_email_ok') == 'yes')
+        past_raw = request.form.get('past_member')
+        user.past_member = True if past_raw == 'yes' else (False if past_raw == 'no' else None)
+        user.hear_about_us = request.form.get('hear_about_us', '').strip() or None
+
+        # Profile fields
+        comfortable = request.form.get('comfortable_performing')
+        if comfortable in ('yes', 'no'):
+            user.comfortable_performing = (comfortable == 'yes')
+        equity = request.form.get('equity_or_actra')
+        if equity in ('yes', 'no'):
+            user.equity_or_actra = (equity == 'yes')
+        user.training = request.form.get('training', '').strip() or None
+
+        # Acting experience JSON
+        try:
+            user.acting_experience = json.loads(request.form.get('acting_experience_json', '[]'))
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # Volunteer interests
+        user.volunteer_interests = [
+            key for key in VOLUNTEER_INTEREST_FIELDS
+            if request.form.get(f'interest_{key}')
+        ]
+
+        db.session.commit()
+        flash('Profile updated.', 'success')
+
+        if back:
+            return redirect(url_for('auditions.registration_detail', reg_id=int(back)))
+        return redirect(url_for('auditions.edit_actor', user_id=user.id))
+
+    acting_experience_json = json.dumps(user.acting_experience or [])
+    volunteer_set = set(user.volunteer_interests or [])
+    return render_template(
+        'auditions/admin/edit_actor.html',
+        user=user,
+        back=back,
+        acting_experience_json=acting_experience_json,
+        volunteer_set=volunteer_set,
+        volunteer_fields=VOLUNTEER_INTEREST_FIELDS,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Email Actions from Admin
 # ---------------------------------------------------------------------------
 

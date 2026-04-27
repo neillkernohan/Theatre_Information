@@ -1,0 +1,257 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}Edit Profile — {{ user.first_name }} {{ user.last_name }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('auditions.admin_dashboard') }}">Shows</a></li>
+        {% if back %}
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('auditions.registration_detail', reg_id=back) }}">
+                {{ user.first_name }} {{ user.last_name }}
+            </a>
+        </li>
+        {% endif %}
+        <li class="breadcrumb-item active">Edit Profile</li>
+    </ol>
+</nav>
+
+<h2 class="mb-4">Edit Profile — {{ user.first_name }} {{ user.last_name }}</h2>
+
+<form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="back" value="{{ back }}">
+    <input type="hidden" name="acting_experience_json" id="actingExperienceJson" value="{{ acting_experience_json }}">
+
+    <!-- Contact Information -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><strong><i class="bi bi-person"></i> Contact Information</strong></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <label class="form-label">First Name</label>
+                    <input type="text" class="form-control" name="first_name" value="{{ user.first_name }}" required>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" class="form-control" name="last_name" value="{{ user.last_name }}" required>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" class="form-control" name="phone" value="{{ user.phone or '' }}">
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Pronouns</label>
+                    <input type="text" class="form-control" name="pronouns" value="{{ user.pronouns or '' }}"
+                           placeholder="e.g. she/her, they/them">
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Email Contact OK</label>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="contact_email_ok" value="yes"
+                                   {{ 'checked' if user.contact_email_ok else '' }}>
+                            <label class="form-check-label">Yes</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="contact_email_ok" value="no"
+                                   {{ 'checked' if not user.contact_email_ok else '' }}>
+                            <label class="form-check-label">No</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Past Theatre Aurora Member</label>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="past_member" value="yes"
+                                   {{ 'checked' if user.past_member == True else '' }}>
+                            <label class="form-check-label">Yes</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="past_member" value="no"
+                                   {{ 'checked' if user.past_member == False else '' }}>
+                            <label class="form-check-label">No</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6" id="hearAboutRow"
+                     style="display: {{ 'block' if not user.past_member else 'none' }}">
+                    <label class="form-label">How did they hear about us?</label>
+                    <input type="text" class="form-control" name="hear_about_us"
+                           value="{{ user.hear_about_us or '' }}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audition Profile -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><strong><i class="bi bi-star"></i> Audition Profile</strong></div>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                    <label class="form-label">Comfortable performing kissing, smoking, violence, etc.?</label>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="comfortable_performing" value="yes"
+                                   {{ 'checked' if user.comfortable_performing else '' }}>
+                            <label class="form-check-label">Yes</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="comfortable_performing" value="no"
+                                   {{ 'checked' if user.comfortable_performing == False else '' }}>
+                            <label class="form-check-label">No</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Equity / ACTRA member?</label>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="equity_or_actra" value="yes"
+                                   {{ 'checked' if user.equity_or_actra else '' }}>
+                            <label class="form-check-label">Yes</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="equity_or_actra" value="no"
+                                   {{ 'checked' if not user.equity_or_actra else '' }}>
+                            <label class="form-check-label">No</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Training</label>
+                <textarea class="form-control" name="training" rows="3"
+                          placeholder="e.g. BFA Acting, vocal coaching, dance training...">{{ user.training or '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Acting Experience</label>
+                <div id="experienceList"></div>
+                <button type="button" class="btn btn-sm btn-outline-dark mt-2" onclick="addExperience()">
+                    <i class="bi bi-plus-lg"></i> Add Experience
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Volunteer Interests -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><strong><i class="bi bi-people"></i> Volunteer Interests</strong></div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    {% for key in ['choreographer', 'concession', 'costume_design', 'director',
+                                   'lighting_design', 'lighting_operator', 'music_director',
+                                   'photography', 'producer', 'props_master'] %}
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="checkbox" name="interest_{{ key }}"
+                               id="int_{{ key }}" value="1"
+                               {{ 'checked' if key in volunteer_set else '' }}>
+                        <label class="form-check-label" for="int_{{ key }}">
+                            {{ key.replace('_', ' ').title() }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6">
+                    {% for key in ['set_build', 'set_design', 'set_dressing', 'set_painting',
+                                   'sound_design', 'sound_operator', 'stagehand',
+                                   'stage_manager', 'usher'] %}
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="checkbox" name="interest_{{ key }}"
+                               id="int_{{ key }}" value="1"
+                               {{ 'checked' if key in volunteer_set else '' }}>
+                        <label class="form-check-label" for="int_{{ key }}">
+                            {{ key.replace('_', ' ').title() }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-5">
+        <button type="submit" class="btn btn-dark">Save Changes</button>
+        {% if back %}
+        <a href="{{ url_for('auditions.registration_detail', reg_id=back) }}" class="btn btn-outline-secondary">Cancel</a>
+        {% else %}
+        <a href="{{ url_for('auditions.admin_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Show/hide "hear about us" based on past member selection
+    document.querySelectorAll('input[name="past_member"]').forEach(r => {
+        r.addEventListener('change', () => {
+            document.getElementById('hearAboutRow').style.display =
+                document.querySelector('input[name="past_member"]:checked')?.value === 'no' ? 'block' : 'none';
+        });
+    });
+
+    // Acting experience
+    let experiences = [];
+    try {
+        experiences = JSON.parse(document.getElementById('actingExperienceJson').value || '[]');
+    } catch(e) { experiences = []; }
+
+    function renderExperiences() {
+        const list = document.getElementById('experienceList');
+        list.innerHTML = '';
+        experiences.forEach((exp, idx) => {
+            list.innerHTML += `
+                <div style="background:#f8f9fa;border-radius:8px;padding:10px;margin-bottom:6px;">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small">Show</label>
+                            <input type="text" class="form-control form-control-sm" value="${exp.show || ''}"
+                                   onchange="updateExp(${idx},'show',this.value)" placeholder="Show name">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Role</label>
+                            <input type="text" class="form-control form-control-sm" value="${exp.role || ''}"
+                                   onchange="updateExp(${idx},'role',this.value)" placeholder="Role played">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Theatre Group</label>
+                            <input type="text" class="form-control form-control-sm" value="${exp.theatre_group || ''}"
+                                   onchange="updateExp(${idx},'theatre_group',this.value)" placeholder="Theatre company">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeExp(${idx})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        });
+        document.getElementById('actingExperienceJson').value = JSON.stringify(experiences);
+    }
+
+    function addExperience() {
+        experiences.push({ show: '', role: '', theatre_group: '' });
+        renderExperiences();
+    }
+
+    function updateExp(idx, key, value) {
+        experiences[idx][key] = value;
+        document.getElementById('actingExperienceJson').value = JSON.stringify(experiences);
+    }
+
+    function removeExp(idx) {
+        experiences.splice(idx, 1);
+        renderExperiences();
+    }
+
+    renderExperiences();
+</script>
+{% endblock %}
