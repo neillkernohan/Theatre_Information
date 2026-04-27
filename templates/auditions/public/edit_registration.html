@@ -1,0 +1,128 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}Edit Registration — {{ show.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <a href="{{ url_for('auditions.actor_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+            <div>
+                <h3 class="mb-0">Edit Registration</h3>
+                <p class="text-muted mb-0 small">{{ show.title }}</p>
+            </div>
+        </div>
+
+        {% if registration.slot %}
+        <div class="alert alert-light border mb-4">
+            <i class="bi bi-clock"></i>
+            <strong>Your audition time:</strong>
+            {{ registration.slot.date.strftime('%A, %B %d, %Y') }}
+            at {{ registration.slot.start_time.strftime('%I:%M %p') }}
+            &mdash;
+            <a href="{{ url_for('auditions.change_slot', reg_id=registration.id) }}">Change time</a>
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Audition Details</strong></div>
+                <div class="card-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">What role(s) are you auditioning for? <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="roles_auditioning_for"
+                               value="{{ registration.roles_auditioning_for or '' }}"
+                               placeholder="e.g. Juliet, Nurse" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Will you accept another role if offered?</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="accept_other_role"
+                                       id="acceptYes" value="yes"
+                                       {{ 'checked' if registration.accept_other_role != False else '' }}>
+                                <label class="form-check-label" for="acceptYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="accept_other_role"
+                                       id="acceptNo" value="no"
+                                       {{ 'checked' if registration.accept_other_role == False else '' }}>
+                                <label class="form-check-label" for="acceptNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Potential conflicts with the rehearsal schedule <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="schedule_conflicts" rows="3"
+                                  placeholder="List any dates or times you are unavailable, or write 'None'."
+                                  required>{{ registration.schedule_conflicts or '' }}</textarea>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label">Video Link <span class="text-muted small">(optional)</span></label>
+                        <input type="url" class="form-control" name="video_link"
+                               value="{{ registration.video_link or '' }}"
+                               placeholder="https://youtube.com/... or https://vimeo.com/...">
+                        <div class="form-text">Link to an audition video, monologue, or reel.</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if show.custom_fields %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Additional Information</strong></div>
+                <div class="card-body">
+                    {% set custom = registration.custom_field_data or {} %}
+                    {% for field in show.custom_fields %}
+                    <div class="mb-3">
+                        <label class="form-label">
+                            {{ field.name }}
+                            {% if field.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        {% if field.type == 'text' %}
+                        <input type="text" class="form-control" name="custom_{{ field.name }}"
+                               value="{{ custom.get(field.name, '') }}"
+                               {{ 'required' if field.required }}>
+                        {% elif field.type == 'textarea' %}
+                        <textarea class="form-control" name="custom_{{ field.name }}" rows="3"
+                                  {{ 'required' if field.required }}>{{ custom.get(field.name, '') }}</textarea>
+                        {% elif field.type == 'select' %}
+                        <select class="form-select" name="custom_{{ field.name }}"
+                                {{ 'required' if field.required }}>
+                            <option value="">Select...</option>
+                            {% for opt in field.options.split(',') %}
+                            <option value="{{ opt.strip() }}"
+                                    {{ 'selected' if custom.get(field.name, '') == opt.strip() }}>
+                                {{ opt.strip() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% elif field.type == 'checkbox' %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="custom_{{ field.name }}" value="yes"
+                                   {{ 'checked' if custom.get(field.name) == 'yes' }}>
+                            <label class="form-check-label">Yes</label>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-dark">Save Changes</button>
+                <a href="{{ url_for('auditions.actor_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

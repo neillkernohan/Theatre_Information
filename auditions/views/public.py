@@ -140,6 +140,50 @@ def register_for_show(show_id):
     )
 
 
+@auditions_bp.route('/registrations/<int:reg_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_registration(reg_id):
+    registration = Registration.query.get_or_404(reg_id)
+
+    if registration.user_id != current_user.id:
+        flash('You do not have permission to do that.', 'danger')
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    if registration.status == 'cancelled':
+        flash('You cannot edit a cancelled registration.', 'warning')
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    show = registration.show
+
+    if request.method == 'POST':
+        registration.roles_auditioning_for = request.form.get('roles_auditioning_for', '').strip() or None
+        registration.accept_other_role = request.form.get('accept_other_role') == 'yes'
+        registration.schedule_conflicts = request.form.get('schedule_conflicts', '').strip() or None
+        registration.video_link = request.form.get('video_link', '').strip() or None
+
+        # Custom fields
+        if show.custom_fields:
+            custom_data = registration.custom_field_data or {}
+            for field in show.custom_fields:
+                key = f'custom_{field["name"]}'
+                if field['type'] == 'checkbox':
+                    custom_data[field['name']] = 'yes' if request.form.get(key) else 'no'
+                else:
+                    custom_data[field['name']] = request.form.get(key, '').strip()
+            registration.custom_field_data = custom_data
+
+        db.session.commit()
+        send_admin_notification(registration, 'Registration Updated')
+        flash('Your registration has been updated.', 'success')
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    return render_template(
+        'auditions/public/edit_registration.html',
+        registration=registration,
+        show=show
+    )
+
+
 @auditions_bp.route('/registrations/<int:reg_id>/change-slot', methods=['GET', 'POST'])
 @login_required
 def change_slot(reg_id):

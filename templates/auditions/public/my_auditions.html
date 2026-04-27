@@ -48,7 +48,11 @@
             </div>
             <div class="card-footer bg-transparent">
                 <small class="text-muted d-block mb-2">Registered {{ reg.created_at.strftime('%b %d, %Y') }}</small>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('auditions.edit_registration', reg_id=reg.id) }}"
+                       class="btn btn-outline-dark btn-sm">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
                     {% if reg.status == 'confirmed' and reg.slot %}
                     <a href="{{ url_for('auditions.change_slot', reg_id=reg.id) }}"
                        class="btn btn-outline-dark btn-sm">
