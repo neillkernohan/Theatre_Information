@@ -173,6 +173,7 @@ def google_callback():
 
     user = User.query.filter_by(email=email).first()
 
+    is_new = False
     if not user:
         # Create a new actor account from the Google profile
         user = User(
@@ -185,13 +186,40 @@ def google_callback():
         user.set_password(secrets.token_hex(32))  # random — Google auth only
         db.session.add(user)
         db.session.commit()
-        flash(f'Welcome, {first_name}! Your account has been created.', 'success')
+        is_new = True
 
     login_user(user)
+
+    # New Google accounts need to complete their profile
+    if is_new:
+        flash(f'Welcome, {first_name}! Please complete your profile to continue.', 'info')
+        return redirect(url_for('auditions.complete_profile'))
+
     next_page = request.args.get('next')
     if user.role == 'admin':
         return redirect(next_page or url_for('auditions.admin_dashboard'))
     return redirect(next_page or url_for('auditions.actor_dashboard'))
+
+
+@auditions_bp.route('/complete-profile', methods=['GET', 'POST'])
+@login_required
+def complete_profile():
+    """Collect missing fields for accounts created via Google OAuth."""
+    if request.method == 'POST':
+        current_user.phone = request.form.get('phone', '').strip() or None
+        pronouns_val = request.form.get('pronouns', '').strip()
+        if pronouns_val == 'other':
+            pronouns_val = request.form.get('pronouns_other', '').strip() or 'other'
+        current_user.pronouns = pronouns_val or None
+        current_user.contact_email_ok = (request.form.get('contact_email_ok') == 'yes')
+        past_raw = request.form.get('past_member')
+        current_user.past_member = True if past_raw == 'yes' else (False if past_raw == 'no' else None)
+        current_user.hear_about_us = request.form.get('hear_about_us', '').strip() or None
+        db.session.commit()
+        flash('Welcome! Your profile is all set.', 'success')
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    return render_template('auditions/complete_profile.html')
 
 
 @auditions_bp.route('/logout')

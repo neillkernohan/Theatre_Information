@@ -1,0 +1,104 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}Complete Your Profile{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="text-center mb-4">
+            <h2>Almost there, {{ current_user.first_name }}!</h2>
+            <p class="text-muted">We just need a few more details to complete your Theatre Aurora account.</p>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number <span class="text-muted small">(optional)</span></label>
+                        <input type="tel" class="form-control" name="phone"
+                               placeholder="e.g. 905-555-1234">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Pronouns <span class="text-muted small">(optional)</span></label>
+                        <select class="form-select" name="pronouns" id="pronounsSelect">
+                            <option value="">Select pronouns (optional)</option>
+                            <option value="he/him">He/Him</option>
+                            <option value="she/her">She/Her</option>
+                            <option value="they/them">They/Them</option>
+                            <option value="he/they">He/They</option>
+                            <option value="she/they">She/They</option>
+                            <option value="other">Other / Prefer to self-describe</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="pronounsOtherRow" style="display:none">
+                        <label class="form-label">Please describe your pronouns</label>
+                        <input type="text" class="form-control" name="pronouns_other"
+                               placeholder="e.g. ze/zir">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">May we contact you via email about audition outcomes?</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="contact_email_ok"
+                                       id="emailYes" value="yes" checked>
+                                <label class="form-check-label" for="emailYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="contact_email_ok"
+                                       id="emailNo" value="no">
+                                <label class="form-check-label" for="emailNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Have you been a member of Theatre Aurora in the past? <span class="text-danger">*</span></label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="past_member"
+                                       id="pastYes" value="yes" required>
+                                <label class="form-check-label" for="pastYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="past_member"
+                                       id="pastNo" value="no" required>
+                                <label class="form-check-label" for="pastNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4" id="hearAboutRow" style="display:none">
+                        <label class="form-label">How did you hear about us?</label>
+                        <input type="text" class="form-control" name="hear_about_us"
+                               placeholder="e.g. friend, social media, website...">
+                    </div>
+
+                    <button type="submit" class="btn btn-dark w-100">Complete Profile</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('pronounsSelect').addEventListener('change', function() {
+        document.getElementById('pronounsOtherRow').style.display =
+            this.value === 'other' ? 'block' : 'none';
+    });
+
+    document.querySelectorAll('input[name="past_member"]').forEach(r => {
+        r.addEventListener('change', () => {
+            document.getElementById('hearAboutRow').style.display =
+                document.querySelector('input[name="past_member"]:checked')?.value === 'no'
+                    ? 'block' : 'none';
+        });
+    });
+</script>
+{% endblock %}
