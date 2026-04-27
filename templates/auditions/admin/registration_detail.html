@@ -48,24 +48,33 @@
             {% endfor %}
         </div>
     </div>
-    <!-- Quick status change -->
-    <div class="dropdown">
-        <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
-            <i class="bi bi-toggles"></i> Change Status
+    <!-- Admin actions -->
+    <div class="d-flex gap-2 flex-wrap">
+        <!-- Quick status change -->
+        <div class="dropdown">
+            <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-toggles"></i> Change Status
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                {% for s in ['confirmed', 'waitlisted', 'callback'] %}
+                {% if s != reg.status %}
+                <li>
+                    <form method="POST" action="{{ url_for('auditions.update_registration_status', reg_id=reg.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="status" value="{{ s }}">
+                        <button type="submit" class="dropdown-item">Set to {{ s | capitalize }}</button>
+                    </form>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% if reg.status != 'cancelled' %}
+        <button type="button" class="btn btn-outline-danger"
+                data-bs-toggle="modal" data-bs-target="#cancelModal">
+            <i class="bi bi-x-circle"></i> Cancel Registration
         </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-            {% for s in ['confirmed', 'waitlisted', 'callback', 'cancelled'] %}
-            {% if s != reg.status %}
-            <li>
-                <form method="POST" action="{{ url_for('auditions.update_registration_status', reg_id=reg.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="status" value="{{ s }}">
-                    <button type="submit" class="dropdown-item">Set to {{ s | capitalize }}</button>
-                </form>
-            </li>
-            {% endif %}
-            {% endfor %}
-        </ul>
+        {% endif %}
     </div>
 </div>
 
@@ -405,6 +414,35 @@
                     <button type="submit" class="btn btn-dark btn-sm">Create</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Registration Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="bi bi-x-circle"></i> Cancel Registration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel <strong>{{ reg.user.first_name }} {{ reg.user.last_name }}</strong>'s
+                registration for <strong>{{ reg.show.title }}</strong>?</p>
+                <ul class="text-muted small mb-0">
+                    <li>Their audition slot will be freed up</li>
+                    <li>The next person on the waiting list will be automatically assigned the slot</li>
+                    <li>{{ reg.user.first_name }} will receive a cancellation email</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep Registration</button>
+                <form method="POST" action="{{ url_for('auditions.update_registration_status', reg_id=reg.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="status" value="cancelled">
+                    <button type="submit" class="btn btn-danger">Yes, Cancel Registration</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>

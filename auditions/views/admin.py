@@ -4,7 +4,7 @@ from functools import wraps
 from auditions import auditions_bp
 from auditions.models import db, Show, AuditionSlot, Registration, Tag, User
 from auditions.forms import ShowForm, GenerateSlotsForm
-from auditions.utils import generate_slots, add_slots
+from auditions.utils import generate_slots, add_slots, promote_from_waitlist
 from auditions.email import (
     send_callback_email, send_info_request_email,
     send_confirmation_email, send_cancellation_email, send_admin_notification
@@ -302,6 +302,7 @@ def update_registration_status(reg_id):
         return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
     old_status = registration.status
+    show_id = registration.show_id
 
     # Free slot if cancelling
     if new_status == 'cancelled' and old_status != 'cancelled':
@@ -311,6 +312,11 @@ def update_registration_status(reg_id):
 
     registration.status = new_status
     db.session.commit()
+
+    # When cancelling: notify actor and promote waitlist
+    if new_status == 'cancelled' and old_status != 'cancelled':
+        send_cancellation_email(registration)
+        promote_from_waitlist(show_id)
 
     send_admin_notification(registration, f'Status Changed to {new_status.capitalize()}')
 
