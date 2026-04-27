@@ -31,6 +31,7 @@ MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
 APP_PASSWORD = os.getenv("APP_PASSWORD")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+CANADA_POST_API_KEY = os.getenv("CANADA_POST_API_KEY", '')
 MAIL_USERNAME = os.getenv("MAIL_USERNAME")
 MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
 NOTIFY_EMAIL = os.getenv("NOTIFY_EMAIL")
@@ -225,6 +226,11 @@ try:
 
     # Register auditions blueprint
     app.register_blueprint(auditions_bp)
+
+    # Inject Canada Post API key into all auditions templates
+    @auditions_bp.context_processor
+    def inject_canada_post_key():
+        return {'canada_post_api_key': CANADA_POST_API_KEY}
 
     # CLI commands for auditions
     @app.cli.command('init-auditions-db')

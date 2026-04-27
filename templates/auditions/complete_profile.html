@@ -23,21 +23,21 @@
 
                     <div class="mb-3">
                         <label class="form-label">Street Address</label>
-                        <input type="text" class="form-control" name="address"
+                        <input type="text" class="form-control" id="address" name="address"
                                placeholder="123 Main St">
                     </div>
                     <div class="row">
                         <div class="col-md-5 mb-3">
                             <label class="form-label">City</label>
-                            <input type="text" class="form-control" name="city">
+                            <input type="text" class="form-control" id="city" name="city">
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Province</label>
-                            <input type="text" class="form-control" name="province" placeholder="ON">
+                            <input type="text" class="form-control" id="province" name="province" placeholder="ON">
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Postal Code</label>
-                            <input type="text" class="form-control" name="postal_code" placeholder="A1B 2C3">
+                            <input type="text" class="form-control" id="postal_code" name="postal_code" placeholder="A1B 2C3">
                         </div>
                     </div>
 
@@ -111,6 +111,18 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if canada_post_api_key %}
+<script src="https://ws1.postescanada-canadapost.ca/js/addresscomplete-2.30.min.js?key={{ canada_post_api_key }}"></script>
+<script>
+    var pcaFields = [
+        { element: "address",     field: "Line1",        mode: pca.fieldMode.SEARCH },
+        { element: "city",        field: "City",         mode: pca.fieldMode.POPULATE },
+        { element: "province",    field: "ProvinceCode", mode: pca.fieldMode.POPULATE },
+        { element: "postal_code", field: "PostalCode",   mode: pca.fieldMode.POPULATE }
+    ];
+    var pcaControl = new pca.Address(pcaFields, { key: "{{ canada_post_api_key }}" });
+</script>
+{% endif %}
 <script>
     document.getElementById('pronounsSelect').addEventListener('change', function() {
         document.getElementById('pronounsOtherRow').style.display =

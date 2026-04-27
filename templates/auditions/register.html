@@ -172,6 +172,18 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if canada_post_api_key %}
+<script src="https://ws1.postescanada-canadapost.ca/js/addresscomplete-2.30.min.js?key={{ canada_post_api_key }}"></script>
+<script>
+    var pcaFields = [
+        { element: "address", field: "Line1", mode: pca.fieldMode.SEARCH },
+        { element: "city",    field: "City",  mode: pca.fieldMode.POPULATE },
+        { element: "province", field: "ProvinceCode", mode: pca.fieldMode.POPULATE },
+        { element: "postal_code", field: "PostalCode", mode: pca.fieldMode.POPULATE }
+    ];
+    var pcaControl = new pca.Address(pcaFields, { key: "{{ canada_post_api_key }}" });
+</script>
+{% endif %}
 <script>
     // Past member / hear about us toggle
     const pastMemberRadios = document.querySelectorAll('input[name="past_member"]');
