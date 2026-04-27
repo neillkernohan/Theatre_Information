@@ -213,7 +213,7 @@ def assign_slot(show, registration):
 def promote_from_waitlist(show_id):
     """
     When a registration is cancelled, promote the oldest waitlisted
-    registration for that show to a confirmed slot.
+    registration for that show to a confirmed slot and notify the actor.
 
     Returns:
         The promoted registration, or None if no one to promote.
@@ -228,4 +228,10 @@ def promote_from_waitlist(show_id):
     show = Show.query.get(show_id)
     assign_slot(show, waitlisted)
     db.session.commit()
+
+    # Notify the promoted actor — import here to avoid circular imports
+    if waitlisted.status == 'confirmed':
+        from auditions.email import send_confirmation_email
+        send_confirmation_email(waitlisted)
+
     return waitlisted
