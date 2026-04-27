@@ -111,16 +111,37 @@
 {% endblock %}
 
 {% block extra_js %}
-{% if canada_post_api_key %}
-<script src="https://ws1.postescanada-canadapost.ca/js/addresscomplete-2.30.min.js?key={{ canada_post_api_key }}"></script>
+{% if google_maps_api_key %}
 <script>
-    var pcaControl = new pca.Address([
-        { element: "address",     field: "Line1",        mode: 0 },
-        { element: "city",        field: "City",         mode: 1 },
-        { element: "province",    field: "ProvinceCode", mode: 1 },
-        { element: "postal_code", field: "PostalCode",   mode: 1 }
-    ], { key: "{{ canada_post_api_key }}", culture: "en-CA" });
+function initAddressAutocomplete() {
+    const input = document.getElementById('address');
+    if (!input) return;
+    const ac = new google.maps.places.Autocomplete(input, {
+        types: ['address'],
+        componentRestrictions: { country: 'ca' }
+    });
+    ac.setFields(['address_components']);
+    ac.addListener('place_changed', function () {
+        const place = ac.getPlace();
+        if (!place.address_components) return;
+        let num = '', route = '', city = '', prov = '', pc = '';
+        for (const c of place.address_components) {
+            const t = c.types[0];
+            if (t === 'street_number')              num   = c.long_name;
+            else if (t === 'route')                 route = c.long_name;
+            else if (t === 'locality')              city  = c.long_name;
+            else if (t === 'administrative_area_level_1') prov = c.short_name;
+            else if (t === 'postal_code')           pc    = c.long_name;
+        }
+        if (num && route) input.value = num + ' ' + route;
+        const el = id => document.getElementById(id);
+        if (el('city'))        el('city').value        = city;
+        if (el('province'))    el('province').value    = prov;
+        if (el('postal_code')) el('postal_code').value = pc;
+    });
+}
 </script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAddressAutocomplete" async defer></script>
 {% endif %}
 <script>
     document.getElementById('pronounsSelect').addEventListener('change', function() {

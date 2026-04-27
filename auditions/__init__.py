@@ -10,8 +10,8 @@ auditions_bp = Blueprint(
 
 
 @auditions_bp.context_processor
-def inject_canada_post_key():
-    return {'canada_post_api_key': os.getenv('CANADA_POST_API_KEY', '')}
+def inject_api_keys():
+    return {'google_maps_api_key': os.getenv('GOOGLE_MAPS_API_KEY', '')}
 
 
 from auditions.views import auth, admin, public, export  # noqa: E402, F401
