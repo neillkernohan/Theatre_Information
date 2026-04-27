@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from auditions import auditions_bp
 from auditions.models import db, Show, AuditionSlot, Registration
 from auditions.utils import assign_slot, promote_from_waitlist
-from auditions.email import send_confirmation_email, send_waitlist_email, send_cancellation_email, send_admin_notification
+from auditions.email import send_confirmation_email, send_waitlist_email, send_cancellation_email, send_admin_notification, send_slot_changed_email
 from auditions.views.auth import _save_profile_from_form, _prepopulate_profile_form
 from auditions.forms import ActorProfileForm
 from datetime import datetime
@@ -137,6 +137,75 @@ def register_for_show(show_id):
         available_slots=available_slots,
         profile_form=profile_form,
         acting_experience_json=json.dumps(current_user.acting_experience or [])
+    )
+
+
+@auditions_bp.route('/registrations/<int:reg_id>/change-slot', methods=['GET', 'POST'])
+@login_required
+def change_slot(reg_id):
+    registration = Registration.query.get_or_404(reg_id)
+
+    if registration.user_id != current_user.id:
+        flash('You do not have permission to do that.', 'danger')
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    if registration.status != 'confirmed':
+        flash('Only confirmed registrations can be rescheduled.', 'warning')
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    show = registration.show
+
+    if request.method == 'POST':
+        new_slot_id = request.form.get('slot_id')
+        if not new_slot_id:
+            flash('Please select a new time.', 'warning')
+            return redirect(url_for('auditions.change_slot', reg_id=reg_id))
+
+        new_slot = AuditionSlot.query.get(int(new_slot_id))
+        if not new_slot or new_slot.show_id != show.id or new_slot.is_full or new_slot.slot_type != 'individual':
+            flash('That time slot is no longer available. Please choose another.', 'warning')
+            return redirect(url_for('auditions.change_slot', reg_id=reg_id))
+
+        if new_slot.id == registration.slot_id:
+            flash('That is already your current time slot.', 'info')
+            return redirect(url_for('auditions.actor_dashboard'))
+
+        # Free the old slot
+        old_slot = registration.slot
+        if old_slot:
+            old_slot.current_count = max(0, old_slot.current_count - 1)
+
+        # Assign the new slot
+        registration.slot_id = new_slot.id
+        new_slot.current_count += 1
+        db.session.commit()
+
+        send_slot_changed_email(registration)
+        send_admin_notification(registration, 'Slot Changed')
+        flash('Your audition time has been updated. A confirmation email has been sent.', 'success')
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    # GET — build available slots grouped by date, excluding the actor's current slot
+    available_slots = (
+        AuditionSlot.query
+        .filter_by(show_id=show.id, slot_type='individual')
+        .filter(AuditionSlot.current_count < AuditionSlot.capacity)
+        .order_by(AuditionSlot.date, AuditionSlot.start_time)
+        .all()
+    )
+
+    slots_by_date = {}
+    for slot in available_slots:
+        date_str = slot.date.strftime('%A, %B %d, %Y')
+        if date_str not in slots_by_date:
+            slots_by_date[date_str] = []
+        slots_by_date[date_str].append(slot)
+
+    return render_template(
+        'auditions/public/change_slot.html',
+        registration=registration,
+        show=show,
+        slots_by_date=slots_by_date
     )
 
 

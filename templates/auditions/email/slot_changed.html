@@ -1,0 +1,50 @@
+{% extends "auditions/email/_base.html" %}
+
+{% block content %}
+<h2 style="margin: 0 0 16px; color: #212529; font-size: 20px;">Your Audition Time Has Been Updated</h2>
+
+<p style="margin: 0 0 12px; color: #495057; font-size: 15px; line-height: 1.6;">
+    Hi {{ user.first_name }},
+</p>
+
+<p style="margin: 0 0 20px; color: #495057; font-size: 15px; line-height: 1.6;">
+    Your audition time for <strong>{{ show.title }}</strong> has been changed to:
+</p>
+
+{% if slot %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 6px; margin-bottom: 24px;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
+                <strong>Date:</strong> {{ slot.date.strftime('%A, %B %d, %Y') }}
+            </p>
+            <p style="margin: 0; color: #212529; font-size: 14px;">
+                <strong>Time:</strong> {{ slot.start_time.strftime('%I:%M %p') }} &ndash; {{ slot.end_time.strftime('%I:%M %p') }}
+            </p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<p style="margin: 0 0 24px; color: #495057; font-size: 15px; line-height: 1.6;">
+    Please arrive at least 10 minutes before your scheduled time.
+</p>
+
+<!-- Action buttons -->
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+    <tr>
+        <td>
+            <a href="{{ dashboard_url }}" style="display: inline-block; background-color: #212529; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 6px;">Manage My Auditions</a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; color: #6c757d; font-size: 13px; line-height: 1.6;">
+    Need to cancel? <a href="{{ cancel_url }}" style="color: #dc3545;">Cancel this registration</a>
+</p>
+
+<p style="margin: 24px 0 0; color: #495057; font-size: 15px; line-height: 1.6;">
+    Break a leg!<br>
+    <strong>Theatre Aurora Auditions Team</strong>
+</p>
+{% endblock %}

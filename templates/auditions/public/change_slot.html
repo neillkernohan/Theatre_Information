@@ -1,0 +1,71 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}Change Audition Time — {{ show.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <a href="{{ url_for('auditions.actor_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+            <h3 class="mb-0">Change Audition Time</h3>
+        </div>
+
+        <p class="text-muted mb-1"><strong>Show:</strong> {{ show.title }}</p>
+
+        {% if registration.slot %}
+        <div class="alert alert-light border mb-4">
+            <strong>Current time:</strong>
+            {{ registration.slot.date.strftime('%A, %B %d, %Y') }}
+            at {{ registration.slot.start_time.strftime('%I:%M %p') }}
+        </div>
+        {% endif %}
+
+        {% if slots_by_date %}
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            {% for date_str, slots in slots_by_date.items() %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-header"><strong>{{ date_str }}</strong></div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        {% for slot in slots %}
+                        <div class="col-sm-6 col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="slot_id"
+                                       id="slot_{{ slot.id }}" value="{{ slot.id }}"
+                                       {% if slot.id == registration.slot_id %}checked{% endif %}>
+                                <label class="form-check-label" for="slot_{{ slot.id }}">
+                                    {{ slot.start_time.strftime('%I:%M %p') }}
+                                    {% if show.scheduling_mode == 'block' %}
+                                    <span class="text-muted small d-block">
+                                        {{ slot.capacity - slot.current_count }} spot{{ 's' if (slot.capacity - slot.current_count) != 1 }} left
+                                    </span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-dark">Confirm New Time</button>
+                <a href="{{ url_for('auditions.actor_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            There are no other available time slots for this show right now.
+        </div>
+        <a href="{{ url_for('auditions.actor_dashboard') }}" class="btn btn-outline-secondary">Back to My Auditions</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

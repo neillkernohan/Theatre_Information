@@ -156,6 +156,25 @@ def send_password_reset_email(user, reset_url):
     )
 
 
+def send_slot_changed_email(registration):
+    """Send confirmation when an actor changes their audition time slot."""
+    user = registration.user
+    show = registration.show
+    slot = registration.slot
+
+    return send_email(
+        to=user.email,
+        subject=f'Audition Time Updated — {show.title}',
+        template='slot_changed',
+        registration=registration,
+        user=user,
+        show=show,
+        slot=slot,
+        dashboard_url=url_for('auditions.actor_dashboard', _external=True),
+        cancel_url=url_for('auditions.cancel_confirm', reg_id=registration.id, _external=True)
+    )
+
+
 def send_admin_notification(registration, event):
     """
     Send a notification to all addresses in the show's notify_email field
