@@ -156,6 +156,33 @@ def send_password_reset_email(user, reset_url):
     )
 
 
+def send_admin_notification(registration, event):
+    """
+    Send a notification to the show's notify_email address when a registration
+    is created, cancelled, or its status changes.
+
+    event: a short string like 'New Registration', 'Cancelled', 'Status → callback'
+    """
+    notify_email = registration.show.notify_email
+    if not notify_email:
+        return  # No notification address configured for this show
+
+    user = registration.user
+    show = registration.show
+    reg_url = url_for('auditions.registration_detail', reg_id=registration.id, _external=True)
+
+    return send_email(
+        to=notify_email,
+        subject=f'{event} — {show.title}',
+        template='admin_notification',
+        registration=registration,
+        user=user,
+        show=show,
+        event=event,
+        reg_url=reg_url
+    )
+
+
 def send_cancellation_email(registration):
     """Send cancellation confirmation email to the actor."""
     user = registration.user

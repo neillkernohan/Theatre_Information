@@ -110,6 +110,20 @@
             </div>
 
             <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong><i class="bi bi-bell"></i> Admin Notifications</strong></div>
+                <div class="card-body">
+                    <div class="mb-0">
+                        {{ form.notify_email.label(class="form-label") }}
+                        {{ form.notify_email(class="form-control", placeholder="e.g. director@theatreaurora.com") }}
+                        <div class="form-text">An email will be sent here whenever someone registers, cancels, or has their status changed. Leave blank for no notifications.</div>
+                        {% for error in form.notify_email.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <strong>Custom Registration Fields</strong>
                     <button type="button" class="btn btn-sm btn-outline-dark" onclick="addCustomField()">

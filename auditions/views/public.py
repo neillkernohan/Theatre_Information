@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from auditions import auditions_bp
 from auditions.models import db, Show, AuditionSlot, Registration
 from auditions.utils import assign_slot, promote_from_waitlist
-from auditions.email import send_confirmation_email, send_waitlist_email, send_cancellation_email
+from auditions.email import send_confirmation_email, send_waitlist_email, send_cancellation_email, send_admin_notification
 from auditions.views.auth import _save_profile_from_form, _prepopulate_profile_form
 from auditions.forms import ActorProfileForm
 from datetime import datetime
@@ -118,9 +118,11 @@ def register_for_show(show_id):
         # Send confirmation or waitlist email
         if registration.status == 'confirmed':
             send_confirmation_email(registration)
+            send_admin_notification(registration, 'New Registration')
             flash(f'You are confirmed for {show.title}! A confirmation email has been sent.', 'success')
         else:
             send_waitlist_email(registration)
+            send_admin_notification(registration, 'New Waitlist Registration')
             flash(f'All slots are full. You have been added to the waiting list for {show.title}. A confirmation email has been sent.', 'info')
 
         return redirect(url_for('auditions.actor_dashboard'))
@@ -176,6 +178,7 @@ def cancel_registration(reg_id):
 
     # Send cancellation email
     send_cancellation_email(registration)
+    send_admin_notification(registration, 'Registration Cancelled')
 
     # Promote from waitlist
     promote_from_waitlist(show_id)

@@ -62,6 +62,7 @@ class Show(db.Model):
     allow_choice = db.Column(db.Boolean, default=True)
     custom_fields = db.Column(db.JSON)
     status = db.Column(db.Enum('draft', 'open', 'closed', 'archived', name='show_status'), default='draft')
+    notify_email = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     slots = db.relationship('AuditionSlot', backref='show', lazy='dynamic', cascade='all, delete-orphan')

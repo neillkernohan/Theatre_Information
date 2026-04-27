@@ -164,6 +164,9 @@ class ShowForm(FlaskForm):
                                             format='%Y-%m-%dT%H:%M',
                                             validators=[DataRequired()])
 
+    # Admin notifications
+    notify_email = StringField('Notify Email', validators=[Optional(), Email(), Length(max=255)])
+
     submit = SubmitField('Save Show')
 
 

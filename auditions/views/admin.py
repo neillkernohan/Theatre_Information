@@ -7,7 +7,7 @@ from auditions.forms import ShowForm, GenerateSlotsForm
 from auditions.utils import generate_slots, add_slots
 from auditions.email import (
     send_callback_email, send_info_request_email,
-    send_confirmation_email, send_cancellation_email
+    send_confirmation_email, send_cancellation_email, send_admin_notification
 )
 import json
 
@@ -60,6 +60,8 @@ def create_show():
         except (json.JSONDecodeError, TypeError):
             show.custom_fields = []
 
+        show.notify_email = form.notify_email.data.strip() if form.notify_email.data else None
+
         db.session.add(show)
         db.session.commit()
         flash(f'Show "{show.title}" created. Now add audition dates and generate slots.', 'success')
@@ -93,6 +95,8 @@ def edit_show(show_id):
             show.custom_fields = json.loads(custom_fields_json)
         except (json.JSONDecodeError, TypeError):
             show.custom_fields = []
+
+        show.notify_email = form.notify_email.data.strip() if form.notify_email.data else None
 
         db.session.commit()
         flash(f'Show "{show.title}" updated.', 'success')
@@ -307,6 +311,8 @@ def update_registration_status(reg_id):
 
     registration.status = new_status
     db.session.commit()
+
+    send_admin_notification(registration, f'Status Changed to {new_status.capitalize()}')
 
     flash(f'Registration status updated to {new_status}.', 'success')
     return redirect(url_for('auditions.registration_detail', reg_id=reg_id))

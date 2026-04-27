@@ -1,0 +1,44 @@
+{% extends "auditions/email/_base.html" %}
+
+{% block content %}
+<h2 style="margin: 0 0 16px; color: #212529; font-size: 20px;">{{ event }}</h2>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 6px; margin-bottom: 24px;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
+                <strong>Show:</strong> {{ show.title }}
+            </p>
+            <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
+                <strong>Actor:</strong> {{ user.first_name }} {{ user.last_name }}
+            </p>
+            <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
+                <strong>Email:</strong> {{ user.email }}
+            </p>
+            {% if user.phone %}
+            <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
+                <strong>Phone:</strong> {{ user.phone }}
+            </p>
+            {% endif %}
+            <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
+                <strong>Status:</strong> {{ registration.status | capitalize }}
+            </p>
+            {% if registration.slot %}
+            <p style="margin: 0; color: #212529; font-size: 14px;">
+                <strong>Slot:</strong>
+                {{ registration.slot.date.strftime('%a %b %d') }}
+                at {{ registration.slot.start_time.strftime('%I:%M %p') }}
+            </p>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+<table role="presentation" cellpadding="0" cellspacing="0">
+    <tr>
+        <td>
+            <a href="{{ reg_url }}" style="display: inline-block; background-color: #212529; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 6px;">View Registration</a>
+        </td>
+    </tr>
+</table>
+{% endblock %}
