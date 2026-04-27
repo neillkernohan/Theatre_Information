@@ -1,4 +1,4 @@
-from flask import render_template, current_app
+from flask import render_template, current_app, url_for
 from flask_mail import Message
 from auditions.models import db, EmailLog
 from datetime import datetime
@@ -71,7 +71,9 @@ def send_confirmation_email(registration):
         registration=registration,
         user=user,
         show=show,
-        slot=slot
+        slot=slot,
+        dashboard_url=url_for('auditions.actor_dashboard', _external=True),
+        cancel_url=url_for('auditions.cancel_confirm', reg_id=registration.id, _external=True)
     )
 
 
@@ -86,7 +88,9 @@ def send_waitlist_email(registration):
         template='waitlisted',
         registration=registration,
         user=user,
-        show=show
+        show=show,
+        dashboard_url=url_for('auditions.actor_dashboard', _external=True),
+        cancel_url=url_for('auditions.cancel_confirm', reg_id=registration.id, _external=True)
     )
 
 
@@ -119,7 +123,9 @@ def send_reminder_email(registration):
         registration=registration,
         user=user,
         show=show,
-        slot=slot
+        slot=slot,
+        dashboard_url=url_for('auditions.actor_dashboard', _external=True),
+        cancel_url=url_for('auditions.cancel_confirm', reg_id=registration.id, _external=True)
     )
 
 

@@ -138,6 +138,19 @@ def register_for_show(show_id):
     )
 
 
+@auditions_bp.route('/registrations/<int:reg_id>/cancel-confirm')
+@login_required
+def cancel_confirm(reg_id):
+    registration = Registration.query.get_or_404(reg_id)
+    if registration.user_id != current_user.id:
+        flash('You do not have permission to do that.', 'danger')
+        return redirect(url_for('auditions.actor_dashboard'))
+    if registration.status == 'cancelled':
+        flash('This registration is already cancelled.', 'info')
+        return redirect(url_for('auditions.actor_dashboard'))
+    return render_template('auditions/public/cancel_confirm.html', registration=registration)
+
+
 @auditions_bp.route('/registrations/<int:reg_id>/cancel', methods=['POST'])
 @login_required
 def cancel_registration(reg_id):

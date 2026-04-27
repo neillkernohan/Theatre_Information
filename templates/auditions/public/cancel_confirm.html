@@ -1,0 +1,47 @@
+{% extends "auditions/base.html" %}
+
+{% block title %}Cancel Registration — {{ registration.show.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="text-center mb-4">
+            <div style="font-size: 3rem;">🎭</div>
+            <h3 class="mt-2">Cancel Your Audition?</h3>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <p class="text-muted mb-3">You're about to cancel your registration for:</p>
+
+                <div class="bg-light rounded p-3 mb-4">
+                    <strong>{{ registration.show.title }}</strong>
+                    {% if registration.slot %}
+                    <div class="text-muted small mt-1">
+                        {{ registration.slot.date.strftime('%A, %B %d, %Y') }}
+                        at {{ registration.slot.start_time.strftime('%I:%M %p') }}
+                    </div>
+                    {% elif registration.status == 'waitlisted' %}
+                    <div class="text-muted small mt-1">Waiting list</div>
+                    {% endif %}
+                </div>
+
+                <p class="text-muted small mb-4">
+                    If you cancel, your spot will be offered to the next person on the waiting list.
+                    This cannot be undone — you would need to re-register if you change your mind.
+                </p>
+
+                <form method="POST" action="{{ url_for('auditions.cancel_registration', reg_id=registration.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger">Yes, Cancel My Registration</button>
+                        <a href="{{ url_for('auditions.actor_dashboard') }}" class="btn btn-outline-secondary">
+                            Keep My Registration
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
