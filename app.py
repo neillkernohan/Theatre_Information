@@ -408,84 +408,45 @@ def home():
 @app.route('/SeasonTotals')
 @login_required
 def SeasonTotals():
-    Theatre_Information_DB = mysql.connector.connect(
+    db = mysql.connector.connect(
         host=MYSQL_HOST,
         user=MYSQL_USER,
         password=MYSQL_PASSWORD,
         database=MYSQL_DATABASE
     )
-
-    data = Theatre_Information_DB.cursor()
-
-    data.callproc('Get_Seasons')
-    for result in data.stored_results():
-        seasons = result.fetchall()
+    cursor = db.cursor()
 
     this_season = request.args.get('this_season', type=str)
-    if request.args.get('showsOnly', 'false') == 'true':
-        shows_only = 1
-    else:
-        shows_only = 0
+    if this_season is None:
+        this_season = select_season()
 
-    if this_season == None:
-        this_season=select_season()
+    shows_only = 1 if request.args.get('showsOnly', 'false') == 'true' else 0
 
-    current_season_date = datetime.strptime(this_season, '%Y-%m-%d').date()
-    last_season_date = datetime(year=current_season_date.year - 1, month=current_season_date.month, day=current_season_date.day).date()
-    last_season = last_season_date.strftime('%Y-%m-%d')
+    update_cursor = db.cursor()
+    update_cursor.execute(
+        "SELECT Update_date_time FROM Theatre_Information.Updates ORDER BY Update_date_time DESC LIMIT 1"
+    )
+    update_row = update_cursor.fetchone()
+    formatted_update = update_row[0].strftime('%B %-d, %Y at %-I:%M %p') if update_row else 'Not available'
 
-    Updates_Cursor = Theatre_Information_DB.cursor()
-    Updates_Cursor.execute("SELECT Update_date_time FROM Theatre_Information.Updates order by Update_date_time desc limit 1;")
-    update_data=Updates_Cursor.fetchall()
-    last_update = update_data[0][0] if update_data else 'Not available'
-    formatted_update = last_update.strftime('%B %-d, %Y at %-I:%M %p')
-    print(this_season)
-    data.callproc('GetTicketTotals', (this_season, shows_only))
-    for result in data.stored_results():
-        ticket_data = result.fetchall()
+    seasons_cursor = db.cursor()
+    seasons_cursor.execute(
+        "SELECT DISTINCT Season FROM Theatre_Information.Ticket_Info ORDER BY Season DESC"
+    )
+    seasons = seasons_cursor.fetchall()
 
-    data.callproc('GetSeasonTotals', (this_season, shows_only))
-    for result in data.stored_results():
-        season_data = result.fetchall()
+    cursor.callproc('GetSeasonShowTotals', (this_season, shows_only))
+    for result in cursor.stored_results():
+        show_rows = result.fetchall()
 
-    data.callproc('GetSeasonTotals', (last_season, shows_only))
-    for result in data.stored_results():
-        last_season_data = result.fetchall()
+    db.close()
 
-    data.callproc('GetSeasonExpenses', (this_season, shows_only))
-    for result in data.stored_results():
-        this_season_expenses = result.fetchall()
-
-    data.callproc('GetSeasonExpenses', (last_season, shows_only))
-    for result in data.stored_results():
-        last_season_expenses = result.fetchall()
-    print(last_season)
-
-    data.callproc('GetSubscriptions2', (this_season,))
-    for result in data.stored_results():
-        this_season_subscriptions = result.fetchall()
-
-    data.callproc('GetSubscriptions2', (last_season,))
-    for result in data.stored_results():
-        last_season_subscriptions = result.fetchall()        
-    
-    data.callproc('GetTicketSalesPast14Days')
-    for result in data.stored_results():
-        past14days = result.fetchall()
-
-    return render_template('SeasonTotals.html', 
+    return render_template('SeasonTotals.html',
         formatted_update=formatted_update,
         this_season=this_season,
-        seasons=seasons, 
-        ticket_data=ticket_data,
-        season_data=season_data,
-        last_season_data=last_season_data, 
-        this_season_expenses=this_season_expenses,
-        last_season_expenses=last_season_expenses,
-        this_season_subscriptions=this_season_subscriptions,
-        last_season_subscriptions=last_season_subscriptions,
-        shows_only=shows_only,
-        past14days=past14days)
+        seasons=seasons,
+        show_rows=show_rows,
+        shows_only=shows_only)
 
 # @app.route('/TotalSales')
 # def TotalSales():
