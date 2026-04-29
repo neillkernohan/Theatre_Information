@@ -1,4 +1,24 @@
 <!DOCTYPE html>
+{% macro ranking_rows(rows, name_col, rank_col, ncols) %}
+  {# Find current show's 0-based index #}
+  {% set ns = namespace(show_idx=-1) %}
+  {% for row in rows %}
+    {% if row[name_col] == show_name %}{% set ns.show_idx = loop.index0 %}{% endif %}
+  {% endfor %}
+  {% for row in rows %}
+    {% set idx = loop.index0 %}
+    {% if idx < 10 or (idx < 20 and row[name_col] == show_name) %}
+      <tr {% if row[name_col] == show_name %}class="table-success fw-bold"{% endif %}>
+        {{ caller(row) }}
+      </tr>
+    {% elif idx == ns.show_idx and ns.show_idx >= 20 %}
+      <tr><td colspan="{{ ncols }}" class="text-center text-muted small py-1">&hellip;</td></tr>
+      <tr class="table-success fw-bold">
+        {{ caller(row) }}
+      </tr>
+    {% endif %}
+  {% endfor %}
+{% endmacro %}
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -132,13 +152,11 @@
                 </tr>
             </thead>
             <tbody>
-                {% for row in ranked_tkts %}
-                <tr {% if row[0] == show_name %}class="table-success fw-bold"{% endif %}>
+                {% call(row) ranking_rows(ranked_tkts, 0, 2, 3) %}
                     <td>{{ row[0] }}</td>
                     <td class="text-end">{{ row[1] }}</td>
                     <td class="text-end">{{ row[2] }}</td>
-                </tr>
-                {% endfor %}
+                {% endcall %}
             </tbody>
         </table>
     </div>
@@ -152,13 +170,11 @@
                 </tr>
             </thead>
             <tbody>
-                {% for row in ranked_rev %}
-                <tr {% if row[0] == show_name %}class="table-success fw-bold"{% endif %}>
+                {% call(row) ranking_rows(ranked_rev, 0, 2, 3) %}
                     <td>{{ row[0] }}</td>
                     <td class="text-end">${{ '{:,.2f}'.format(row[1]) }}</td>
                     <td class="text-end">{{ row[2] }}</td>
-                </tr>
-                {% endfor %}
+                {% endcall %}
             </tbody>
         </table>
     </div>
@@ -178,14 +194,12 @@
                 </tr>
             </thead>
             <tbody>
-                {% for row in all_tkts %}
-                <tr {% if row[0] == show_name %}class="table-success fw-bold"{% endif %}>
+                {% call(row) ranking_rows(all_tkts, 0, 3, 4) %}
                     <td>{{ row[0] }}</td>
                     <td>{{ row[1] }}</td>
                     <td class="text-end">{{ row[2] }}</td>
                     <td class="text-end">{{ row[3] }}</td>
-                </tr>
-                {% endfor %}
+                {% endcall %}
             </tbody>
         </table>
     </div>
@@ -200,14 +214,12 @@
                 </tr>
             </thead>
             <tbody>
-                {% for row in all_rev %}
-                <tr {% if row[0] == show_name %}class="table-success fw-bold"{% endif %}>
+                {% call(row) ranking_rows(all_rev, 0, 3, 4) %}
                     <td>{{ row[0] }}</td>
                     <td>{{ row[1] }}</td>
                     <td class="text-end">${{ '{:,.2f}'.format(row[2]) }}</td>
                     <td class="text-end">{{ row[3] }}</td>
-                </tr>
-                {% endfor %}
+                {% endcall %}
             </tbody>
         </table>
     </div>
