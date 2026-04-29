@@ -600,6 +600,8 @@ def GetShowDetail():
     ranked_tkts  = results.get(5, [])   # Show_name, Total_Tickets, Rank_Num
     ranked_rev   = results.get(6, [])   # Show_name, Revenue, Rank_Num
     prev_data    = results.get(7, [[None,0,0,0]])[0]     # Prev_Show,Days_Diff,Prev_Tickets,Prev_Revenue
+    all_tkts     = results.get(8, [])   # Show_name, Show_type, Total_Tickets, Rank_Num
+    all_rev      = results.get(9, [])   # Show_name, Show_type, Revenue, Rank_Num
 
     cursor.execute("SELECT Update_date_time FROM Theatre_Information.Updates ORDER BY Update_date_time DESC LIMIT 1")
     update_row = cursor.fetchone()
@@ -684,6 +686,8 @@ def GetShowDetail():
         show_info=show_info,
         ranked_tkts=ranked_tkts,
         ranked_rev=ranked_rev,
+        all_tkts=all_tkts,
+        all_rev=all_rev,
         formatted_update=formatted_update,
         message1=message1,
         message2=message2,
