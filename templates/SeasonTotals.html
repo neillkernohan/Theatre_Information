@@ -29,11 +29,9 @@
 <div class="text-center mb-3">
     <label class="me-2">Season:</label>
     <select id="seasonSelect" onchange="changeSeason()">
-        {% for row in seasons %}
-        {% set d = row[0] %}
-        {% set y = d.year %}
-        <option value="{{ d.strftime('%Y-%m-%d') }}"
-            {% if d.strftime('%Y-%m-%d') == this_season %}selected{% endif %}>
+        {% for s in seasons %}
+        {% set y = s[:4]|int %}
+        <option value="{{ s }}" {% if s == this_season %}selected{% endif %}>
             {{ y }}&ndash;{{ y + 1 }} Season
         </option>
         {% endfor %}
@@ -62,13 +60,19 @@
             <th class="text-end">Senior<br>Reserved</th>
             <th class="text-end">Youth<br>Reserved</th>
             <th class="text-end">Total<br>Booked</th>
+            <th class="text-end">% of<br>Capacity</th>
+            <th class="text-end">Per Item<br>Fees</th>
+            <th class="text-end">Production<br>Costs</th>
+            <th class="text-end">Rights</th>
+            <th class="text-end">Net<br>Income</th>
         </tr>
     </thead>
     <tbody>
         {% set ns = namespace(
             reg_sold=0, sen_sold=0, yth_sold=0, tot_sold=0,
             revenue=0,
-            reg_res=0, sen_res=0, yth_res=0, tot_booked=0
+            reg_res=0, sen_res=0, yth_res=0, tot_booked=0,
+            fees=0, prod_costs=0, rights=0, net_income=0
         ) %}
         {% for row in show_rows %}
         {# row: Show_name, Opening_Date, Regular_Sold, Senior_Sold, Youth_Sold,
@@ -85,6 +89,11 @@
             <td class="text-end">{{ row[8] }}</td>
             <td class="text-end">{{ row[9] }}</td>
             <td class="text-end">{{ row[10] }}</td>
+            <td class="text-end">{{ row[11] }}%</td>
+            <td class="text-end">${{ "%.2f"|format(row[12]) }}</td>
+            <td class="text-end">${{ "%.2f"|format(row[13]) }}</td>
+            <td class="text-end">${{ "%.2f"|format(row[14]) }}</td>
+            <td class="text-end">${{ "%.2f"|format(row[15]) }}</td>
         </tr>
         {% set ns.reg_sold   = ns.reg_sold   + row[2] %}
         {% set ns.sen_sold   = ns.sen_sold   + row[3] %}
@@ -95,6 +104,10 @@
         {% set ns.sen_res    = ns.sen_res    + row[8] %}
         {% set ns.yth_res    = ns.yth_res    + row[9] %}
         {% set ns.tot_booked = ns.tot_booked + row[10] %}
+        {% set ns.fees       = ns.fees       + row[12] %}
+        {% set ns.prod_costs = ns.prod_costs + row[13] %}
+        {% set ns.rights     = ns.rights     + row[14] %}
+        {% set ns.net_income = ns.net_income + row[15] %}
         {% endfor %}
     </tbody>
     <tfoot>
@@ -109,10 +122,116 @@
             <td class="text-end">{{ ns.sen_res }}</td>
             <td class="text-end">{{ ns.yth_res }}</td>
             <td class="text-end">{{ ns.tot_booked }}</td>
+            <td class="text-end"></td>
+            <td class="text-end">${{ "%.2f"|format(ns.fees) }}</td>
+            <td class="text-end">${{ "%.2f"|format(ns.prod_costs) }}</td>
+            <td class="text-end">${{ "%.2f"|format(ns.rights) }}</td>
+            <td class="text-end">${{ "%.2f"|format(ns.net_income) }}</td>
         </tr>
     </tfoot>
 </table>
 </div>
+
+{% if prev_season %}
+{% set py = prev_season[:4]|int %}
+{% set cy = this_season[:4]|int %}
+
+<div class="row mt-5 justify-content-center g-5">
+
+  {# ── Types of Tickets Sold Comparison ── #}
+  <div class="col-auto">
+    <h5 class="text-center mb-3">Types of Tickets Sold Comparison</h5>
+    <table class="table table-sm table-bordered" style="width:auto;">
+      <thead class="table-dark">
+        <tr>
+          <th></th>
+          <th class="text-end">{{ cy }}/{{ cy+1 }} Season</th>
+          <th class="text-end">{{ py }}/{{ py+1 }} Season</th>
+          <th class="text-end">% Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="4" class="fw-semibold">Tickets</td></tr>
+        {% for label, cur_v, prev_v in ticket_rows %}
+        <tr>
+          <td class="ps-4">{{ label }}</td>
+          <td class="text-end">{{ cur_v }}</td>
+          <td class="text-end">{{ prev_v }}</td>
+          <td class="text-end">
+            {% if prev_v > 0 %}{{ "%.1f"|format((cur_v / prev_v) * 100) }}%{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="table-secondary fw-bold">
+          <td>Totals</td>
+          <td class="text-end">{{ ticket_totals[0] }}</td>
+          <td class="text-end">{{ ticket_totals[1] }}</td>
+          <td class="text-end">
+            {% if ticket_totals[1] > 0 %}{{ "%.1f"|format((ticket_totals[0] / ticket_totals[1]) * 100) }}%{% else %}—{% endif %}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  {# ── Subscriptions Comparison ── #}
+  <div class="col-auto">
+    <h5 class="text-center mb-3">Subscriptions Comparison</h5>
+    <table class="table table-sm table-bordered" style="width:auto;">
+      <thead class="table-dark">
+        <tr>
+          <th>Type of Subscription</th>
+          <th class="text-end" colspan="2">{{ cy }}/{{ cy+1 }} Season</th>
+          <th class="text-end" colspan="2">{{ py }}/{{ py+1 }} Season</th>
+          <th class="text-end">% Change</th>
+        </tr>
+        <tr class="table-secondary">
+          <th></th>
+          <th class="text-end">Amount</th>
+          <th class="text-end">Sales</th>
+          <th class="text-end">Amount</th>
+          <th class="text-end">Sales</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set sns = namespace(cc=0, cs=0, pc=0, ps=0) %}
+        {% for pt, cc, cs, pc, ps in sub_rows %}
+        <tr>
+          <td>{{ pt }}</td>
+          <td class="text-end">{{ cc }}</td>
+          <td class="text-end">${{ "%.2f"|format(cs) }}</td>
+          <td class="text-end">{{ pc }}</td>
+          <td class="text-end">${{ "%.2f"|format(ps) }}</td>
+          <td class="text-end">
+            {% if pc > 0 %}{{ "%.1f"|format(((cc / pc) - 1) * 100) }}%{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% set sns.cc = sns.cc + cc %}
+        {% set sns.cs = sns.cs + cs %}
+        {% set sns.pc = sns.pc + pc %}
+        {% set sns.ps = sns.ps + ps %}
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="table-secondary fw-bold">
+          <td>Totals</td>
+          <td class="text-end">{{ sns.cc }}</td>
+          <td class="text-end">${{ "%.2f"|format(sns.cs) }}</td>
+          <td class="text-end">{{ sns.pc }}</td>
+          <td class="text-end">${{ "%.2f"|format(sns.ps) }}</td>
+          <td class="text-end">
+            {% if sns.pc > 0 %}{{ "%.1f"|format(((sns.cc / sns.pc) - 1) * 100) }}%{% else %}—{% endif %}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+</div>
+{% endif %}
 
 <script>
 function changeSeason() {
