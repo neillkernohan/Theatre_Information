@@ -3,36 +3,90 @@
 {% block content %}
 <h2 style="margin: 0 0 16px; color: #212529; font-size: 20px;">{{ event }}</h2>
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 6px; margin-bottom: 24px;">
+<!-- Contact & Status -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 6px; margin-bottom: 20px;">
     <tr>
         <td style="padding: 20px;">
+            <p style="margin: 0 0 4px; color: #6c757d; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Contact</p>
             <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
-                <strong>Show:</strong> {{ show.title }}
+                <strong>{{ user.first_name }} {{ user.last_name }}</strong>
             </p>
-            <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
-                <strong>Actor:</strong> {{ user.first_name }} {{ user.last_name }}
-            </p>
-            <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
-                <strong>Email:</strong> {{ user.email }}
-            </p>
+            <p style="margin: 0 0 4px; color: #212529; font-size: 14px;">{{ user.email }}</p>
             {% if user.phone %}
-            <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
-                <strong>Phone:</strong> {{ user.phone }}
-            </p>
+            <p style="margin: 0 0 12px; color: #212529; font-size: 14px;">{{ user.phone }}</p>
+            {% else %}
+            <p style="margin: 0 0 12px;"></p>
             {% endif %}
-            <p style="margin: 0 0 8px; color: #212529; font-size: 14px;">
-                <strong>Status:</strong> {{ registration.status | capitalize }}
-            </p>
+
+            <p style="margin: 0 0 4px; color: #6c757d; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Audition</p>
+            <p style="margin: 0 0 4px; color: #212529; font-size: 14px;"><strong>Show:</strong> {{ show.title }}</p>
+            <p style="margin: 0 0 4px; color: #212529; font-size: 14px;"><strong>Status:</strong> {{ registration.status | capitalize }}</p>
             {% if registration.slot %}
-            <p style="margin: 0; color: #212529; font-size: 14px;">
-                <strong>Slot:</strong>
-                {{ registration.slot.date.strftime('%a %b %d') }}
+            <p style="margin: 0 0 4px; color: #212529; font-size: 14px;">
+                <strong>Time:</strong>
+                {{ registration.slot.date.strftime('%A, %B %d, %Y') }}
                 at {{ registration.slot.start_time.strftime('%I:%M %p') }}
             </p>
             {% endif %}
         </td>
     </tr>
 </table>
+
+<!-- Audition Details -->
+{% if registration.roles_auditioning_for or registration.accept_other_role is not none %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 6px; margin-bottom: 20px;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0 0 12px; color: #6c757d; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Audition Details</p>
+
+            {% if registration.roles_auditioning_for %}
+            <p style="margin: 0 0 4px; color: #6c757d; font-size: 12px;">Roles Auditioning For</p>
+            <p style="margin: 0 0 12px; color: #212529; font-size: 14px;">{{ registration.roles_auditioning_for }}</p>
+            {% endif %}
+
+            {% if registration.accept_other_role is not none %}
+            <p style="margin: 0 0 4px; color: #6c757d; font-size: 12px;">Will Accept Another Role</p>
+            <p style="margin: 0 0 12px; color: #212529; font-size: 14px;">{{ 'Yes' if registration.accept_other_role else 'No' }}</p>
+            {% endif %}
+
+            {% if registration.schedule_conflicts %}
+            <p style="margin: 0 0 4px; color: #6c757d; font-size: 12px;">Schedule Conflicts</p>
+            <p style="margin: 0 0 0; color: #212529; font-size: 14px;">{{ registration.schedule_conflicts }}</p>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Training -->
+{% if user.training %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 6px; margin-bottom: 20px;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0 0 4px; color: #6c757d; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Training</p>
+            <p style="margin: 0; color: #212529; font-size: 14px;">{{ user.training }}</p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Show-Specific Responses -->
+{% if registration.custom_field_data and show.custom_fields %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 6px; margin-bottom: 20px;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0 0 12px; color: #6c757d; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Show-Specific Responses</p>
+            {% for field in show.custom_fields %}
+            {% set val = registration.custom_field_data.get(field.name, '') %}
+            {% if val %}
+            <p style="margin: 0 0 4px; color: #6c757d; font-size: 12px;">{{ field.name }}</p>
+            <p style="margin: 0 0 12px; color: #212529; font-size: 14px;">{{ val }}</p>
+            {% endif %}
+            {% endfor %}
+        </td>
+    </tr>
+</table>
+{% endif %}
 
 <table role="presentation" cellpadding="0" cellspacing="0">
     <tr>
