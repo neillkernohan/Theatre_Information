@@ -34,10 +34,12 @@
         </div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        {% if current_user.role == 'admin' %}
         <a href="{{ url_for('auditions.edit_show', show_id=show.id) }}" class="btn btn-outline-dark">
             <i class="bi bi-pencil"></i> Edit
         </a>
-        <!-- Export dropdown -->
+        {% endif %}
+        <!-- Export dropdown (viewers can export) -->
         <div class="dropdown">
             <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="bi bi-download"></i> Export
@@ -55,6 +57,7 @@
                 </li>
             </ul>
         </div>
+        {% if current_user.role == 'admin' %}
         <!-- Status change dropdown -->
         <div class="dropdown">
             <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
@@ -76,6 +79,7 @@
                 {% endfor %}
             </ul>
         </div>
+        {% endif %}
     </div>
 </div>
 
@@ -122,7 +126,7 @@
 <div class="card shadow-sm mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <strong>Audition {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}</strong>
-        {% if slots_by_date %}
+        {% if slots_by_date and current_user.role == 'admin' %}
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#addSlotsModal">
                 <i class="bi bi-plus-lg"></i> Add More
@@ -325,7 +329,7 @@
     </div>
 </div>
 
-{% if all_regs | length == 0 %}
+{% if all_regs | length == 0 and current_user.role == 'admin' %}
 <div class="text-end">
     <form method="POST" action="{{ url_for('auditions.delete_show', show_id=show.id) }}"
           onsubmit="return confirm('Are you sure you want to delete this show?');">

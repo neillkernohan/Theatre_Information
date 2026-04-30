@@ -22,12 +22,23 @@ def admin_required(f):
     return decorated
 
 
+def viewer_required(f):
+    """Allow both admin and viewer roles (read-only access)."""
+    @wraps(f)
+    @login_required
+    def decorated(*args, **kwargs):
+        if current_user.role not in ('admin', 'viewer'):
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
+
 # ---------------------------------------------------------------------------
 # Dashboard & Show Management
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/dashboard')
-@admin_required
+@viewer_required
 def admin_dashboard():
     shows = Show.query.order_by(Show.created_at.desc()).all()
     return render_template('auditions/admin/dashboard.html', shows=shows)
@@ -109,7 +120,7 @@ def edit_show(show_id):
 
 
 @auditions_bp.route('/admin/shows/<int:show_id>')
-@admin_required
+@viewer_required
 def show_detail(show_id):
     show = Show.query.get_or_404(show_id)
     slots = AuditionSlot.query.filter_by(show_id=show.id).order_by(
@@ -280,7 +291,7 @@ def delete_show(show_id):
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>')
-@admin_required
+@viewer_required
 def registration_detail(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     all_tags = Tag.query.order_by(Tag.name).all()

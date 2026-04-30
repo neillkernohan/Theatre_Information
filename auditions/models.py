@@ -12,7 +12,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.Enum('admin', 'actor', name='user_role'), nullable=False, default='actor')
+    role = db.Column(db.Enum('admin', 'viewer', 'actor', name='user_role'), nullable=False, default='actor')
     first_name = db.Column(db.String(100), nullable=False)
     last_name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20))

@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from functools import wraps
 from auditions import auditions_bp
 from auditions.models import Registration, Show, User
-from auditions.views.admin import admin_required
+from auditions.views.admin import viewer_required
 
 
 # ---------------------------------------------------------------------------
@@ -13,7 +13,7 @@ from auditions.views.admin import admin_required
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/shows/<int:show_id>/export/xlsx')
-@admin_required
+@viewer_required
 def export_xlsx(show_id):
     """Export all registrations for a show as an Excel workbook."""
     try:
@@ -177,7 +177,7 @@ def export_xlsx(show_id):
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/shows/<int:show_id>/export/docx')
-@admin_required
+@viewer_required
 def export_docx(show_id):
     """Export all registrations for a show as a formatted Word document."""
     try:

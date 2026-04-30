@@ -257,6 +257,28 @@ try:
             db.session.commit()
             click.echo(f'Admin user {first_name} {last_name} ({email}) created successfully.')
 
+    @app.cli.command('create-viewer')
+    @click.option('--email', prompt='Viewer email')
+    @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
+    @click.option('--first-name', prompt='First name')
+    @click.option('--last-name', prompt='Last name')
+    def create_viewer(email, password, first_name, last_name):
+        """Create a viewer (read-only admin) user for the auditions module."""
+        with app.app_context():
+            if User.query.filter_by(email=email.lower()).first():
+                click.echo(f'Error: User with email {email} already exists.')
+                return
+            user = User(
+                email=email.lower().strip(),
+                first_name=first_name.strip(),
+                last_name=last_name.strip(),
+                role='viewer'
+            )
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            click.echo(f'Viewer user {first_name} {last_name} ({email}) created successfully.')
+
     @app.cli.command('reset-password')
     @click.option('--email', prompt='User email')
     @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)

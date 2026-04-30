@@ -50,6 +50,7 @@
     </div>
     <!-- Admin actions -->
     <div class="d-flex gap-2 flex-wrap">
+        {% if current_user.role == 'admin' %}
         <!-- Quick status change -->
         <div class="dropdown">
             <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
@@ -75,6 +76,7 @@
             <i class="bi bi-x-circle"></i> Cancel Registration
         </button>
         {% endif %}
+        {% endif %}{# end admin-only actions #}
     </div>
 </div>
 
@@ -86,10 +88,12 @@
         <div class="card section-card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong><i class="bi bi-person"></i> Contact Information</strong>
+                {% if current_user.role == 'admin' %}
                 <a href="{{ url_for('auditions.edit_actor', user_id=reg.user.id, back=reg.id) }}"
                    class="btn btn-sm btn-outline-dark">
                     <i class="bi bi-pencil"></i> Edit Profile
                 </a>
+                {% endif %}
             </div>
             <div class="card-body">
                 <div class="row g-3">
@@ -280,6 +284,7 @@
     <!-- RIGHT COLUMN: Admin actions -->
     <div class="col-lg-5">
 
+        {% if current_user.role == 'admin' %}
         <!-- Notes -->
         <div class="card section-card shadow-sm">
             <div class="card-header"><strong><i class="bi bi-journal-text"></i> Admin Notes</strong></div>
@@ -386,6 +391,8 @@
                 </form>
             </div>
         </div>
+
+        {% endif %}{# end admin-only right column #}
 
         <!-- Registered -->
         <p class="text-muted small text-end mt-2">
