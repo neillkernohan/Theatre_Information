@@ -122,77 +122,83 @@
 <div class="card shadow-sm mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <strong>Audition {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}</strong>
-    </div>
-    <div class="card-body">
         {% if slots_by_date %}
-            {% for date_str, date_slots in slots_by_date.items() %}
-            <div class="date-group">
-                <h5><i class="bi bi-calendar-event"></i> {{ date_str }}</h5>
-                <div class="row">
-                    {% for slot in date_slots %}
-                    <div class="col-md-4 col-lg-3 mb-2">
-                        {% if slot.slot_type == 'reserved' %}
-                        <div class="card slot-card reserved">
-                            <div class="card-body py-2 px-3">
-                                <strong>{{ slot.start_time.strftime('%I:%M %p') }}</strong> – {{ slot.end_time.strftime('%I:%M %p') }}
-                                <br>
-                                <small class="text-purple fw-semibold" style="color:#6f42c1">
-                                    <i class="bi bi-people-fill"></i> {{ slot.label or 'Group Audition' }}
-                                </small>
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="card slot-card {{ 'full' if slot.is_full else '' }}">
-                            <div class="card-body py-2 px-3">
-                                <strong>{{ slot.start_time.strftime('%I:%M %p') }}</strong> - {{ slot.end_time.strftime('%I:%M %p') }}
-                                <br>
-                                <small class="{{ 'text-danger' if slot.is_full else 'text-success' }}">
-                                    {{ slot.current_count }}/{{ slot.capacity }}
-                                    {{ 'FULL' if slot.is_full else 'available' }}
-                                </small>
-                                {% set booked = slot.registrations.filter_by(status='confirmed').all() + slot.registrations.filter_by(status='callback').all() %}
-                                {% if booked %}
-                                <div class="mt-1">
-                                    {% for reg in booked %}
-                                    <a href="{{ url_for('auditions.registration_detail', reg_id=reg.id) }}"
-                                       class="d-block text-truncate text-decoration-none"
-                                       style="font-size:0.78rem; color:#212529;"
-                                       title="{{ reg.user.first_name }} {{ reg.user.last_name }}">
-                                        <i class="bi bi-person-fill"></i>
-                                        {{ reg.user.first_name }} {{ reg.user.last_name }}
-                                    </a>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <!-- Generate slots form -->
-            <div class="text-center py-3">
-                <p class="text-muted">No audition times have been generated yet.</p>
-                <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#generateSlotsModal">
-                    <i class="bi bi-calendar-plus"></i> Generate {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}
-                </button>
-            </div>
-        {% endif %}
-
-        {% if slots_by_date %}
-        <div class="mt-3 d-flex gap-2">
+        <div class="d-flex gap-2">
             <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#addSlotsModal">
-                <i class="bi bi-plus-lg"></i> Add More {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}
+                <i class="bi bi-plus-lg"></i> Add More
             </button>
             <button type="button" class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#generateSlotsModal">
-                <i class="bi bi-arrow-repeat"></i> Regenerate All
+                <i class="bi bi-arrow-repeat"></i> Regenerate
             </button>
         </div>
         {% endif %}
     </div>
+
+    {% if slots_by_date %}
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:130px">Time</th>
+                    <th style="width:80px">Fill</th>
+                    <th>Booked</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for date_str, date_slots in slots_by_date.items() %}
+                <tr class="table-secondary">
+                    <td colspan="3" class="fw-semibold py-2">
+                        <i class="bi bi-calendar-event me-1"></i>{{ date_str }}
+                    </td>
+                </tr>
+                {% for slot in date_slots %}
+                {% if slot.slot_type == 'reserved' %}
+                <tr style="background:#f5f0ff;">
+                    <td class="fw-semibold" style="color:#6f42c1">
+                        {{ slot.start_time.strftime('%I:%M %p') }} – {{ slot.end_time.strftime('%I:%M %p') }}
+                    </td>
+                    <td colspan="2" style="color:#6f42c1">
+                        <i class="bi bi-people-fill"></i> {{ slot.label or 'Group Audition' }}
+                    </td>
+                </tr>
+                {% else %}
+                {% set booked = slot.registrations.filter_by(status='confirmed').all() + slot.registrations.filter_by(status='callback').all() %}
+                <tr>
+                    <td class="fw-semibold">
+                        {{ slot.start_time.strftime('%I:%M %p') }}
+                        <span class="text-muted fw-normal small">– {{ slot.end_time.strftime('%I:%M %p') }}</span>
+                    </td>
+                    <td>
+                        {% if slot.is_full %}
+                        <span class="badge bg-danger">{{ slot.current_count }}/{{ slot.capacity }} Full</span>
+                        {% else %}
+                        <span class="text-success small">{{ slot.current_count }}/{{ slot.capacity }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for reg in booked %}
+                        <a href="{{ url_for('auditions.registration_detail', reg_id=reg.id) }}"
+                           class="text-decoration-none text-dark me-3" style="font-size:0.875rem">
+                            <i class="bi bi-person-fill text-muted"></i>
+                            {{ reg.user.first_name }} {{ reg.user.last_name }}
+                        </a>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-center py-4">
+        <p class="text-muted mb-3">No audition times have been generated yet.</p>
+        <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#generateSlotsModal">
+            <i class="bi bi-calendar-plus"></i> Generate {{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}
+        </button>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Registrations Table -->
@@ -253,11 +259,10 @@
                 <thead class="table-dark">
                     <tr>
                         <th>Name</th>
-                        <th>Email</th>
                         <th>Status</th>
-                        <th>Time Slot</th>
+                        <th>Time</th>
+                        <th>Roles</th>
                         <th>Tags</th>
-                        <th>Notes</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -267,10 +272,10 @@
                         <td>
                             <strong>{{ reg.user.first_name }} {{ reg.user.last_name }}</strong>
                             {% if reg.user.pronouns %}
-                            <small class="text-muted">({{ reg.user.pronouns }})</small>
+                            <small class="text-muted d-block">{{ reg.user.pronouns }}</small>
                             {% endif %}
+                            <small class="text-muted d-block">{{ reg.user.email }}</small>
                         </td>
-                        <td>{{ reg.user.email }}</td>
                         <td>
                             {% if reg.status == 'confirmed' %}
                             <span class="badge bg-success">Confirmed</span>
@@ -281,22 +286,23 @@
                             {% else %}
                             <span class="badge bg-secondary">Cancelled</span>
                             {% endif %}
+                            {% if reg.notes %}
+                            <i class="bi bi-journal-text text-muted ms-1" title="{{ reg.notes | truncate(60) }}"></i>
+                            {% endif %}
                         </td>
-                        <td>
+                        <td class="text-nowrap">
                             {% if reg.slot %}
                             {{ reg.slot.date.strftime('%b %d') }}<br>
-                            <small>{{ reg.slot.start_time.strftime('%I:%M %p') }}</small>
-                            {% else %}—{% endif %}
+                            <small class="text-muted">{{ reg.slot.start_time.strftime('%I:%M %p') }}</small>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td>
+                            <span class="small">{{ reg.roles_auditioning_for or '—' }}</span>
                         </td>
                         <td>
                             {% for tag in reg.tags %}
                             <span class="badge bg-dark" style="font-size:0.72rem">{{ tag.name }}</span>
                             {% endfor %}
-                        </td>
-                        <td>
-                            {% if reg.notes %}
-                            <i class="bi bi-journal-text text-muted" title="{{ reg.notes | truncate(60) }}"></i>
-                            {% endif %}
                         </td>
                         <td onclick="event.stopPropagation()">
                             <a href="{{ url_for('auditions.registration_detail', reg_id=reg.id) }}"
