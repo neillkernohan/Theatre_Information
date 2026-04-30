@@ -51,7 +51,7 @@ def actor_register():
 @auditions_bp.route('/login', methods=['GET', 'POST'])
 def actor_login():
     if current_user.is_authenticated:
-        if current_user.role == 'admin':
+        if current_user.role in ('admin', 'viewer'):
             return redirect(url_for('auditions.admin_dashboard'))
         return redirect(url_for('auditions.actor_dashboard'))
 
@@ -61,7 +61,7 @@ def actor_login():
         if user and user.check_password(form.password.data):
             login_user(user)
             next_page = request.args.get('next')
-            if user.role == 'admin':
+            if user.role in ('admin', 'viewer'):
                 return redirect(next_page or url_for('auditions.admin_dashboard'))
             return redirect(next_page or url_for('auditions.actor_dashboard'))
         flash('Invalid email or password.', 'danger')
@@ -72,14 +72,14 @@ def actor_login():
 @auditions_bp.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if current_user.is_authenticated:
-        if current_user.role == 'admin':
+        if current_user.role in ('admin', 'viewer'):
             return redirect(url_for('auditions.admin_dashboard'))
         return redirect(url_for('auditions.actor_dashboard'))
 
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data.lower().strip(), role='admin').first()
-        if user and user.check_password(form.password.data):
+        user = User.query.filter_by(email=form.email.data.lower().strip()).first()
+        if user and user.check_password(form.password.data) and user.role in ('admin', 'viewer'):
             login_user(user)
             next_page = request.args.get('next')
             return redirect(next_page or url_for('auditions.admin_dashboard'))
@@ -200,7 +200,7 @@ def google_callback():
         return redirect(url_for('auditions.complete_profile'))
 
     next_page = request.args.get('next')
-    if user.role == 'admin':
+    if user.role in ('admin', 'viewer'):
         return redirect(next_page or url_for('auditions.admin_dashboard'))
     return redirect(next_page or url_for('auditions.actor_dashboard'))
 
