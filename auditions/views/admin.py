@@ -125,6 +125,8 @@ def show_detail(show_id):
 
     if status_filter:
         reg_query = reg_query.filter(Registration.status == status_filter)
+    else:
+        reg_query = reg_query.filter(Registration.status != 'cancelled')
 
     if tag_filter:
         reg_query = reg_query.filter(Registration.tags.any(Tag.name == tag_filter))
