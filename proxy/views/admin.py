@@ -4,8 +4,19 @@ from proxy import proxy_bp
 from proxy.models import db, ProxyMeeting, ProxySubmission
 from proxy.forms import MeetingForm
 from auth.decorators import admin_required
+import mysql.connector
+import os
 import csv
 import io
+
+
+def _patron_db():
+    return mysql.connector.connect(
+        host=os.getenv('MYSQL_HOST'),
+        user=os.getenv('MYSQL_USER'),
+        password=os.getenv('MYSQL_PASSWORD'),
+        database=os.getenv('MYSQL_DATABASE'),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -101,5 +112,22 @@ def export_proxies(meeting_id):
     response.headers['Content-Disposition'] = f'attachment; filename=proxies_{safe_title}.csv'
     response.headers['Content-Type'] = 'text/csv'
     return response
+
+
+# ---------------------------------------------------------------------------
+# Member list (read-only — synced from Arts People)
+# ---------------------------------------------------------------------------
+
+@proxy_bp.route('/admin/members')
+@admin_required
+def members_list():
+    conn = _patron_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT First_name, Last_name, Email FROM Patrons WHERE is_member = 1 ORDER BY Last_name, First_name"
+    )
+    members = cursor.fetchall()
+    conn.close()
+    return render_template('proxy/admin/members.html', members=members)
 
 
