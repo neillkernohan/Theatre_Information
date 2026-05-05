@@ -190,7 +190,7 @@ try:
     from auth.decorators import theatreaurora_required
     from auditions import auditions_bp
     from proxy import proxy_bp
-    from proxy.models import ProxyMember, ProxyMeeting, ProxySubmission  # noqa: F401 — ensure tables are registered
+    from proxy.models import ProxyMeeting, ProxySubmission  # noqa: F401 — ensure tables are registered
 
     # SQLAlchemy config for auditions database
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('AUDITIONS_DB_URI')

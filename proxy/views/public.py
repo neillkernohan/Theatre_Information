@@ -1,17 +1,65 @@
-from flask import render_template, redirect, url_for, flash, abort
+from flask import render_template, redirect, url_for, flash, abort, current_app
 from flask_login import login_required, current_user
 from proxy import proxy_bp
-from proxy.models import db, ProxyMeeting, ProxyMember, ProxySubmission
+from proxy.models import db, ProxyMeeting, ProxySubmission
 from proxy.forms import ProxyForm
 from proxy.email import send_proxy_notification
 from datetime import datetime
+import mysql.connector
+import os
 
 
-def get_current_member():
-    """Return the ProxyMember record for the logged-in user, or None."""
-    return ProxyMember.query.filter_by(
-        email=current_user.email.lower(), is_active=True
-    ).first()
+def _patron_db():
+    """Open a connection to the Theatre_Information database."""
+    return mysql.connector.connect(
+        host=os.getenv('MYSQL_HOST'),
+        user=os.getenv('MYSQL_USER'),
+        password=os.getenv('MYSQL_PASSWORD'),
+        database=os.getenv('MYSQL_DATABASE'),
+    )
+
+
+def is_current_user_member():
+    """Return True if the logged-in user's email matches an active member in Patrons."""
+    try:
+        conn = _patron_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT is_member FROM Patrons WHERE LOWER(Email) = %s AND is_member = 1 LIMIT 1",
+            (current_user.email.lower(),)
+        )
+        result = cursor.fetchone()
+        conn.close()
+        return result is not None
+    except Exception as e:
+        current_app.logger.error(f'Member lookup failed: {e}')
+        return False
+
+
+def get_voting_members(exclude_email=None):
+    """Return list of (full_name,) for all members eligible to hold a proxy."""
+    try:
+        conn = _patron_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT First_name, Last_name FROM Patrons WHERE is_member = 1 ORDER BY Last_name, First_name"
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        members = []
+        for first, last in rows:
+            full = f"{first} {last}"
+            if exclude_email and f"{first} {last}".lower() == exclude_email.lower():
+                continue
+            members.append(full)
+        return members
+    except Exception as e:
+        current_app.logger.error(f'Member list lookup failed: {e}')
+        return []
+
+
+def current_user_full_name():
+    return f"{current_user.first_name} {current_user.last_name}"
 
 
 # ---------------------------------------------------------------------------
@@ -21,7 +69,7 @@ def get_current_member():
 @proxy_bp.route('/')
 @login_required
 def index():
-    member = get_current_member()
+    is_member = is_current_user_member()
     open_meetings = ProxyMeeting.query.filter_by(status='open').order_by(ProxyMeeting.meeting_date).all()
     past_meetings = (ProxyMeeting.query
                      .filter(ProxyMeeting.status != 'open')
@@ -29,15 +77,13 @@ def index():
                      .limit(5)
                      .all())
 
-    my_active_proxy_ids = set()
-    if member:
-        my_active_proxy_ids = {
-            s.meeting_id
-            for s in ProxySubmission.query.filter_by(grantor_user_id=current_user.id, revoked=False).all()
-        }
+    my_active_proxy_ids = {
+        s.meeting_id
+        for s in ProxySubmission.query.filter_by(grantor_user_id=current_user.id, revoked=False).all()
+    }
 
     return render_template('proxy/public/index.html',
-                           member=member,
+                           is_member=is_member,
                            open_meetings=open_meetings,
                            past_meetings=past_meetings,
                            my_active_proxy_ids=my_active_proxy_ids)
@@ -51,10 +97,9 @@ def index():
 @login_required
 def submit_proxy(meeting_id):
     meeting = ProxyMeeting.query.get_or_404(meeting_id)
-    member = get_current_member()
 
-    if not member:
-        flash('You are not registered as a Theatre Aurora member. Contact the secretary to be added.', 'warning')
+    if not is_current_user_member():
+        flash('Your account is not registered as a Theatre Aurora member. Contact the secretary.', 'warning')
         return redirect(url_for('proxy.index'))
 
     if not meeting.is_open:
@@ -66,24 +111,21 @@ def submit_proxy(meeting_id):
     ).first()
 
     form = ProxyForm()
-    # All active members except the current user (proxy holder must be a different member)
-    holders = (ProxyMember.query
-               .filter(ProxyMember.is_active == True, ProxyMember.id != member.id)
-               .order_by(ProxyMember.last_name, ProxyMember.first_name)
-               .all())
-    form.holder_member_id.choices = [(h.id, h.full_name) for h in holders]
+    # All members except the current user
+    my_name = current_user_full_name()
+    holders = get_voting_members()
+    holders = [h for h in holders if h.lower() != my_name.lower()]
+    form.holder_name.choices = [(h, h) for h in holders]
 
     if form.validate_on_submit():
         if existing:
             existing.revoked = True
             existing.revoked_at = datetime.utcnow()
 
-        holder = ProxyMember.query.get(form.holder_member_id.data)
         submission = ProxySubmission(
             meeting_id=meeting_id,
             grantor_user_id=current_user.id,
-            holder_member_id=holder.id,
-            holder_name=holder.full_name,
+            holder_name=form.holder_name.data,
             signature_name=form.signature_name.data.strip(),
         )
         db.session.add(submission)
@@ -96,7 +138,8 @@ def submit_proxy(meeting_id):
         return redirect(url_for('proxy.my_proxies'))
 
     return render_template('proxy/public/proxy_form.html',
-                           form=form, meeting=meeting, member=member, existing=existing)
+                           form=form, meeting=meeting, existing=existing,
+                           my_name=my_name)
 
 
 # ---------------------------------------------------------------------------
