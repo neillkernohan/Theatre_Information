@@ -2,8 +2,8 @@ from flask import render_template, redirect, url_for, flash, request, make_respo
 from flask_login import login_required, current_user
 from functools import wraps
 from proxy import proxy_bp
-from proxy.models import db, ProxyMeeting, ProxyMember, ProxySubmission
-from proxy.forms import MeetingForm, MemberForm
+from proxy.models import db, ProxyMeeting, ProxySubmission
+from proxy.forms import MeetingForm
 import csv
 import io
 
@@ -26,8 +26,7 @@ def admin_required(f):
 @admin_required
 def admin_dashboard():
     meetings = ProxyMeeting.query.order_by(ProxyMeeting.meeting_date.desc()).all()
-    member_count = ProxyMember.query.filter_by(is_active=True).count()
-    return render_template('proxy/admin/dashboard.html', meetings=meetings, member_count=member_count)
+    return render_template('proxy/admin/dashboard.html', meetings=meetings)
 
 
 # ---------------------------------------------------------------------------
@@ -114,57 +113,3 @@ def export_proxies(meeting_id):
     return response
 
 
-# ---------------------------------------------------------------------------
-# Member management
-# ---------------------------------------------------------------------------
-
-@proxy_bp.route('/admin/members')
-@admin_required
-def members_list():
-    members = ProxyMember.query.order_by(ProxyMember.last_name, ProxyMember.first_name).all()
-    return render_template('proxy/admin/members.html', members=members)
-
-
-@proxy_bp.route('/admin/members/new', methods=['GET', 'POST'])
-@admin_required
-def add_member():
-    form = MemberForm()
-    if form.validate_on_submit():
-        existing = ProxyMember.query.filter_by(email=form.email.data.strip().lower()).first()
-        if existing:
-            flash('A member with that email already exists.', 'danger')
-        else:
-            member = ProxyMember(
-                first_name=form.first_name.data.strip(),
-                last_name=form.last_name.data.strip(),
-                email=form.email.data.strip().lower(),
-                is_active=form.is_active.data,
-            )
-            db.session.add(member)
-            db.session.commit()
-            flash(f'{member.full_name} added to member list.', 'success')
-            return redirect(url_for('proxy.members_list'))
-    return render_template('proxy/admin/member_form.html', form=form, member=None)
-
-
-@proxy_bp.route('/admin/members/<int:member_id>/edit', methods=['GET', 'POST'])
-@admin_required
-def edit_member(member_id):
-    member = ProxyMember.query.get_or_404(member_id)
-    form = MemberForm(obj=member)
-    if form.validate_on_submit():
-        conflict = ProxyMember.query.filter(
-            ProxyMember.email == form.email.data.strip().lower(),
-            ProxyMember.id != member_id
-        ).first()
-        if conflict:
-            flash('Another member already has that email.', 'danger')
-        else:
-            member.first_name = form.first_name.data.strip()
-            member.last_name = form.last_name.data.strip()
-            member.email = form.email.data.strip().lower()
-            member.is_active = form.is_active.data
-            db.session.commit()
-            flash('Member updated.', 'success')
-            return redirect(url_for('proxy.members_list'))
-    return render_template('proxy/admin/member_form.html', form=form, member=member)

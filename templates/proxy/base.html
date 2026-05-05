@@ -28,12 +28,8 @@
                         <a class="nav-link" href="{{ url_for('proxy.index') }}">Meetings</a>
                     </li>
                     {% if current_user.is_authenticated and current_user.role == 'admin' %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Admin</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('proxy.admin_dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('proxy.members_list') }}"><i class="bi bi-people"></i> Members</a></li>
-                        </ul>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('proxy.admin_dashboard') }}">Admin</a>
                     </li>
                     {% endif %}
                 </ul>
