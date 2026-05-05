@@ -1,0 +1,72 @@
+{% extends "proxy/base.html" %}
+
+{% block title %}Proxy Voting{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">Proxy Voting</h2>
+<p class="text-muted mb-4">Submit a proxy for an upcoming Theatre Aurora meeting.</p>
+
+{% if not member %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    Your account (<strong>{{ current_user.email }}</strong>) is not registered as a Theatre Aurora member.
+    Contact the secretary to be added to the member list before you can submit a proxy.
+</div>
+{% endif %}
+
+{% if open_meetings %}
+<h5>Open for Proxy Submissions</h5>
+<div class="row g-3 mb-5">
+    {% for meeting in open_meetings %}
+    <div class="col-md-6">
+        <div class="card h-100 border-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="card-title mb-1">{{ meeting.title }}</h5>
+                    {% if meeting.id in my_active_proxy_ids %}
+                    <span class="badge bg-success">Proxy Submitted</span>
+                    {% endif %}
+                </div>
+                <p class="text-muted small mb-1">
+                    <i class="bi bi-calendar-event"></i>
+                    {{ meeting.meeting_date.strftime('%A, %B %-d, %Y at %-I:%M %p') }}
+                </p>
+                <p class="text-muted small mb-3">
+                    <i class="bi bi-clock"></i>
+                    Deadline: {{ meeting.proxy_deadline.strftime('%B %-d, %Y at %-I:%M %p') }}
+                </p>
+                {% if member %}
+                    {% if meeting.id in my_active_proxy_ids %}
+                    <a href="{{ url_for('proxy.submit_proxy', meeting_id=meeting.id) }}" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-arrow-repeat"></i> Change Proxy
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('proxy.submit_proxy', meeting_id=meeting.id) }}" class="btn btn-sm btn-dark">
+                        <i class="bi bi-person-check"></i> Submit Proxy
+                    </a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-4 mb-4">
+    <i class="bi bi-calendar-x" style="font-size: 3rem; color: #6c757d;"></i>
+    <h5 class="mt-3 text-muted">No meetings currently open for proxy submissions</h5>
+</div>
+{% endif %}
+
+{% if past_meetings %}
+<h6 class="text-muted">Past Meetings</h6>
+<ul class="list-group list-group-flush">
+    {% for meeting in past_meetings %}
+    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+        <span class="text-muted">{{ meeting.title }}</span>
+        <small class="text-muted">{{ meeting.meeting_date.strftime('%B %-d, %Y') }}</small>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

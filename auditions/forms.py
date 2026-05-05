@@ -186,3 +186,5 @@ class ShowForm(FlaskForm):
 class GenerateSlotsForm(FlaskForm):
     """Form for adding audition dates and generating slots."""
     submit = SubmitField('Generate Slots')
+
+

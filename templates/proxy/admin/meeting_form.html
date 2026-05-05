@@ -1,0 +1,71 @@
+{% extends "proxy/base.html" %}
+
+{% block title %}{{ 'Edit Meeting' if meeting else 'New Meeting' }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('proxy.admin_dashboard') }}">Admin</a></li>
+        {% if meeting %}
+        <li class="breadcrumb-item"><a href="{{ url_for('proxy.meeting_detail', meeting_id=meeting.id) }}">{{ meeting.title }}</a></li>
+        <li class="breadcrumb-item active">Edit</li>
+        {% else %}
+        <li class="breadcrumb-item active">New Meeting</li>
+        {% endif %}
+    </ol>
+</nav>
+
+<h2>{{ 'Edit Meeting' if meeting else 'New Meeting' }}</h2>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.title.label(class='form-label fw-semibold') }}
+                {{ form.title(class='form-control' + (' is-invalid' if form.title.errors else ''), placeholder='e.g. Annual General Meeting 2025') }}
+                {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.meeting_date.label(class='form-label fw-semibold') }}
+                    {{ form.meeting_date(class='form-control' + (' is-invalid' if form.meeting_date.errors else '')) }}
+                    {% for e in form.meeting_date.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.proxy_deadline.label(class='form-label fw-semibold') }}
+                    {{ form.proxy_deadline(class='form-control' + (' is-invalid' if form.proxy_deadline.errors else '')) }}
+                    <div class="form-text">Members cannot submit proxies after this time.</div>
+                    {% for e in form.proxy_deadline.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                {{ form.description.label(class='form-label fw-semibold') }}
+                {{ form.description(class='form-control', rows=6, placeholder='Paste the Notice of Meeting text here. Members will see this when submitting their proxy.') }}
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.notify_email.label(class='form-label fw-semibold') }}
+                    {{ form.notify_email(class='form-control' + (' is-invalid' if form.notify_email.errors else ''), placeholder='secretary@theatreaurora.com') }}
+                    <div class="form-text">An email is sent here each time a proxy is submitted.</div>
+                    {% for e in form.notify_email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.status.label(class='form-label fw-semibold') }}
+                    {{ form.status(class='form-select') }}
+                    <div class="form-text">Set to <strong>Open</strong> to allow members to submit proxies.</div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                {{ form.submit(class='btn btn-dark') }}
+                <a href="{{ url_for('proxy.meeting_detail', meeting_id=meeting.id) if meeting else url_for('proxy.admin_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

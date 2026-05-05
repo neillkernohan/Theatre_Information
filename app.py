@@ -187,6 +187,8 @@ try:
     from flask_wtf.csrf import CSRFProtect, CSRFError
     from auditions.models import db, User
     from auditions import auditions_bp
+    from proxy import proxy_bp
+    from proxy.models import ProxyMember, ProxyMeeting, ProxySubmission  # noqa: F401 — ensure tables are registered
 
     # SQLAlchemy config for auditions database
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('AUDITIONS_DB_URI')
@@ -224,8 +226,9 @@ try:
         from flask import jsonify
         return jsonify({'error': 'CSRF validation failed', 'detail': e.description}), 400
 
-    # Register auditions blueprint
+    # Register blueprints
     app.register_blueprint(auditions_bp)
+    app.register_blueprint(proxy_bp)
 
     # CLI commands for auditions
     @app.cli.command('init-auditions-db')

@@ -1,0 +1,122 @@
+{% extends "proxy/base.html" %}
+
+{% block title %}{{ meeting.title }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('proxy.admin_dashboard') }}">Admin</a></li>
+        <li class="breadcrumb-item active">{{ meeting.title }}</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h2>{{ meeting.title }}</h2>
+        <p class="text-muted mb-1">
+            <i class="bi bi-calendar-event"></i>
+            {{ meeting.meeting_date.strftime('%A, %B %-d, %Y at %-I:%M %p') }}
+        </p>
+        <p class="text-muted mb-0">
+            <i class="bi bi-clock"></i>
+            Proxy deadline: {{ meeting.proxy_deadline.strftime('%A, %B %-d, %Y at %-I:%M %p') }}
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('proxy.export_proxies', meeting_id=meeting.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-download"></i> Export CSV
+        </a>
+        <a href="{{ url_for('proxy.edit_meeting', meeting_id=meeting.id) }}" class="btn btn-outline-dark">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+    </div>
+</div>
+
+{% if meeting.description %}
+<div class="card mb-4 border-0 bg-light">
+    <div class="card-body">
+        <h6 class="fw-semibold text-muted mb-2">Notice of Meeting</h6>
+        <div style="white-space: pre-wrap;">{{ meeting.description }}</div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mb-4 g-3">
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h3 class="mb-0">{{ active_count }}</h3>
+                <small class="text-muted">Active Proxies</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h3 class="mb-0">{{ submissions | length }}</h3>
+                <small class="text-muted">Total Submitted</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                {% if meeting.status == 'open' %}
+                <span class="badge bg-success fs-6">Open</span>
+                {% elif meeting.status == 'draft' %}
+                <span class="badge bg-warning text-dark fs-6">Draft</span>
+                {% else %}
+                <span class="badge bg-secondary fs-6">Closed</span>
+                {% endif %}
+                <br><small class="text-muted">Status</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5>Proxy Submissions</h5>
+
+{% if submissions %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Member (Grantor)</th>
+                <th>Proxy Holder</th>
+                <th>Submitted</th>
+                <th>Signature</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in submissions %}
+            <tr class="{{ 'text-muted' if s.revoked }}">
+                <td>
+                    <strong>{{ s.grantor.first_name }} {{ s.grantor.last_name }}</strong>
+                    <br><small class="text-muted">{{ s.grantor.email }}</small>
+                </td>
+                <td>{{ s.holder_name }}</td>
+                <td>{{ s.submitted_at.strftime('%b %-d, %Y %-I:%M %p') }}</td>
+                <td><em>{{ s.signature_name }}</em></td>
+                <td>
+                    {% if s.revoked %}
+                    <span class="badge bg-secondary">Revoked</span>
+                    {% if s.revoked_at %}
+                    <br><small class="text-muted">{{ s.revoked_at.strftime('%b %-d') }}</small>
+                    {% endif %}
+                    {% else %}
+                    <span class="badge bg-success">Active</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
+    <h5 class="mt-3 text-muted">No proxies submitted yet</h5>
+</div>
+{% endif %}
+{% endblock %}

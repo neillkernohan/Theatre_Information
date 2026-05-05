@@ -1,0 +1,98 @@
+{% extends "proxy/base.html" %}
+
+{% block title %}Submit Proxy — {{ meeting.title }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('proxy.index') }}">Meetings</a></li>
+        <li class="breadcrumb-item active">Submit Proxy</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+
+        <h2 class="mb-1">Proxy Vote Declaration</h2>
+        <p class="text-muted mb-4">{{ meeting.title }} &mdash; {{ meeting.meeting_date.strftime('%B %-d, %Y') }}</p>
+
+        {% if existing %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            You already have a proxy submitted for this meeting (holder: <strong>{{ existing.holder_name }}</strong>).
+            Submitting a new one will automatically revoke it.
+        </div>
+        {% endif %}
+
+        {% if meeting.description %}
+        <div class="card mb-4 border-0 bg-light">
+            <div class="card-body">
+                <h6 class="fw-semibold text-muted mb-2">Notice of Meeting</h6>
+                <div style="white-space: pre-wrap; font-size: 0.9rem;">{{ meeting.description }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card mb-4 border-0 bg-light">
+            <div class="card-body">
+                <p class="mb-0">
+                    I, <strong>{{ current_user.first_name }} {{ current_user.last_name }}</strong>
+                    of <strong>{{ member.email }}</strong>, a member in good standing with Theatre Aurora
+                    hereby appoint:
+                </p>
+            </div>
+        </div>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-4">
+                {{ form.holder_member_id.label(class='form-label fw-semibold') }}
+                {{ form.holder_member_id(class='form-select' + (' is-invalid' if form.holder_member_id.errors else '')) }}
+                <div class="form-text">The person must be a member of Theatre Aurora.</div>
+                {% for e in form.holder_member_id.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="card mb-4 border-0 bg-light">
+                <div class="card-body">
+                    <p class="mb-0 small">
+                        …a member in good standing with Theatre Aurora, as the proxy holder for the
+                        undersigned to attend, act and vote on my behalf at the meeting for Theatre Aurora
+                        on <strong>{{ meeting.meeting_date.strftime('%B %-d, %Y') }}</strong> and any
+                        adjournment of the meeting.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mb-4 p-3 border rounded">
+                <div class="form-check">
+                    {{ form.declaration(class='form-check-input' + (' is-invalid' if form.declaration.errors else '')) }}
+                    {{ form.declaration.label(class='form-check-label') }}
+                    {% for e in form.declaration.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+                </div>
+            </div>
+
+            <div class="mb-4">
+                {{ form.signature_name.label(class='form-label fw-semibold') }}
+                {{ form.signature_name(class='form-control' + (' is-invalid' if form.signature_name.errors else ''), placeholder='Type your full name') }}
+                <div class="form-text">
+                    Type your full name as your signature. Today's date ({{ '' }}) will be recorded automatically.
+                </div>
+                {% for e in form.signature_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="d-flex gap-2">
+                {{ form.submit(class='btn btn-dark') }}
+                <a href="{{ url_for('proxy.index') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+
+        <p class="text-muted small mt-4">
+            This proxy can also be sent via email to
+            <a href="mailto:secretary@theatreaurora.com">secretary@theatreaurora.com</a>
+            on or before {{ meeting.proxy_deadline.strftime('%B %-d, %Y at %-I:%M %p') }}.
+        </p>
+
+    </div>
+</div>
+{% endblock %}

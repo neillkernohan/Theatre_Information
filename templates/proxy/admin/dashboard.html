@@ -1,0 +1,92 @@
+{% extends "proxy/base.html" %}
+
+{% block title %}Proxy Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Proxy Voting — Admin</h2>
+    <a href="{{ url_for('proxy.create_meeting') }}" class="btn btn-dark">
+        <i class="bi bi-plus-lg"></i> New Meeting
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="mb-0">{{ member_count }}</h3>
+                <small class="text-muted">Active Members</small>
+                <div class="mt-2">
+                    <a href="{{ url_for('proxy.members_list') }}" class="btn btn-sm btn-outline-secondary">Manage</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="mb-0">{{ meetings | selectattr('status', 'equalto', 'open') | list | length }}</h3>
+                <small class="text-muted">Open Meetings</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="mb-0">{{ meetings | length }}</h3>
+                <small class="text-muted">Total Meetings</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4>Meetings</h4>
+
+{% if meetings %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Meeting</th>
+                <th>Date</th>
+                <th>Proxy Deadline</th>
+                <th>Status</th>
+                <th>Active Proxies</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for meeting in meetings %}
+            <tr>
+                <td><strong>{{ meeting.title }}</strong></td>
+                <td>{{ meeting.meeting_date.strftime('%b %-d, %Y') }}</td>
+                <td>{{ meeting.proxy_deadline.strftime('%b %-d, %Y %-I:%M %p') }}</td>
+                <td>
+                    {% if meeting.status == 'open' %}
+                    <span class="badge bg-success">Open</span>
+                    {% elif meeting.status == 'draft' %}
+                    <span class="badge bg-warning text-dark">Draft</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Closed</span>
+                    {% endif %}
+                </td>
+                <td>{{ meeting.submissions.filter_by(revoked=False).count() }}</td>
+                <td>
+                    <a href="{{ url_for('proxy.meeting_detail', meeting_id=meeting.id) }}" class="btn btn-sm btn-outline-dark">View</a>
+                    <a href="{{ url_for('proxy.edit_meeting', meeting_id=meeting.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-people" style="font-size: 3rem; color: #6c757d;"></i>
+    <h4 class="mt-3 text-muted">No meetings yet</h4>
+    <a href="{{ url_for('proxy.create_meeting') }}" class="btn btn-dark mt-2">
+        <i class="bi bi-plus-lg"></i> New Meeting
+    </a>
+</div>
+{% endif %}
+{% endblock %}
