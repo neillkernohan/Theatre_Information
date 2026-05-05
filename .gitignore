@@ -29,8 +29,9 @@ error.txt
 *.sh
 !send_reminders.sh
 
-# sql fils
+# sql files (except versioned migrations)
 *.sql
+!migrations/*.sql
 
 # Python cache
 __pycache__/

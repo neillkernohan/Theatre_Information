@@ -1,4 +1,4 @@
-from auditions.models import db
+from auth.models import db
 from datetime import datetime
 
 

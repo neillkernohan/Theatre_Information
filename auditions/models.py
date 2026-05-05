@@ -1,50 +1,8 @@
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+# db and User now live in auth.models — re-exported here so that existing
+# imports of the form "from auditions.models import db" continue to work.
+from auth.models import db, User  # noqa: F401
+
 from datetime import datetime
-
-db = SQLAlchemy()
-
-
-class User(UserMixin, db.Model):
-    __tablename__ = 'users'
-
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.Enum('admin', 'viewer', 'actor', name='user_role'), nullable=False, default='actor')
-    first_name = db.Column(db.String(100), nullable=False)
-    last_name = db.Column(db.String(100), nullable=False)
-    phone = db.Column(db.String(20))
-    address = db.Column(db.String(255))
-    city = db.Column(db.String(100))
-    province = db.Column(db.String(100))
-    postal_code = db.Column(db.String(20))
-    pronouns = db.Column(db.String(50))
-    contact_email_ok = db.Column(db.Boolean, default=True)
-    roles_auditioning_for = db.Column(db.String(500))
-    accept_other_role = db.Column(db.Boolean, default=True)
-    comfortable_performing = db.Column(db.Boolean, default=True)
-    equity_or_actra = db.Column(db.Boolean, default=False)
-    schedule_conflicts = db.Column(db.Text)
-    training = db.Column(db.Text)
-    acting_experience = db.Column(db.JSON)  # List of {show, role, theatre_group}
-    volunteer_interests = db.Column(db.JSON)  # List of role strings
-    past_member = db.Column(db.Boolean)
-    hear_about_us = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    registrations = db.relationship('Registration', backref='user', lazy='dynamic')
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-    def __repr__(self):
-        return f'<User {self.first_name} {self.last_name} ({self.role})>'
-
 
 class Show(db.Model):
     __tablename__ = 'shows'

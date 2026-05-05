@@ -1,10 +1,9 @@
 from flask import render_template, redirect, url_for, flash, request
 import json
-import secrets
-from flask_login import login_user, logout_user, login_required, current_user
+from flask_login import login_required, current_user
 from auditions import auditions_bp
 from auditions.models import db, User, Registration, Show, AuditionSlot
-from auditions.forms import ActorRegistrationForm, ActorProfileForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
+from auditions.forms import ActorRegistrationForm, ActorProfileForm, ForgotPasswordForm, ResetPasswordForm
 
 
 @auditions_bp.route('/register', methods=['GET', 'POST'])
@@ -41,51 +40,12 @@ def actor_register():
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
+        from flask_login import login_user
         login_user(user)
         flash('Account created successfully! Welcome to Theatre Aurora Auditions.', 'success')
         return redirect(url_for('auditions.actor_dashboard'))
 
     return render_template('auditions/register.html', form=form)
-
-
-@auditions_bp.route('/login', methods=['GET', 'POST'])
-def actor_login():
-    if current_user.is_authenticated:
-        if current_user.role in ('admin', 'viewer'):
-            return redirect(url_for('auditions.admin_dashboard'))
-        return redirect(url_for('auditions.actor_dashboard'))
-
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data.lower().strip()).first()
-        if user and user.check_password(form.password.data):
-            login_user(user)
-            next_page = request.args.get('next')
-            if user.role in ('admin', 'viewer'):
-                return redirect(next_page or url_for('auditions.admin_dashboard'))
-            return redirect(next_page or url_for('auditions.actor_dashboard'))
-        flash('Invalid email or password.', 'danger')
-
-    return render_template('auditions/login.html', form=form)
-
-
-@auditions_bp.route('/admin/login', methods=['GET', 'POST'])
-def admin_login():
-    if current_user.is_authenticated:
-        if current_user.role in ('admin', 'viewer'):
-            return redirect(url_for('auditions.admin_dashboard'))
-        return redirect(url_for('auditions.actor_dashboard'))
-
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data.lower().strip()).first()
-        if user and user.check_password(form.password.data) and user.role in ('admin', 'viewer'):
-            login_user(user)
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('auditions.admin_dashboard'))
-        flash('Invalid admin credentials.', 'danger')
-
-    return render_template('auditions/admin/login.html', form=form)
 
 
 @auditions_bp.route('/forgot-password', methods=['GET', 'POST'])
@@ -107,7 +67,7 @@ def forgot_password():
             reset_url = url_for('auditions.reset_password', token=token, _external=True)
             send_password_reset_email(user, reset_url)
         flash('If that email is registered, a reset link has been sent.', 'info')
-        return redirect(url_for('auditions.actor_login'))
+        return redirect(url_for('auth.login'))
 
     return render_template('auditions/forgot_password.html', form=form)
 
@@ -140,69 +100,9 @@ def reset_password(token):
         user.set_password(form.password.data)
         db.session.commit()
         flash('Your password has been reset. Please log in.', 'success')
-        return redirect(url_for('auditions.actor_login'))
+        return redirect(url_for('auth.login'))
 
     return render_template('auditions/reset_password.html', form=form)
-
-
-@auditions_bp.route('/google/login')
-def google_login():
-    # Lazy import to avoid circular dependency — oauth is in app.py
-    from app import oauth
-    redirect_uri = url_for('auditions.google_callback', _external=True)
-    return oauth.google.authorize_redirect(redirect_uri)
-
-
-@auditions_bp.route('/google/callback')
-def google_callback():
-    from app import oauth
-    try:
-        token = oauth.google.authorize_access_token()
-    except Exception:
-        flash('Google login failed. Please try again.', 'danger')
-        return redirect(url_for('auditions.actor_login'))
-
-    userinfo = token.get('userinfo') or {}
-    email = userinfo.get('email', '').lower().strip()
-    first_name = userinfo.get('given_name', '') or ''
-    last_name = userinfo.get('family_name', '') or ''
-
-    if not email:
-        flash('Could not retrieve your email from Google. Please try again.', 'danger')
-        return redirect(url_for('auditions.actor_login'))
-
-    if not userinfo.get('email_verified'):
-        flash('Your Google account email is not verified.', 'danger')
-        return redirect(url_for('auditions.actor_login'))
-
-    user = User.query.filter_by(email=email).first()
-
-    is_new = False
-    if not user:
-        # Create a new actor account from the Google profile
-        user = User(
-            email=email,
-            first_name=first_name or 'Unknown',
-            last_name=last_name,
-            role='actor',
-            contact_email_ok=True
-        )
-        user.set_password(secrets.token_hex(32))  # random — Google auth only
-        db.session.add(user)
-        db.session.commit()
-        is_new = True
-
-    login_user(user)
-
-    # New Google accounts need to complete their profile
-    if is_new:
-        flash(f'Welcome, {first_name}! Please complete your profile to continue.', 'info')
-        return redirect(url_for('auditions.complete_profile'))
-
-    next_page = request.args.get('next')
-    if user.role in ('admin', 'viewer'):
-        return redirect(next_page or url_for('auditions.admin_dashboard'))
-    return redirect(next_page or url_for('auditions.actor_dashboard'))
 
 
 @auditions_bp.route('/complete-profile', methods=['GET', 'POST'])
@@ -233,9 +133,12 @@ def complete_profile():
 @auditions_bp.route('/logout')
 @login_required
 def logout():
+    """Backward-compatible logout — performs the logout directly so callers
+    that don't follow redirects (e.g. tests) are still logged out."""
+    from flask_login import logout_user
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('auditions.actor_login'))
+    return redirect(url_for('auth.login'))
 
 
 @auditions_bp.route('/my-auditions')

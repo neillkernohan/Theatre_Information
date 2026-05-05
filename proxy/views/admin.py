@@ -1,21 +1,11 @@
 from flask import render_template, redirect, url_for, flash, request, make_response, abort
 from flask_login import login_required, current_user
-from functools import wraps
 from proxy import proxy_bp
 from proxy.models import db, ProxyMeeting, ProxyMember, ProxySubmission
 from proxy.forms import MeetingForm, MemberForm
+from auth.decorators import admin_required
 import csv
 import io
-
-
-def admin_required(f):
-    @wraps(f)
-    @login_required
-    def decorated(*args, **kwargs):
-        if current_user.role != 'admin':
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated
 
 
 # ---------------------------------------------------------------------------

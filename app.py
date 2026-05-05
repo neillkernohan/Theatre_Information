@@ -11,8 +11,8 @@ import time
 from decimal import Decimal
 import json
 from dotenv import load_dotenv
-from functools import wraps
 from authlib.integrations.flask_client import OAuth
+from functools import wraps
 import click
 import hmac
 import hashlib
@@ -182,10 +182,12 @@ google = oauth.register(
 # instead of crashing the entire app.
 AUDITIONS_ENABLED = False
 try:
-    from flask_login import LoginManager
+    from flask_login import LoginManager, login_required
     from flask_mail import Mail
     from flask_wtf.csrf import CSRFProtect, CSRFError
-    from auditions.models import db, User
+    from auth.models import db, User
+    from auth import auth_bp
+    from auth.decorators import theatreaurora_required
     from auditions import auditions_bp
     from proxy import proxy_bp
     from proxy.models import ProxyMember, ProxyMeeting, ProxySubmission  # noqa: F401 — ensure tables are registered
@@ -211,7 +213,7 @@ try:
     db.init_app(app)
 
     login_manager = LoginManager(app)
-    login_manager.login_view = 'auditions.actor_login'
+    login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
 
     @login_manager.user_loader
@@ -227,6 +229,7 @@ try:
         return jsonify({'error': 'CSRF validation failed', 'detail': e.description}), 400
 
     # Register blueprints
+    app.register_blueprint(auth_bp)
     app.register_blueprint(auditions_bp)
     app.register_blueprint(proxy_bp)
 
@@ -239,58 +242,65 @@ try:
         click.echo('Auditions database tables created.')
 
     @app.cli.command('create-admin')
-    @click.option('--email', prompt='Admin email')
-    @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
+    @click.option('--email', prompt='Admin email (@theatreaurora.com)')
     @click.option('--first-name', prompt='First name')
     @click.option('--last-name', prompt='Last name')
-    def create_admin(email, password, first_name, last_name):
-        """Create an admin user for the auditions module."""
+    def create_admin(email, first_name, last_name):
+        """Create an admin user. Must be a @theatreaurora.com address; signs in via Google."""
         with app.app_context():
-            if User.query.filter_by(email=email.lower()).first():
+            email = email.lower().strip()
+            if not email.endswith('@theatreaurora.com'):
+                click.echo('Error: Admin accounts must use a @theatreaurora.com email address.')
+                return
+            if User.query.filter_by(email=email).first():
                 click.echo(f'Error: User with email {email} already exists.')
                 return
             user = User(
-                email=email.lower().strip(),
+                email=email,
                 first_name=first_name.strip(),
                 last_name=last_name.strip(),
                 role='admin'
             )
-            user.set_password(password)
             db.session.add(user)
             db.session.commit()
-            click.echo(f'Admin user {first_name} {last_name} ({email}) created successfully.')
+            click.echo(f'Admin user {first_name} {last_name} ({email}) created. They can sign in with Google.')
 
     @app.cli.command('create-viewer')
-    @click.option('--email', prompt='Viewer email')
-    @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
+    @click.option('--email', prompt='Viewer email (@theatreaurora.com)')
     @click.option('--first-name', prompt='First name')
     @click.option('--last-name', prompt='Last name')
-    def create_viewer(email, password, first_name, last_name):
-        """Create a viewer (read-only admin) user for the auditions module."""
+    def create_viewer(email, first_name, last_name):
+        """Create a viewer (read-only) user. Must be a @theatreaurora.com address; signs in via Google."""
         with app.app_context():
-            if User.query.filter_by(email=email.lower()).first():
+            email = email.lower().strip()
+            if not email.endswith('@theatreaurora.com'):
+                click.echo('Error: Viewer accounts must use a @theatreaurora.com email address.')
+                return
+            if User.query.filter_by(email=email).first():
                 click.echo(f'Error: User with email {email} already exists.')
                 return
             user = User(
-                email=email.lower().strip(),
+                email=email,
                 first_name=first_name.strip(),
                 last_name=last_name.strip(),
                 role='viewer'
             )
-            user.set_password(password)
             db.session.add(user)
             db.session.commit()
-            click.echo(f'Viewer user {first_name} {last_name} ({email}) created successfully.')
+            click.echo(f'Viewer user {first_name} {last_name} ({email}) created. They can sign in with Google.')
 
     @app.cli.command('reset-password')
     @click.option('--email', prompt='User email')
     @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
     def reset_password(email, password):
-        """Reset the password for any auditions user."""
+        """Reset the password for an actor user."""
         with app.app_context():
             user = User.query.filter_by(email=email.lower().strip()).first()
             if not user:
                 click.echo(f'Error: No user found with email {email}.')
+                return
+            if user.is_staff:
+                click.echo(f'Error: Staff accounts sign in via Google and do not have passwords.')
                 return
             user.set_password(password)
             db.session.commit()
@@ -368,70 +378,17 @@ except (ImportError, ModuleNotFoundError) as _auditions_err:
     print(f"[Theatre_Info] Auditions module disabled: {_auditions_err}", file=_sys.stderr)
 # --- End Auditions Module Setup ---
 
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not session.get('logged_in'):
-            session['next_url'] = request.path
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated
-
-def is_authorized(email):
-    """Check if an email is in the Authorized_Users table."""
-    db = mysql.connector.connect(
-        host=MYSQL_HOST,
-        user=MYSQL_USER,
-        password=MYSQL_PASSWORD,
-        database=MYSQL_DATABASE
-    )
-    cursor = db.cursor()
-    cursor.execute("SELECT COUNT(*) FROM Authorized_Users WHERE email = %s", (email.lower(),))
-    count = cursor.fetchone()[0]
-    db.close()
-    return count > 0
-
 @app.route('/login')
-def login():
-    return render_template('login.html')
-
-@app.route('/auth/google')
-def auth_google():
-    redirect_uri = url_for('auth_google_callback', _external=True)
-    return google.authorize_redirect(redirect_uri)
-
-@app.route('/auth/google/callback')
-def auth_google_callback():
-    token = google.authorize_access_token()
-    user_info = token.get('userinfo')
-    if not user_info:
-        user_info = google.userinfo()
-
-    email = user_info.get('email', '').lower()
-    name = user_info.get('name', '')
-
-    if not is_authorized(email):
-        return render_template('login.html',
-            error=f"'{email}' is not authorized to access this site. Contact your administrator.")
-
-    session.permanent = True
-    session['logged_in'] = True
-    session['user_email'] = email
-    session['user_name'] = name
-    next_url = session.pop('next_url', None)
-    return redirect(next_url or url_for('home'))
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
+def login_redirect():
+    """Backward-compatibility redirect — old /login links go to the unified login page."""
+    return redirect(url_for('auth.login'))
 
 @app.route('/')
 def home():
     return render_template('home.html')
 
 @app.route('/SeasonTotals')
-@login_required
+@theatreaurora_required
 def SeasonTotals():
     db = mysql.connector.connect(
         host=MYSQL_HOST,
@@ -600,7 +557,7 @@ def SeasonTotals():
 #     return render_template('TotalSales.html', data=ticket_data, season_data=season_data, last_season_data=last_season_data, subscription_data = subscription_data, formatted_update=formatted_update, comments_season_count=comments_season_count, dayaverages=dayaverages)
 
 @app.route('/ShowDetail')
-@login_required
+@theatreaurora_required
 def GetShowDetail():
     show_name = request.args.get('show_name', default='', type=str)
 
@@ -822,7 +779,7 @@ def unsubscribe_page():
 
 
 @app.route('/resubscribe', methods=['POST'])
-@login_required
+@theatreaurora_required
 def resubscribe():
     """Admin-only: remove someone from the Unsubscribed table."""
     email = request.form.get('email', '').strip().lower()
@@ -841,7 +798,7 @@ def resubscribe():
 # ---------------------------------------------------------------------------
 
 @app.route('/OurPeople')
-@login_required
+@theatreaurora_required
 def OurPeople():
     db = mysql.connector.connect(
         host=MYSQL_HOST,

@@ -1,6 +1,5 @@
 from flask import render_template, abort, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from functools import wraps
 from auditions import auditions_bp
 from auditions.models import db, Show, AuditionSlot, Registration, Tag, User
 from auditions.forms import ShowForm, GenerateSlotsForm
@@ -9,28 +8,8 @@ from auditions.email import (
     send_callback_email, send_info_request_email,
     send_confirmation_email, send_cancellation_email, send_admin_notification
 )
+from auth.decorators import admin_required, viewer_required
 import json
-
-
-def admin_required(f):
-    @wraps(f)
-    @login_required
-    def decorated(*args, **kwargs):
-        if current_user.role != 'admin':
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated
-
-
-def viewer_required(f):
-    """Allow both admin and viewer roles (read-only access)."""
-    @wraps(f)
-    @login_required
-    def decorated(*args, **kwargs):
-        if current_user.role not in ('admin', 'viewer'):
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated
 
 
 # ---------------------------------------------------------------------------

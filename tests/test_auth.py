@@ -1,6 +1,6 @@
-"""Tests for actor and admin authentication routes."""
+"""Tests for the unified authentication system."""
 import pytest
-from auditions.models import User
+from auth.models import User
 from tests.conftest import login_as, login_actor, login_admin
 
 
@@ -75,14 +75,14 @@ class TestActorRegistration:
         assert user.pronouns == 'ze/zir'
 
 
-class TestActorLogin:
+class TestUnifiedLogin:
 
     def test_login_page_loads(self, client):
-        r = client.get('/auditions/login')
+        r = client.get('/auth/login')
         assert r.status_code == 200
         assert b'Log In' in r.data
 
-    def test_valid_login_redirects_to_dashboard(self, client, actor):
+    def test_valid_actor_login_redirects_to_dashboard(self, client, actor):
         r = login_actor(client, actor)
         assert r.status_code == 200
         assert b'My Auditions' in r.data
@@ -100,25 +100,33 @@ class TestActorLogin:
         assert r.status_code == 200
         assert b'Auditions Dashboard' in r.data
 
+    def test_staff_email_blocked_from_password_login(self, client, db):
+        """@theatreaurora.com accounts must use Google; password login is blocked."""
+        # Create a staff user with a password (edge case — shouldn't happen in
+        # production but we test the guard is in place)
+        u = User(
+            email='staff@theatreaurora.com',
+            first_name='Staff',
+            last_name='User',
+            role='viewer',
+        )
+        u.set_password('SomePass1!')
+        db.session.add(u)
+        db.session.commit()
 
-class TestAdminLogin:
+        r = login_as(client, 'staff@theatreaurora.com', 'SomePass1!')
+        assert b'must sign in with Google' in r.data
 
-    def test_admin_login_page_loads(self, client):
-        r = client.get('/auditions/admin/login')
+    def test_actor_cannot_reach_admin_dashboard(self, client, actor):
+        login_actor(client, actor)
+        r = client.get('/auditions/admin/dashboard', follow_redirects=False)
+        assert r.status_code in (302, 403)
+
+    def test_admin_can_reach_admin_dashboard(self, client, admin):
+        login_admin(client, admin)
+        r = client.get('/auditions/admin/dashboard', follow_redirects=True)
         assert r.status_code == 200
-
-    def test_actor_cannot_use_admin_login(self, client, actor):
-        r = login_as(client, actor.email, 'ActorPass1!')
-        # Actor logs in fine but shouldn't see admin dashboard
-        r2 = client.get('/auditions/admin/dashboard', follow_redirects=False)
-        assert r2.status_code in (302, 403)
-
-    def test_admin_login_route_rejects_actor(self, client, actor):
-        r = client.post('/auditions/admin/login', data={
-            'email': actor.email,
-            'password': 'ActorPass1!',
-        }, follow_redirects=True)
-        assert b'Invalid admin credentials' in r.data
+        assert b'Auditions Dashboard' in r.data
 
 
 class TestEditProfile:
@@ -178,13 +186,7 @@ class TestPasswordReset:
         db.session.refresh(actor)
         assert actor.check_password('NewSecurePass1!')
 
-    def test_reset_with_expired_token_redirects(self, client, app, actor):
-        from itsdangerous import URLSafeTimedSerializer
-        with app.app_context():
-            s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-            # Sign with a future max_age so loads() with max_age=0 treats it as expired
-            token = s.dumps(actor.email, salt='password-reset')
-        # Patch max_age to 0 by passing a bad token instead
+    def test_reset_with_invalid_token_redirects(self, client):
         r = client.get('/auditions/reset-password/notavalidtoken', follow_redirects=True)
         assert b'invalid' in r.data.lower() or b'expired' in r.data.lower()
 
@@ -203,6 +205,11 @@ class TestLogout:
     def test_logout_redirects_to_login(self, client, actor):
         login_actor(client, actor)
         r = client.get('/auditions/logout', follow_redirects=True)
+        assert b'Log In' in r.data or b'logged out' in r.data
+
+    def test_auth_logout_redirects_to_login(self, client, actor):
+        login_actor(client, actor)
+        r = client.get('/auth/logout', follow_redirects=True)
         assert b'Log In' in r.data or b'logged out' in r.data
 
     def test_protected_page_requires_login(self, client):

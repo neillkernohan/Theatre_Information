@@ -32,11 +32,11 @@ def app():
         'SERVER_NAME': 'localhost',
     })
 
-    from auditions.models import db, User
+    from auth.models import db, User
     db.init_app(flask_app)
 
     login_manager = LoginManager(flask_app)
-    login_manager.login_view = 'auditions.actor_login'
+    login_manager.login_view = 'auth.login'
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -49,7 +49,9 @@ def app():
     from flask_wtf.csrf import CSRFProtect
     CSRFProtect(flask_app)
 
+    from auth import auth_bp
     from auditions import auditions_bp
+    flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(auditions_bp)
 
     with flask_app.app_context():
@@ -61,7 +63,7 @@ def app():
 @pytest.fixture(scope='function')
 def db(app):
     """Provide db and roll back after each test."""
-    from auditions.models import db as _db
+    from auth.models import db as _db
     with app.app_context():
         yield _db
         _db.session.rollback()
@@ -83,7 +85,7 @@ def client(app, db):
 
 @pytest.fixture
 def actor(db):
-    from auditions.models import User
+    from auth.models import User
     u = User(
         email='actor@example.com',
         first_name='Jane',
@@ -102,9 +104,12 @@ def actor(db):
 
 @pytest.fixture
 def admin(db):
-    from auditions.models import User
+    # Use a non-@theatreaurora.com email so the test can log in with a
+    # password.  Staff (@theatreaurora.com) accounts are Google-only in
+    # production; the role='admin' is what the decorator checks in tests.
+    from auth.models import User
     u = User(
-        email='admin@theatreaurora.com',
+        email='admin@example.com',
         first_name='Admin',
         last_name='User',
         role='admin',
@@ -181,7 +186,7 @@ def slot(db, slot_show):
 # ---------------------------------------------------------------------------
 
 def login_as(client, email, password):
-    return client.post('/auditions/login', data={
+    return client.post('/auth/login', data={
         'email': email,
         'password': password,
         'submit': 'Log In',
