@@ -68,9 +68,9 @@
         <a href="/SeasonTotals" class="btn btn-dark btn-theatre nav-link-loading" data-label="Loading Season Totals...">Season Totals</a>
         <a href="/OurPeople" class="btn btn-dark btn-theatre nav-link-loading" data-label="Loading Our People...">Our People</a>
         <!-- <a href="/auditions/" class="btn btn-dark btn-theatre nav-link-loading" data-label="Loading Auditions Manager...">Auditions Manager</a> -->
-        {% if session.get('user_email') %}
+        {% if current_user.is_authenticated %}
         <div style="margin-top: 24px; font-size: 0.85rem; color: #6c757d;">
-            Signed in as {{ session.get('user_email') }} &nbsp;|&nbsp; <a href="{{ url_for('logout') }}">Logout</a>
+            Signed in as {{ current_user.email }} &nbsp;|&nbsp; <a href="{{ url_for('auth.logout') }}">Logout</a>
         </div>
         {% endif %}
     </div>
