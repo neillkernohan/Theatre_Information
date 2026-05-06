@@ -6,7 +6,7 @@ from auditions.forms import ShowForm, GenerateSlotsForm
 from auditions.utils import generate_slots, add_slots, promote_from_waitlist
 from auditions.email import (
     send_callback_email, send_info_request_email,
-    send_confirmation_email, send_cancellation_email, send_admin_notification
+    send_confirmation_email, send_waitlist_email, send_cancellation_email, send_admin_notification
 )
 from auth.decorators import admin_required, viewer_required
 import json
@@ -363,6 +363,148 @@ def create_tag():
 
     flash(f'Tag "{name}" created.', 'success')
     return redirect(request.referrer or url_for('auditions.admin_dashboard'))
+
+
+# ---------------------------------------------------------------------------
+# Admin: Register an Actor for a Show
+# ---------------------------------------------------------------------------
+
+@auditions_bp.route('/admin/shows/<int:show_id>/register', methods=['GET', 'POST'])
+@admin_required
+def admin_register_actor(show_id):
+    """Admin-side registration: find/create an actor and register them for a show."""
+    show = Show.query.get_or_404(show_id)
+
+    # All slots grouped by date (admin sees every slot, including full ones)
+    slots = AuditionSlot.query.filter_by(show_id=show.id).filter(
+        AuditionSlot.slot_type != 'reserved'
+    ).order_by(AuditionSlot.date, AuditionSlot.start_time).all()
+
+    slots_by_date = {}
+    for slot in slots:
+        date_str = slot.date.strftime('%A, %B %d, %Y')
+        if date_str not in slots_by_date:
+            slots_by_date[date_str] = []
+        slots_by_date[date_str].append(slot)
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        phone = request.form.get('phone', '').strip() or None
+        send_email = request.form.get('send_email') == '1'
+
+        if not email or not first_name or not last_name:
+            flash('Email, first name, and last name are required.', 'danger')
+            return redirect(url_for('auditions.admin_register_actor', show_id=show.id))
+
+        # Find or create actor account
+        import secrets
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                role='actor'
+            )
+            # Set a random password — they can use "forgot password" to set their own
+            user.set_password(secrets.token_urlsafe(16))
+            db.session.add(user)
+            db.session.flush()  # get user.id before commit
+        else:
+            # Update name/phone if admin changed them
+            user.first_name = first_name
+            user.last_name = last_name
+            if phone:
+                user.phone = phone
+
+        # Check for duplicate registration
+        existing = Registration.query.filter_by(
+            user_id=user.id, show_id=show.id
+        ).filter(Registration.status != 'cancelled').first()
+        if existing:
+            flash(f'{first_name} {last_name} already has an active registration for this show.', 'warning')
+            return redirect(url_for('auditions.show_detail', show_id=show.id))
+
+        # Build registration
+        registration = Registration(
+            user_id=user.id,
+            show_id=show.id
+        )
+
+        registration.roles_auditioning_for = request.form.get('roles_auditioning_for', '').strip() or None
+        registration.accept_other_role = request.form.get('accept_other_role') == 'yes'
+        registration.schedule_conflicts = request.form.get('schedule_conflicts', '').strip() or None
+        registration.video_link = request.form.get('video_link', '').strip() or None
+
+        if show.custom_fields:
+            custom_data = {}
+            for field in show.custom_fields:
+                key = f'custom_{field["name"]}'
+                if field['type'] == 'checkbox':
+                    custom_data[field['name']] = 'yes' if request.form.get(key) else 'no'
+                else:
+                    custom_data[field['name']] = request.form.get(key, '').strip()
+            registration.custom_field_data = custom_data
+
+        # Slot assignment
+        chosen_slot_id = request.form.get('slot_id')
+        if chosen_slot_id:
+            slot = AuditionSlot.query.get(int(chosen_slot_id))
+            if slot and slot.show_id == show.id and slot.slot_type != 'reserved':
+                registration.slot_id = slot.id
+                registration.status = 'confirmed'
+                slot.current_count += 1
+            else:
+                flash('Invalid slot selected.', 'danger')
+                return redirect(url_for('auditions.admin_register_actor', show_id=show.id))
+        else:
+            registration.status = 'waitlisted'
+
+        db.session.add(registration)
+        db.session.commit()
+
+        if send_email:
+            if registration.status == 'confirmed':
+                send_confirmation_email(registration)
+            else:
+                send_waitlist_email(registration)
+
+        send_admin_notification(registration, 'New Registration (Admin)')
+
+        flash(
+            f'{first_name} {last_name} registered as '
+            f'{"confirmed" if registration.status == "confirmed" else "waitlisted"}.',
+            'success'
+        )
+        return redirect(url_for('auditions.show_detail', show_id=show.id))
+
+    return render_template(
+        'auditions/admin/register_actor.html',
+        show=show,
+        slots=slots,
+        slots_by_date=slots_by_date,
+    )
+
+
+@auditions_bp.route('/admin/actors/lookup')
+@admin_required
+def lookup_actor():
+    """AJAX: look up an actor by email and return their profile fields as JSON."""
+    email = request.args.get('email', '').strip().lower()
+    if not email:
+        return jsonify({})
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'found': False})
+    return jsonify({
+        'found': True,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'phone': user.phone or '',
+    })
 
 
 # ---------------------------------------------------------------------------

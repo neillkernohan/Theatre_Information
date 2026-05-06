@@ -1,0 +1,256 @@
+{% extends 'auditions/base.html' %}
+{% block title %}Register Actor — {{ show.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{{ url_for('auditions.show_detail', show_id=show.id) }}" class="text-muted text-decoration-none">
+            <i class="bi bi-arrow-left"></i> {{ show.title }}
+        </a>
+        <h2 class="mb-0 mt-1">Register an Actor</h2>
+    </div>
+</div>
+
+<form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="row g-4">
+
+        <!-- ── Actor ── -->
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white fw-semibold">
+                    <i class="bi bi-person me-1"></i> Actor
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+
+                        <!-- Email with live lookup -->
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold" for="email">Email <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="email" class="form-control" id="email" name="email"
+                                       placeholder="actor@example.com" required>
+                                <button type="button" class="btn btn-outline-secondary" id="lookupBtn">
+                                    <i class="bi bi-search"></i> Look Up
+                                </button>
+                            </div>
+                            <div id="lookupResult" class="form-text mt-1"></div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold" for="first_name">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" required>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold" for="last_name">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" required>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold" for="phone">Phone</label>
+                            <input type="tel" class="form-control" id="phone" name="phone">
+                        </div>
+
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">
+                        If this email already has an account the name and phone will be pre-filled.
+                        If not, a new account will be created automatically.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Slot ── -->
+        {% if slots %}
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white fw-semibold">
+                    <i class="bi bi-clock me-1"></i> Audition Time
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Leave unselected to place the actor on the waitlist.
+                        Admin view shows all slots, including full ones — use with care.
+                    </p>
+                    {% for date_str, date_slots in slots_by_date.items() %}
+                    <h6 class="mt-3 mb-2 text-muted">{{ date_str }}</h6>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        {% for slot in date_slots %}
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="slot_id"
+                                   id="slot_{{ slot.id }}" value="{{ slot.id }}"
+                                   {% if slot.is_full %}data-full="1"{% endif %}>
+                            <label class="form-check-label" for="slot_{{ slot.id }}">
+                                {{ slot.start_time.strftime('%I:%M %p') }}
+                                {% if show.scheduling_mode == 'block' and slot.label %}
+                                    <small class="text-muted">({{ slot.label }})</small>
+                                {% endif %}
+                                {% if slot.is_full %}
+                                    <span class="badge bg-warning text-dark ms-1">Full</span>
+                                {% else %}
+                                    <span class="badge bg-light text-muted border ms-1">
+                                        {{ slot.current_count }}/{{ slot.capacity }}
+                                    </span>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="radio" name="slot_id" id="slot_waitlist" value="">
+                        <label class="form-check-label text-muted" for="slot_waitlist">
+                            <i class="bi bi-hourglass-split me-1"></i> Waitlist (no time assigned)
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                No audition slots have been generated for this show yet.
+                The actor will be placed on the waitlist.
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ── Registration Details ── -->
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white fw-semibold">
+                    <i class="bi bi-clipboard me-1"></i> Registration Details
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold" for="roles_auditioning_for">Roles Auditioning For</label>
+                            <input type="text" class="form-control" id="roles_auditioning_for"
+                                   name="roles_auditioning_for" placeholder="e.g. Any, Lead, Ensemble…">
+                        </div>
+
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="accept_other_role"
+                                       name="accept_other_role" value="yes">
+                                <label class="form-check-label" for="accept_other_role">
+                                    Willing to accept another role
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" for="schedule_conflicts">Schedule Conflicts</label>
+                            <textarea class="form-control" id="schedule_conflicts" name="schedule_conflicts"
+                                      rows="2" placeholder="Any dates unavailable during rehearsals or performances?"></textarea>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="video_link">Video / Audition Link</label>
+                            <input type="url" class="form-control" id="video_link" name="video_link"
+                                   placeholder="https://…">
+                        </div>
+
+                        {% if show.custom_fields %}
+                        <div class="col-12"><hr class="my-1"></div>
+                        {% for field in show.custom_fields %}
+                        <div class="col-md-{% if field.type == 'textarea' %}12{% else %}6{% endif %}">
+                            <label class="form-label fw-semibold" for="custom_{{ field.name }}">
+                                {{ field.label }}
+                                {% if field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {% if field.type == 'textarea' %}
+                            <textarea class="form-control" id="custom_{{ field.name }}"
+                                      name="custom_{{ field.name }}" rows="3"
+                                      {% if field.required %}required{% endif %}></textarea>
+                            {% elif field.type == 'checkbox' %}
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox"
+                                       id="custom_{{ field.name }}" name="custom_{{ field.name }}" value="yes">
+                                <label class="form-check-label" for="custom_{{ field.name }}">Yes</label>
+                            </div>
+                            {% elif field.type == 'select' and field.options %}
+                            <select class="form-select" id="custom_{{ field.name }}"
+                                    name="custom_{{ field.name }}" {% if field.required %}required{% endif %}>
+                                <option value="">— select —</option>
+                                {% for opt in field.options %}
+                                <option value="{{ opt }}">{{ opt }}</option>
+                                {% endfor %}
+                            </select>
+                            {% else %}
+                            <input type="text" class="form-control" id="custom_{{ field.name }}"
+                                   name="custom_{{ field.name }}"
+                                   {% if field.required %}required{% endif %}>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Options & Submit ── -->
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body d-flex flex-wrap align-items-center gap-3">
+                    <div class="form-check me-3">
+                        <input class="form-check-input" type="checkbox" id="send_email"
+                               name="send_email" value="1" checked>
+                        <label class="form-check-label" for="send_email">
+                            Send confirmation email to actor
+                        </label>
+                    </div>
+                    <div class="ms-auto d-flex gap-2">
+                        <a href="{{ url_for('auditions.show_detail', show_id=show.id) }}"
+                           class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-person-plus me-1"></i> Register Actor
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /row -->
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('lookupBtn').addEventListener('click', function () {
+    const email = document.getElementById('email').value.trim();
+    if (!email) return;
+
+    const resultEl = document.getElementById('lookupResult');
+    resultEl.textContent = 'Looking up…';
+
+    fetch(`{{ url_for('auditions.lookup_actor') }}?email=${encodeURIComponent(email)}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.found) {
+                document.getElementById('first_name').value = data.first_name;
+                document.getElementById('last_name').value  = data.last_name;
+                document.getElementById('phone').value      = data.phone;
+                resultEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Existing account found — details pre-filled.</span>';
+            } else {
+                document.getElementById('first_name').value = '';
+                document.getElementById('last_name').value  = '';
+                document.getElementById('phone').value      = '';
+                resultEl.innerHTML = '<span class="text-info"><i class="bi bi-info-circle me-1"></i>No existing account — a new one will be created.</span>';
+            }
+        })
+        .catch(() => { resultEl.textContent = 'Lookup failed.'; });
+});
+
+// Also trigger lookup on Enter inside the email field
+document.getElementById('email').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('lookupBtn').click(); }
+});
+</script>
+{% endblock %}
