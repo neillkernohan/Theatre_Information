@@ -160,7 +160,7 @@
                         {% for field in show.custom_fields %}
                         <div class="col-md-{% if field.type == 'textarea' %}12{% else %}6{% endif %}">
                             <label class="form-label fw-semibold" for="custom_{{ field.name }}">
-                                {{ field.label }}
+                                {{ field.name }}
                                 {% if field.required %}<span class="text-danger">*</span>{% endif %}
                             </label>
                             {% if field.type == 'textarea' %}
