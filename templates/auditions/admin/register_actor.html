@@ -177,8 +177,8 @@
                             <select class="form-select" id="custom_{{ field.name }}"
                                     name="custom_{{ field.name }}" {% if field.required %}required{% endif %}>
                                 <option value="">— select —</option>
-                                {% for opt in field.options %}
-                                <option value="{{ opt }}">{{ opt }}</option>
+                                {% for opt in field.options.split(',') %}
+                                <option value="{{ opt.strip() }}">{{ opt.strip() }}</option>
                                 {% endfor %}
                             </select>
                             {% else %}
