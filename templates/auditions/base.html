@@ -35,6 +35,15 @@
                     </li>
                     {% endif %}
                 </ul>
+                <ul class="navbar-nav me-3">
+                    {% if current_user.is_authenticated and current_user.role in ('admin', 'viewer') %}
+                    <li class="nav-item">
+                        <a class="nav-link text-muted" href="{{ url_for('home') }}">
+                            <i class="bi bi-house me-1"></i>Main Dashboard
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
