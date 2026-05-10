@@ -44,18 +44,21 @@ def select_season():
     
     # Define the start of each season
     seasons = [
+        {"start": date(2026, 7, 1), "label": "2026-07-01"},
         {"start": date(2025, 7, 1), "label": "2025-07-01"},
         {"start": date(2024, 7, 1), "label": "2024-07-01"},
         {"start": date(2023, 7, 1), "label": "2023-07-01"}
     ]
     
-    # Check which season today's date falls into
+    # Check which season today's date falls into.
+    # Use April 30 as the cutover so that from May onward we default to the upcoming season.
     for season in seasons:
-        season_end = date(season["start"].year + 1, 6, 30)  # June 30th of the next year
+        season_end = date(season["start"].year + 1, 4, 30)
         if season["start"] <= today <= season_end:
             return season["label"]
-    
-    return "Current date does not fall within the defined seasons."
+
+    # Outside all defined seasons — return the most recent/upcoming one
+    return seasons[0]["label"]
 
 def dynamic_colors():
     while True:  # Keep trying until we find a new color
