@@ -275,12 +275,71 @@ def registration_detail(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     all_tags = Tag.query.order_by(Tag.name).all()
     reg_tag_ids = [t.id for t in registration.tags]
+
+    # Slots for the change-slot modal (all non-reserved slots for this show)
+    show_slots = AuditionSlot.query.filter_by(show_id=registration.show_id).filter(
+        AuditionSlot.slot_type != 'reserved'
+    ).order_by(AuditionSlot.date, AuditionSlot.start_time).all()
+
+    slots_by_date = {}
+    for slot in show_slots:
+        date_str = slot.date.strftime('%A, %B %d, %Y')
+        if date_str not in slots_by_date:
+            slots_by_date[date_str] = []
+        slots_by_date[date_str].append(slot)
+
     return render_template(
         'auditions/admin/registration_detail.html',
         reg=registration,
         all_tags=all_tags,
-        reg_tag_ids=reg_tag_ids
+        reg_tag_ids=reg_tag_ids,
+        slots_by_date=slots_by_date,
     )
+
+
+@auditions_bp.route('/admin/registrations/<int:reg_id>/change-slot', methods=['POST'])
+@admin_required
+def admin_change_slot(reg_id):
+    registration = Registration.query.get_or_404(reg_id)
+
+    new_slot_id = request.form.get('slot_id')
+    send_email = request.form.get('send_email') == '1'
+
+    if not new_slot_id:
+        flash('Please select a slot.', 'warning')
+        return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
+
+    new_slot = AuditionSlot.query.get(int(new_slot_id))
+    if not new_slot or new_slot.show_id != registration.show_id:
+        flash('Invalid slot.', 'danger')
+        return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
+
+    if new_slot.id == registration.slot_id:
+        flash('That is already their current slot.', 'info')
+        return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
+
+    # Free the old slot
+    old_slot = registration.slot
+    if old_slot:
+        old_slot.current_count = max(0, old_slot.current_count - 1)
+
+    # Assign the new slot
+    registration.slot_id = new_slot.id
+    registration.status = 'confirmed'
+    new_slot.current_count += 1
+    db.session.commit()
+
+    if send_email:
+        from auditions.email import send_slot_changed_email
+        send_slot_changed_email(registration)
+
+    send_admin_notification(registration, 'Slot Changed by Admin')
+    flash(
+        f'{registration.user.first_name} {registration.user.last_name} moved to '
+        f'{new_slot.date.strftime("%b %d")} at {new_slot.start_time.strftime("%I:%M %p")}.',
+        'success'
+    )
+    return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>/status', methods=['POST'])
