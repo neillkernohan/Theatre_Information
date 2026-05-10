@@ -234,6 +234,32 @@ def add_show_slots(show_id):
     return redirect(url_for('auditions.show_detail', show_id=show.id))
 
 
+@auditions_bp.route('/admin/slots/<int:slot_id>/toggle-block', methods=['POST'])
+@admin_required
+def toggle_slot_block(slot_id):
+    """Block an open slot or unblock a reserved slot."""
+    slot = AuditionSlot.query.get_or_404(slot_id)
+
+    if slot.slot_type == 'reserved':
+        # Unblock
+        slot.slot_type = 'individual'
+        db.session.commit()
+        flash(f'Slot {slot.start_time.strftime("%I:%M %p")} on {slot.date.strftime("%b %d")} is now open.', 'success')
+    else:
+        # Block — only if no one is booked into it
+        booked = slot.registrations.filter(
+            Registration.status.in_(['confirmed', 'callback'])
+        ).count()
+        if booked:
+            flash('Cannot block a slot that has confirmed registrations.', 'danger')
+        else:
+            slot.slot_type = 'reserved'
+            db.session.commit()
+            flash(f'Slot {slot.start_time.strftime("%I:%M %p")} on {slot.date.strftime("%b %d")} is now blocked.', 'success')
+
+    return redirect(url_for('auditions.show_detail', show_id=slot.show_id))
+
+
 @auditions_bp.route('/admin/shows/<int:show_id>/status', methods=['POST'])
 @admin_required
 def update_show_status(show_id):

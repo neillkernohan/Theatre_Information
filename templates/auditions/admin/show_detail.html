@@ -164,8 +164,19 @@
                     <td class="fw-semibold" style="color:#6f42c1">
                         {{ slot.start_time.strftime('%I:%M %p') }} – {{ slot.end_time.strftime('%I:%M %p') }}
                     </td>
-                    <td colspan="2" style="color:#6f42c1">
-                        <i class="bi bi-people-fill"></i> {{ slot.label or 'Group Audition' }}
+                    <td style="color:#6f42c1">
+                        <i class="bi bi-lock-fill"></i> Blocked
+                    </td>
+                    <td>
+                        {% if current_user.role == 'admin' %}
+                        <form method="POST" action="{{ url_for('auditions.toggle_slot_block', slot_id=slot.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                    title="Unblock this slot">
+                                <i class="bi bi-unlock"></i> Unblock
+                            </button>
+                        </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% else %}
@@ -190,6 +201,15 @@
                             {{ reg.user.first_name }} {{ reg.user.last_name }}
                         </a>
                         {% endfor %}
+                        {% if current_user.role == 'admin' and not slot.is_full %}
+                        <form method="POST" action="{{ url_for('auditions.toggle_slot_block', slot_id=slot.id) }}" class="d-inline float-end">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                    title="Block this slot">
+                                <i class="bi bi-lock"></i>
+                            </button>
+                        </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endif %}
