@@ -194,9 +194,14 @@ try:
     from auditions import auditions_bp
     from proxy import proxy_bp
     from proxy.models import ProxyMeeting, ProxySubmission  # noqa: F401 — ensure tables are registered
+    from inventory import inventory_bp
+    from inventory.models import InventoryItem  # noqa: F401 — ensure tables are registered
 
-    # SQLAlchemy config for auditions database
+    # SQLAlchemy config
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('AUDITIONS_DB_URI')
+    app.config['SQLALCHEMY_BINDS'] = {
+        'inventory': os.getenv('INVENTORY_DB_URI'),
+    }
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # File upload config
@@ -235,6 +240,7 @@ try:
     app.register_blueprint(auth_bp)
     app.register_blueprint(auditions_bp)
     app.register_blueprint(proxy_bp)
+    app.register_blueprint(inventory_bp)
 
     # CLI commands for auditions
     @app.cli.command('init-auditions-db')
@@ -242,6 +248,13 @@ try:
         """Create all auditions database tables."""
         with app.app_context():
             db.create_all()
+
+    @app.cli.command('init-inventory-db')
+    def init_inventory_db():
+        """Create inventory database tables."""
+        with app.app_context():
+            db.create_all(bind_key='inventory')
+        click.echo('Inventory database tables created.')
         click.echo('Auditions database tables created.')
 
     @app.cli.command('create-admin')

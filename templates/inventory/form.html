@@ -1,0 +1,107 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}{{ 'Edit Item' if editing else 'Add Item' }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex align-items-center mb-4 gap-3">
+            <a href="{{ url_for('inventory.list_items') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h2 class="mb-0">{{ 'Edit Item' if editing else 'Add Item' }}</h2>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.category.label.text }}</label>
+                            {{ form.category(class="form-select" + (" is-invalid" if form.category.errors else ""), id="category-select") }}
+                            {% for e in form.category.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ form.item_code.label.text }}</label>
+                            <div class="input-group">
+                                {{ form.item_code(class="form-control" + (" is-invalid" if form.item_code.errors else ""), id="item-code-input", style="text-transform:uppercase") }}
+                                {% if not editing %}
+                                <button type="button" class="btn btn-outline-secondary" id="suggest-code-btn" title="Suggest a code">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                {% endif %}
+                                {% for e in form.item_code.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                            </div>
+                            <div class="form-text">Auto-generated — you can override it.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">{{ form.name.label.text }}</label>
+                            {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g. Victorian Tailcoat") }}
+                            {% for e in form.name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ form.quantity.label.text }}</label>
+                            {{ form.quantity(class="form-control" + (" is-invalid" if form.quantity.errors else "")) }}
+                            {% for e in form.quantity.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ form.status.label.text }}</label>
+                            {{ form.status(class="form-select" + (" is-invalid" if form.status.errors else "")) }}
+                            {% for e in form.status.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ form.storage_location.label.text }}</label>
+                            {{ form.storage_location(class="form-control" + (" is-invalid" if form.storage_location.errors else ""), placeholder="e.g. Costume Room Rack B") }}
+                            {% for e in form.storage_location.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">{{ form.description.label.text }}</label>
+                            {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows=3, placeholder="Brief description of the item") }}
+                            {% for e in form.description.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">{{ form.notes.label.text }}</label>
+                            {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=2, placeholder="Internal notes (condition, history, etc.)") }}
+                            {% for e in form.notes.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{{ url_for('inventory.list_items') }}" class="btn btn-outline-secondary">Cancel</a>
+                        {{ form.submit(class="btn btn-dark") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const categorySelect = document.getElementById('category-select');
+const codeInput = document.getElementById('item-code-input');
+const suggestBtn = document.getElementById('suggest-code-btn');
+
+function fetchSuggestedCode() {
+    const category = categorySelect.value;
+    fetch(`{{ url_for('inventory.suggest_code') }}?category=${category}`)
+        .then(r => r.json())
+        .then(data => { codeInput.value = data.code; });
+}
+
+if (suggestBtn) {
+    suggestBtn.addEventListener('click', fetchSuggestedCode);
+    categorySelect.addEventListener('change', fetchSuggestedCode);
+}
+</script>
+{% endblock %}
