@@ -1,0 +1,29 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Delete Item{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-danger">
+            <div class="card-body p-4 text-center">
+                <i class="bi bi-exclamation-triangle-fill text-danger display-4"></i>
+                <h4 class="mt-3">Delete Item?</h4>
+                <p class="text-muted">
+                    Are you sure you want to delete
+                    <strong>{{ item.name }}</strong>
+                    (<code>{{ item.item_code }}</code>)?
+                    This cannot be undone.
+                </p>
+                <form method="post" class="d-flex justify-content-center gap-3 mt-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <a href="{{ url_for('inventory.list_items') }}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
