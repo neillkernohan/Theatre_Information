@@ -261,16 +261,13 @@ try:
         click.echo('Auditions database tables created.')
 
     @app.cli.command('create-admin')
-    @click.option('--email', prompt='Admin email (@theatreaurora.com)')
+    @click.option('--email', prompt='Admin email')
     @click.option('--first-name', prompt='First name')
     @click.option('--last-name', prompt='Last name')
     def create_admin(email, first_name, last_name):
-        """Create an admin user. Must be a @theatreaurora.com address; signs in via Google."""
+        """Create a super admin user. Signs in via Google."""
         with app.app_context():
             email = email.lower().strip()
-            if not email.endswith('@theatreaurora.com'):
-                click.echo('Error: Admin accounts must use a @theatreaurora.com email address.')
-                return
             if User.query.filter_by(email=email).first():
                 click.echo(f'Error: User with email {email} already exists.')
                 return
@@ -285,16 +282,13 @@ try:
             click.echo(f'Admin user {first_name} {last_name} ({email}) created. They can sign in with Google.')
 
     @app.cli.command('create-viewer')
-    @click.option('--email', prompt='Viewer email (@theatreaurora.com)')
+    @click.option('--email', prompt='Viewer email')
     @click.option('--first-name', prompt='First name')
     @click.option('--last-name', prompt='Last name')
     def create_viewer(email, first_name, last_name):
         """Legacy alias — creates a Stage Manager (read-only) user. Use create-staff instead."""
         with app.app_context():
             email = email.lower().strip()
-            if not email.endswith('@theatreaurora.com'):
-                click.echo('Error: Staff accounts must use a @theatreaurora.com email address.')
-                return
             if User.query.filter_by(email=email).first():
                 click.echo(f'Error: User with email {email} already exists.')
                 return
@@ -309,7 +303,7 @@ try:
             click.echo(f'Stage Manager {first_name} {last_name} ({email}) created. They can sign in with Google.')
 
     @app.cli.command('create-staff')
-    @click.option('--email', prompt='Staff email (@theatreaurora.com)')
+    @click.option('--email', prompt='Staff email')
     @click.option('--first-name', prompt='First name')
     @click.option('--last-name', prompt='Last name')
     @click.option('--role', prompt='Role',
@@ -317,7 +311,7 @@ try:
                                      'producer', 'stage_manager', 'no_rights'], case_sensitive=False),
                   help='Staff role')
     def create_staff(email, first_name, last_name, role):
-        """Create a staff user with a specific role. Must be a @theatreaurora.com address; signs in via Google.
+        """Create a staff user with a specific role. Signs in via Google.
 
         Roles and their permissions:
           super_admin       — full access, manage users and all shows
@@ -329,9 +323,6 @@ try:
         """
         with app.app_context():
             email = email.lower().strip()
-            if not email.endswith('@theatreaurora.com'):
-                click.echo('Error: Staff accounts must use a @theatreaurora.com email address.')
-                return
             if User.query.filter_by(email=email).first():
                 click.echo(f'Error: User with email {email} already exists.')
                 return

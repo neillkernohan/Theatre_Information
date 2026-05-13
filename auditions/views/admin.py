@@ -687,10 +687,6 @@ def add_staff_member():
         flash('All fields are required.', 'danger')
         return redirect(url_for('auditions.admin_dashboard'))
 
-    if not email.endswith('@theatreaurora.com'):
-        flash('Staff accounts must use a @theatreaurora.com email address.', 'danger')
-        return redirect(url_for('auditions.admin_dashboard'))
-
     if role not in valid_roles:
         flash('Invalid role selected.', 'danger')
         return redirect(url_for('auditions.admin_dashboard'))
