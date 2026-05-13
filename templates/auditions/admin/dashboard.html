@@ -81,8 +81,8 @@
             </div>
             <div class="modal-body">
                 <p class="text-muted small mb-4">
-                    By default, all admins can see every show. Tick specific shows to restrict an admin
-                    to only those shows. Leave all unchecked to restore full access.
+                    Change a staff member's role or restrict which shows they can access.
+                    Leave all shows unchecked to give full access to all shows.
                 </p>
                 {% for admin_user in all_admins %}
                 {% if admin_user.id != current_user.id %}
@@ -102,6 +102,32 @@
                         {% endif %}
                     </div>
                     <div class="card-body">
+
+                        <!-- Change Role -->
+                        <form method="POST" action="{{ url_for('auditions.set_staff_role', user_id=admin_user.id) }}"
+                              class="d-flex align-items-center gap-2 mb-3">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <label class="form-label small mb-0 text-nowrap fw-semibold">Role:</label>
+                            <select name="role" class="form-select form-select-sm" style="max-width:220px">
+                                {% for r, label in [
+                                    ('super_admin',       'Super Admin'),
+                                    ('auditions_creator', 'Auditions Creator'),
+                                    ('director',          'Director'),
+                                    ('producer',          'Producer'),
+                                    ('stage_manager',     'Stage Manager')
+                                ] %}
+                                <option value="{{ r }}" {{ 'selected' if admin_user.role == r }}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-dark text-nowrap">
+                                <i class="bi bi-person-gear"></i> Change Role
+                            </button>
+                        </form>
+
+                        <hr class="my-2">
+
+                        <!-- Show Access -->
+                        <p class="small text-muted mb-2">Show access (leave all unchecked = all shows):</p>
                         <form method="POST" action="{{ url_for('auditions.set_admin_shows', user_id=admin_user.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="row g-2 mb-3">
@@ -121,7 +147,7 @@
                                 {% endfor %}
                             </div>
                             <button type="submit" class="btn btn-sm btn-dark">
-                                <i class="bi bi-save"></i> Save Access for {{ admin_user.first_name }}
+                                <i class="bi bi-save"></i> Save Show Access
                             </button>
                         </form>
                     </div>
