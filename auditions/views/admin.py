@@ -668,6 +668,59 @@ def admin_register_actor(show_id):
     )
 
 
+@auditions_bp.route('/admin/admins/add', methods=['POST'])
+@manage_shows_required
+def add_staff_member():
+    """Super admin: create a new staff user account."""
+    if not current_user.is_super_admin:
+        abort(403)
+
+    valid_roles = ('super_admin', 'auditions_creator', 'director', 'producer',
+                   'stage_manager', 'no_rights')
+
+    email = request.form.get('email', '').lower().strip()
+    first_name = request.form.get('first_name', '').strip()
+    last_name = request.form.get('last_name', '').strip()
+    role = request.form.get('role', '').strip()
+
+    if not all([email, first_name, last_name, role]):
+        flash('All fields are required.', 'danger')
+        return redirect(url_for('auditions.admin_dashboard'))
+
+    if not email.endswith('@theatreaurora.com'):
+        flash('Staff accounts must use a @theatreaurora.com email address.', 'danger')
+        return redirect(url_for('auditions.admin_dashboard'))
+
+    if role not in valid_roles:
+        flash('Invalid role selected.', 'danger')
+        return redirect(url_for('auditions.admin_dashboard'))
+
+    if User.query.filter_by(email=email).first():
+        flash(f'An account for {email} already exists.', 'warning')
+        return redirect(url_for('auditions.admin_dashboard'))
+
+    user = User(
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        role=role,
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    role_labels = {
+        'super_admin': 'Super Admin', 'auditions_creator': 'Auditions Creator',
+        'director': 'Director', 'producer': 'Producer',
+        'stage_manager': 'Stage Manager', 'no_rights': 'No Rights',
+    }
+    flash(
+        f'{first_name} {last_name} added as {role_labels.get(role, role)}. '
+        f'They can now sign in with Google at {email}.',
+        'success'
+    )
+    return redirect(url_for('auditions.admin_dashboard'))
+
+
 @auditions_bp.route('/admin/admins/update-all', methods=['POST'])
 @manage_shows_required
 def update_all_staff():
