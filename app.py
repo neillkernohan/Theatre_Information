@@ -371,6 +371,54 @@ try:
             db.session.commit()
             click.echo(f'Updated {user.first_name} {user.last_name}: {old_role} → {user.role}')
 
+    @app.cli.command('delete-user')
+    @click.option('--email', prompt='User email')
+    @click.option('--confirm', is_flag=True, default=False,
+                  help='Skip confirmation prompt')
+    def delete_user(email, confirm):
+        """Permanently delete a user and all their registrations."""
+        from auditions.models import Registration, EmailLog
+        with app.app_context():
+            user = User.query.filter_by(email=email.lower().strip()).first()
+            if not user:
+                click.echo(f'Error: No user found with email {email}.')
+                return
+
+            reg_count = Registration.query.filter_by(user_id=user.id).count()
+            click.echo(f'Found: {user.first_name} {user.last_name} ({user.role})')
+            click.echo(f'  Registrations: {reg_count}')
+
+            if not confirm:
+                click.confirm(
+                    f'Permanently delete {user.first_name} {user.last_name} and all their data?',
+                    abort=True
+                )
+
+            # Delete email logs, then registrations, then user
+            for reg in Registration.query.filter_by(user_id=user.id).all():
+                EmailLog.query.filter_by(registration_id=reg.id).delete()
+            Registration.query.filter_by(user_id=user.id).delete()
+            db.session.delete(user)
+            db.session.commit()
+            click.echo(f'Deleted {user.first_name} {user.last_name} ({email}).')
+
+    @app.cli.command('list-users')
+    @click.option('--role', default=None, help='Filter by role (e.g. director, actor)')
+    def list_users(role):
+        """List all users, optionally filtered by role."""
+        with app.app_context():
+            q = User.query.order_by(User.role, User.last_name, User.first_name)
+            if role:
+                q = q.filter_by(role=role.lower())
+            users = q.all()
+            if not users:
+                click.echo('No users found.')
+                return
+            click.echo(f'{"Role":<20} {"Name":<30} {"Email"}')
+            click.echo('-' * 75)
+            for u in users:
+                click.echo(f'{u.role:<20} {u.first_name + " " + u.last_name:<30} {u.email}')
+
     @app.cli.command('reset-password')
     @click.option('--email', prompt='User email')
     @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
