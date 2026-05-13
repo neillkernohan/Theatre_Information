@@ -183,7 +183,7 @@ def export_xlsx(show_id):
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/shows/<int:show_id>/export/docx')
-@viewer_required
+@export_required
 def export_docx(show_id):
     """Export all registrations for a show as a formatted Word document."""
     try:
