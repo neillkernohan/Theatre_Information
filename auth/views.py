@@ -17,7 +17,7 @@ def _default_redirect(user):
     page; actors land on their auditions dashboard.  Falls back gracefully
     when the core dashboard routes aren't registered (e.g. in tests).
     """
-    if user.role in ('admin', 'viewer') or user.is_staff:
+    if user.can_read_admin or user.is_staff:
         try:
             return url_for('home')
         except BuildError:

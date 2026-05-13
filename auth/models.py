@@ -22,7 +22,13 @@ class User(UserMixin, db.Model):
     google_id = db.Column(db.String(255), unique=True, nullable=True)
 
     role = db.Column(
-        db.Enum('admin', 'viewer', 'actor', name='user_role'),
+        db.Enum(
+            'super_admin', 'auditions_creator', 'director', 'producer', 'stage_manager',
+            'admin',   # legacy alias for super_admin
+            'viewer',  # legacy alias for stage_manager
+            'actor',
+            name='user_role'
+        ),
         nullable=False,
         default='actor'
     )
@@ -55,10 +61,56 @@ class User(UserMixin, db.Model):
     last_login = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # ------------------------------------------------------------------
+    # Permission helpers
+    # ------------------------------------------------------------------
+
+    # Roles grouped by capability (legacy names kept for compat)
+    _MANAGE_SHOWS  = {'super_admin', 'admin', 'auditions_creator'}
+    _EVALUATE      = {'super_admin', 'admin', 'auditions_creator', 'director'}
+    _CAN_EXPORT    = {'super_admin', 'admin', 'auditions_creator', 'director', 'producer'}
+    _READ_ADMIN    = {'super_admin', 'admin', 'auditions_creator', 'director',
+                      'producer', 'stage_manager', 'viewer'}
+    _SUPER_ADMIN   = {'super_admin', 'admin'}
+
+    @property
+    def can_manage_shows(self):
+        """Create/edit shows, manage slots, register/cancel actors."""
+        return self.role in self._MANAGE_SHOWS
+
+    @property
+    def can_evaluate(self):
+        """Add notes, photos, tags, callbacks, change status."""
+        return self.role in self._EVALUATE
+
+    @property
+    def can_export(self):
+        """Download Excel/Word exports."""
+        return self.role in self._CAN_EXPORT
+
+    @property
+    def can_read_admin(self):
+        """View admin dashboard, show detail, registration detail."""
+        return self.role in self._READ_ADMIN
+
     @property
     def is_super_admin(self):
-        """True if this admin has full access to all shows."""
-        return self.role == 'admin' and not self.managed_shows
+        """Full access including user/admin management."""
+        return self.role in self._SUPER_ADMIN and not self.managed_shows
+
+    @property
+    def role_display(self):
+        labels = {
+            'super_admin': 'Super Admin',
+            'admin': 'Super Admin',
+            'auditions_creator': 'Auditions Creator',
+            'director': 'Director',
+            'producer': 'Producer',
+            'stage_manager': 'Stage Manager',
+            'viewer': 'Stage Manager',
+            'actor': 'Actor',
+        }
+        return labels.get(self.role, self.role.replace('_', ' ').title())
 
     registrations = db.relationship('Registration', backref='user', lazy='dynamic')
 

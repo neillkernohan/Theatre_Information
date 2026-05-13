@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from functools import wraps
 from auditions import auditions_bp
 from auditions.models import Registration, Show, User
-from auditions.views.admin import viewer_required
+from auth.decorators import export_required
 
 
 # ---------------------------------------------------------------------------
@@ -13,7 +13,7 @@ from auditions.views.admin import viewer_required
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/shows/<int:show_id>/export/xlsx')
-@viewer_required
+@export_required
 def export_xlsx(show_id):
     """Export all registrations for a show as an Excel workbook."""
     try:
@@ -41,7 +41,7 @@ def export_xlsx(show_id):
     cell_border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
     # Build headers
-    is_admin = current_user.role == 'admin'
+    is_admin = current_user.can_evaluate
 
     base_headers = [
         'Status', 'Last Name', 'First Name', 'Pronouns', 'Email', 'Phone',
@@ -347,7 +347,7 @@ def export_docx(show_id):
                 add_row('Admin Notes', reg.notes)
 
             # Audition notes — admin only
-            if current_user.role == 'admin' and reg.audition_notes:
+            if current_user.can_evaluate and reg.audition_notes:
                 add_row('Audition Notes', reg.audition_notes)
 
             doc.add_paragraph()  # spacer between actors

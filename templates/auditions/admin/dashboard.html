@@ -87,11 +87,16 @@
                 {% for admin_user in all_admins %}
                 {% if admin_user.id != current_user.id %}
                 <div class="card mb-3">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <strong>{{ admin_user.first_name }} {{ admin_user.last_name }}</strong>
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <strong>{{ admin_user.first_name }} {{ admin_user.last_name }}</strong>
+                            <span class="badge bg-secondary ms-1">{{ admin_user.role_display }}</span>
+                        </div>
                         <span class="text-muted small">{{ admin_user.email }}</span>
                         {% if admin_user.is_super_admin %}
                         <span class="badge bg-dark">Full Access</span>
+                        {% elif not admin_user.managed_shows %}
+                        <span class="badge bg-success">All Shows</span>
                         {% else %}
                         <span class="badge bg-warning text-dark">Restricted</span>
                         {% endif %}

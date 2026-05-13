@@ -8,7 +8,10 @@ from auditions.email import (
     send_callback_email, send_info_request_email,
     send_confirmation_email, send_waitlist_email, send_cancellation_email, send_admin_notification
 )
-from auth.decorators import admin_required, viewer_required
+from auth.decorators import (
+    admin_required, viewer_required,
+    read_admin_required, evaluate_required, manage_shows_required, export_required
+)
 import json
 
 
@@ -18,18 +21,17 @@ import json
 
 def user_can_access_show(show_id):
     """Return True if the current user is allowed to access a show."""
-    if current_user.role == 'viewer':
-        return True  # viewers are read-only but see all shows
-    if current_user.role == 'admin':
-        if not current_user.managed_shows:
-            return True  # super admin — all shows
-        return show_id in current_user.managed_shows
-    return False
+    if not current_user.can_read_admin:
+        return False
+    # Super admins and viewers/stage managers see everything
+    if current_user.is_super_admin or not current_user.managed_shows:
+        return True
+    return show_id in current_user.managed_shows
 
 
 def shows_for_current_user():
     """Return the Show queryset filtered to what the current user may see."""
-    if current_user.role == 'admin' and current_user.managed_shows:
+    if current_user.managed_shows:
         return Show.query.filter(Show.id.in_(current_user.managed_shows))
     return Show.query
 
@@ -39,7 +41,7 @@ def shows_for_current_user():
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/dashboard')
-@viewer_required
+@read_admin_required
 def admin_dashboard():
     shows = shows_for_current_user().order_by(Show.created_at.desc()).all()
 
@@ -47,7 +49,11 @@ def admin_dashboard():
     all_admins = None
     all_shows = None
     if current_user.is_super_admin:
-        all_admins = User.query.filter(User.role == 'admin').order_by(User.last_name).all()
+        staff_roles = ('super_admin', 'admin', 'auditions_creator', 'director',
+                       'producer', 'stage_manager', 'viewer')
+        all_admins = User.query.filter(User.role.in_(staff_roles)).order_by(
+            User.last_name, User.first_name
+        ).all()
         all_shows = Show.query.order_by(Show.title).all()
 
     return render_template(
@@ -59,7 +65,7 @@ def admin_dashboard():
 
 
 @auditions_bp.route('/admin/shows/new', methods=['GET', 'POST'])
-@admin_required
+@manage_shows_required
 def create_show():
     form = ShowForm()
     if form.validate_on_submit():
@@ -96,7 +102,7 @@ def create_show():
 
 
 @auditions_bp.route('/admin/shows/<int:show_id>/edit', methods=['GET', 'POST'])
-@admin_required
+@manage_shows_required
 def edit_show(show_id):
     show = Show.query.get_or_404(show_id)
     form = ShowForm(obj=show)
@@ -134,7 +140,7 @@ def edit_show(show_id):
 
 
 @auditions_bp.route('/admin/shows/<int:show_id>')
-@viewer_required
+@read_admin_required
 def show_detail(show_id):
     if not user_can_access_show(show_id):
         abort(403)
@@ -203,7 +209,7 @@ def show_detail(show_id):
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/shows/<int:show_id>/generate-slots', methods=['POST'])
-@admin_required
+@manage_shows_required
 def generate_show_slots(show_id):
     show = Show.query.get_or_404(show_id)
 
@@ -240,7 +246,7 @@ def generate_show_slots(show_id):
 
 
 @auditions_bp.route('/admin/shows/<int:show_id>/add-slots', methods=['POST'])
-@admin_required
+@manage_shows_required
 def add_show_slots(show_id):
     show = Show.query.get_or_404(show_id)
 
@@ -272,7 +278,7 @@ def add_show_slots(show_id):
 
 
 @auditions_bp.route('/admin/slots/<int:slot_id>/toggle-block', methods=['POST'])
-@admin_required
+@manage_shows_required
 def toggle_slot_block(slot_id):
     """Block an open slot or unblock a reserved slot."""
     slot = AuditionSlot.query.get_or_404(slot_id)
@@ -298,7 +304,7 @@ def toggle_slot_block(slot_id):
 
 
 @auditions_bp.route('/admin/shows/<int:show_id>/status', methods=['POST'])
-@admin_required
+@manage_shows_required
 def update_show_status(show_id):
     show = Show.query.get_or_404(show_id)
     new_status = request.form.get('status')
@@ -312,7 +318,7 @@ def update_show_status(show_id):
 
 
 @auditions_bp.route('/admin/shows/<int:show_id>/delete', methods=['POST'])
-@admin_required
+@manage_shows_required
 def delete_show(show_id):
     show = Show.query.get_or_404(show_id)
     title = show.title
@@ -333,7 +339,7 @@ def delete_show(show_id):
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>')
-@viewer_required
+@read_admin_required
 def registration_detail(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     if not user_can_access_show(registration.show_id):
@@ -363,7 +369,7 @@ def registration_detail(reg_id):
 
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>/change-slot', methods=['POST'])
-@admin_required
+@manage_shows_required
 def admin_change_slot(reg_id):
     registration = Registration.query.get_or_404(reg_id)
 
@@ -408,7 +414,7 @@ def admin_change_slot(reg_id):
 
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>/status', methods=['POST'])
-@admin_required
+@evaluate_required
 def update_registration_status(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     new_status = request.form.get('status')
@@ -441,7 +447,7 @@ def update_registration_status(reg_id):
 
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>/notes', methods=['POST'])
-@admin_required
+@evaluate_required
 def update_registration_notes(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     registration.notes = request.form.get('notes', '').strip() or None
@@ -451,7 +457,7 @@ def update_registration_notes(reg_id):
 
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>/audition-notes', methods=['POST'])
-@admin_required
+@evaluate_required
 def update_audition_notes(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     registration.audition_notes = request.form.get('audition_notes', '').strip() or None
@@ -461,7 +467,7 @@ def update_audition_notes(reg_id):
 
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>/upload-photo', methods=['POST'])
-@admin_required
+@evaluate_required
 def upload_headshot(reg_id):
     """Upload or replace a headshot photo for a registration."""
     import os
@@ -500,7 +506,7 @@ def upload_headshot(reg_id):
 
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>/tags', methods=['POST'])
-@admin_required
+@evaluate_required
 def update_registration_tags(reg_id):
     registration = Registration.query.get_or_404(reg_id)
 
@@ -515,7 +521,7 @@ def update_registration_tags(reg_id):
 
 
 @auditions_bp.route('/admin/tags/create', methods=['POST'])
-@admin_required
+@evaluate_required
 def create_tag():
     """Create a new tag via AJAX or form submit."""
     name = request.form.get('name', '').strip().lower()
@@ -543,7 +549,7 @@ def create_tag():
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/shows/<int:show_id>/register', methods=['GET', 'POST'])
-@admin_required
+@manage_shows_required
 def admin_register_actor(show_id):
     """Admin-side registration: find/create an actor and register them for a show."""
     show = Show.query.get_or_404(show_id)
@@ -663,7 +669,7 @@ def admin_register_actor(show_id):
 
 
 @auditions_bp.route('/admin/admins/<int:user_id>/shows', methods=['POST'])
-@admin_required
+@manage_shows_required
 def set_admin_shows(user_id):
     """Super admin: assign which shows a restricted admin can access."""
     if not current_user.is_super_admin:
@@ -685,7 +691,7 @@ def set_admin_shows(user_id):
 
 
 @auditions_bp.route('/admin/actors/lookup')
-@admin_required
+@manage_shows_required
 def lookup_actor():
     """AJAX: look up an actor by email and return their profile fields as JSON."""
     email = request.args.get('email', '').strip().lower()
@@ -716,7 +722,7 @@ VOLUNTEER_INTEREST_FIELDS = [
 
 
 @auditions_bp.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
-@admin_required
+@manage_shows_required
 def edit_actor(user_id):
     user = User.query.get_or_404(user_id)
     back = request.args.get('back') or request.form.get('back', '')
@@ -780,7 +786,7 @@ def edit_actor(user_id):
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>/send-callback', methods=['POST'])
-@admin_required
+@evaluate_required
 def send_callback(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     callback_details = request.form.get('callback_details', '').strip()
@@ -795,7 +801,7 @@ def send_callback(reg_id):
 
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>/request-materials', methods=['POST'])
-@admin_required
+@evaluate_required
 def request_materials(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     items = request.form.getlist('items')
@@ -809,7 +815,7 @@ def request_materials(reg_id):
 
 
 @auditions_bp.route('/admin/registrations/<int:reg_id>/resend-confirmation', methods=['POST'])
-@admin_required
+@manage_shows_required
 def resend_confirmation(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     send_confirmation_email(registration)

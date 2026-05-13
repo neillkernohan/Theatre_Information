@@ -50,7 +50,7 @@
     </div>
     <!-- Admin actions -->
     <div class="d-flex gap-2 flex-wrap">
-        {% if current_user.role == 'admin' %}
+        {% if current_user.can_evaluate %}
         <!-- Quick status change -->
         <div class="dropdown">
             <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
@@ -70,6 +70,8 @@
                 {% endfor %}
             </ul>
         </div>
+        {% endif %}
+        {% if current_user.can_manage_shows %}
         {% if reg.status not in ('cancelled', 'waitlisted') %}
         <button type="button" class="btn btn-outline-secondary"
                 data-bs-toggle="modal" data-bs-target="#changeSlotModal">
@@ -82,7 +84,7 @@
             <i class="bi bi-x-circle"></i> Cancel Registration
         </button>
         {% endif %}
-        {% endif %}{# end admin-only actions #}
+        {% endif %}{# end manage_shows actions #}
     </div>
 </div>
 
@@ -94,7 +96,7 @@
         <div class="card section-card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong><i class="bi bi-person"></i> Contact Information</strong>
-                {% if current_user.role == 'admin' %}
+                {% if current_user.can_manage_shows %}
                 <a href="{{ url_for('auditions.edit_actor', user_id=reg.user.id, back=reg.id) }}"
                    class="btn btn-sm btn-outline-dark">
                     <i class="bi bi-pencil"></i> Edit Profile
@@ -290,7 +292,7 @@
     <!-- RIGHT COLUMN: Admin actions -->
     <div class="col-lg-5">
 
-        {% if current_user.role == 'admin' %}
+        {% if current_user.can_evaluate %}
 
         <!-- Photo -->
         <div class="card section-card shadow-sm">
@@ -428,6 +430,9 @@
             </div>
         </div>
 
+        {% endif %}{# end evaluate right column #}
+
+        {% if current_user.can_manage_shows %}
         <!-- Resend Confirmation -->
         <div class="card section-card shadow-sm">
             <div class="card-header"><strong><i class="bi bi-envelope-arrow-up"></i> Email Actions</strong></div>
@@ -440,8 +445,7 @@
                 </form>
             </div>
         </div>
-
-        {% endif %}{# end admin-only right column #}
+        {% endif %}{# end manage_shows right column #}
 
         <!-- Registered -->
         <p class="text-muted small text-end mt-2">

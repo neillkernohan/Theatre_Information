@@ -28,7 +28,7 @@
     <p class="mb-4">Find your next role. Register online, pick your audition time, and hear back fast.</p>
 
     {% if current_user.is_authenticated %}
-        {% if current_user.role == 'admin' %}
+        {% if current_user.can_read_admin %}
         <a href="{{ url_for('auditions.admin_dashboard') }}" class="btn btn-light me-2">
             <i class="bi bi-speedometer2"></i> Admin Dashboard
         </a>

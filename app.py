@@ -289,11 +289,11 @@ try:
     @click.option('--first-name', prompt='First name')
     @click.option('--last-name', prompt='Last name')
     def create_viewer(email, first_name, last_name):
-        """Create a viewer (read-only) user. Must be a @theatreaurora.com address; signs in via Google."""
+        """Legacy alias — creates a Stage Manager (read-only) user. Use create-staff instead."""
         with app.app_context():
             email = email.lower().strip()
             if not email.endswith('@theatreaurora.com'):
-                click.echo('Error: Viewer accounts must use a @theatreaurora.com email address.')
+                click.echo('Error: Staff accounts must use a @theatreaurora.com email address.')
                 return
             if User.query.filter_by(email=email).first():
                 click.echo(f'Error: User with email {email} already exists.')
@@ -302,11 +302,74 @@ try:
                 email=email,
                 first_name=first_name.strip(),
                 last_name=last_name.strip(),
-                role='viewer'
+                role='stage_manager'
             )
             db.session.add(user)
             db.session.commit()
-            click.echo(f'Viewer user {first_name} {last_name} ({email}) created. They can sign in with Google.')
+            click.echo(f'Stage Manager {first_name} {last_name} ({email}) created. They can sign in with Google.')
+
+    @app.cli.command('create-staff')
+    @click.option('--email', prompt='Staff email (@theatreaurora.com)')
+    @click.option('--first-name', prompt='First name')
+    @click.option('--last-name', prompt='Last name')
+    @click.option('--role', prompt='Role',
+                  type=click.Choice(['super_admin', 'auditions_creator', 'director',
+                                     'producer', 'stage_manager'], case_sensitive=False),
+                  help='Staff role')
+    def create_staff(email, first_name, last_name, role):
+        """Create a staff user with a specific role. Must be a @theatreaurora.com address; signs in via Google.
+
+        Roles and their permissions:
+          super_admin       — full access, manage users and all shows
+          auditions_creator — create/edit shows, manage slots & registrations
+          director          — evaluate auditions (notes, photos, tags, callbacks, status)
+          producer          — download Excel/Word exports
+          stage_manager     — view-only access to registrations
+        """
+        with app.app_context():
+            email = email.lower().strip()
+            if not email.endswith('@theatreaurora.com'):
+                click.echo('Error: Staff accounts must use a @theatreaurora.com email address.')
+                return
+            if User.query.filter_by(email=email).first():
+                click.echo(f'Error: User with email {email} already exists.')
+                return
+            user = User(
+                email=email,
+                first_name=first_name.strip(),
+                last_name=last_name.strip(),
+                role=role.lower()
+            )
+            db.session.add(user)
+            db.session.commit()
+            role_labels = {
+                'super_admin': 'Super Admin',
+                'auditions_creator': 'Auditions Creator',
+                'director': 'Director',
+                'producer': 'Producer',
+                'stage_manager': 'Stage Manager',
+            }
+            click.echo(
+                f'{role_labels.get(role.lower(), role)} {first_name} {last_name} ({email}) created. '
+                f'They can sign in with Google.'
+            )
+
+    @app.cli.command('set-role')
+    @click.option('--email', prompt='User email')
+    @click.option('--role', prompt='New role',
+                  type=click.Choice(['super_admin', 'auditions_creator', 'director',
+                                     'producer', 'stage_manager', 'actor'], case_sensitive=False))
+    def set_role(email, role):
+        """Change an existing user's role."""
+        with app.app_context():
+            user = User.query.filter_by(email=email.lower().strip()).first()
+            if not user:
+                click.echo(f'Error: No user found with email {email}.')
+                return
+            old_role = user.role
+            user.role = role.lower()
+            db.session.commit()
+            click.echo(f'Updated {user.first_name} {user.last_name}: {old_role} → {user.role}')
 
     @app.cli.command('reset-password')
     @click.option('--email', prompt='User email')
