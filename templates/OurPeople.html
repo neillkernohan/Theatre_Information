@@ -176,6 +176,10 @@
         <!-- Quick Select & Email List -->
         <div class="mb-3">
             <button class="btn btn-sm btn-outline-success" id="volunteerToggleBtn" onclick="toggleVolunteers()">Select All Volunteers</button>
+            <button class="btn btn-sm btn-outline-secondary ms-2" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#unsubscribedSection">
+                Unsubscribed People ({{ unsubscribed_list | length }})
+            </button>
         </div>
 
         <div id="emailListContainer">
@@ -240,11 +244,7 @@
         </div>
 
         <!-- Unsubscribed People (admin) -->
-        <div class="mt-4">
-            <button class="btn btn-sm btn-outline-secondary" type="button"
-                    data-bs-toggle="collapse" data-bs-target="#unsubscribedSection">
-                Unsubscribed People ({{ unsubscribed_list | length }})
-            </button>
+        <div class="mt-2 mb-3">
             <div class="collapse mt-2" id="unsubscribedSection">
                 {% if unsubscribed_list %}
                 <table class="table table-sm table-bordered" style="max-width: 600px;">
