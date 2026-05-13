@@ -668,36 +668,43 @@ def admin_register_actor(show_id):
     )
 
 
-@auditions_bp.route('/admin/admins/<int:user_id>/update', methods=['POST'])
+@auditions_bp.route('/admin/admins/update-all', methods=['POST'])
 @manage_shows_required
-def update_staff_member(user_id):
-    """Super admin: update a staff user's role and show access in one save."""
+def update_all_staff():
+    """Super admin: save role and show access for all staff in one submission."""
     if not current_user.is_super_admin:
         abort(403)
-    user = User.query.get_or_404(user_id)
 
     valid_roles = ('super_admin', 'auditions_creator', 'director', 'producer',
                    'stage_manager', 'no_rights')
-    new_role = request.form.get('role', '').strip()
-    if new_role not in valid_roles:
-        abort(400)
+    staff_roles = ('super_admin', 'admin', 'auditions_creator', 'director',
+                   'producer', 'stage_manager', 'viewer', 'no_rights')
+    staff_users = User.query.filter(
+        User.role.in_(staff_roles),
+        User.id != current_user.id
+    ).all()
 
-    old_role = user.role_display
-    user.role = new_role
+    changes = []
+    for user in staff_users:
+        new_role = request.form.get(f'role_{user.id}', '').strip()
+        if new_role not in valid_roles:
+            continue
 
-    show_ids = request.form.getlist('show_ids', type=int)
-    user.managed_shows = show_ids if show_ids else None
+        old_role = user.role_display
+        user.role = new_role
+
+        show_ids = request.form.getlist(f'show_ids_{user.id}', type=int)
+        user.managed_shows = show_ids if show_ids else None
+
+        if old_role != user.role_display:
+            changes.append(f'{user.first_name} {user.last_name} → {user.role_display}')
+
     db.session.commit()
 
-    parts = []
-    if old_role != user.role_display:
-        parts.append(f'role changed to {user.role_display}')
-    if user.managed_shows:
-        parts.append(f'restricted to {len(show_ids)} show(s)')
+    if changes:
+        flash('Changes saved. Role updates: ' + '; '.join(changes), 'success')
     else:
-        parts.append('full show access')
-
-    flash(f'{user.first_name} {user.last_name}: {", ".join(parts)}.', 'success')
+        flash('Changes saved.', 'success')
     return redirect(url_for('auditions.admin_dashboard'))
 
 
