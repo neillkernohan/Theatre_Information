@@ -314,7 +314,7 @@ try:
     @click.option('--last-name', prompt='Last name')
     @click.option('--role', prompt='Role',
                   type=click.Choice(['super_admin', 'auditions_creator', 'director',
-                                     'producer', 'stage_manager'], case_sensitive=False),
+                                     'producer', 'stage_manager', 'no_rights'], case_sensitive=False),
                   help='Staff role')
     def create_staff(email, first_name, last_name, role):
         """Create a staff user with a specific role. Must be a @theatreaurora.com address; signs in via Google.
@@ -325,6 +325,7 @@ try:
           director          — evaluate auditions (notes, photos, tags, callbacks, status)
           producer          — download Excel/Word exports
           stage_manager     — view-only access to registrations
+          no_rights         — can log in but has no access (disabled)
         """
         with app.app_context():
             email = email.lower().strip()
@@ -358,7 +359,7 @@ try:
     @click.option('--email', prompt='User email')
     @click.option('--role', prompt='New role',
                   type=click.Choice(['super_admin', 'auditions_creator', 'director',
-                                     'producer', 'stage_manager', 'actor'], case_sensitive=False))
+                                     'producer', 'stage_manager', 'actor', 'no_rights'], case_sensitive=False))
     def set_role(email, role):
         """Change an existing user's role."""
         with app.app_context():

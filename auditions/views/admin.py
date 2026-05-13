@@ -698,7 +698,7 @@ def set_staff_role(user_id):
         abort(403)
     user = User.query.get_or_404(user_id)
 
-    valid_roles = ('super_admin', 'auditions_creator', 'director', 'producer', 'stage_manager')
+    valid_roles = ('super_admin', 'auditions_creator', 'director', 'producer', 'stage_manager', 'no_rights')
     new_role = request.form.get('role', '').strip()
     if new_role not in valid_roles:
         abort(400)

@@ -114,7 +114,8 @@
                                     ('auditions_creator', 'Auditions Creator'),
                                     ('director',          'Director'),
                                     ('producer',          'Producer'),
-                                    ('stage_manager',     'Stage Manager')
+                                    ('stage_manager',     'Stage Manager'),
+                                    ('no_rights',         'No Rights')
                                 ] %}
                                 <option value="{{ r }}" {{ 'selected' if admin_user.role == r }}>{{ label }}</option>
                                 {% endfor %}

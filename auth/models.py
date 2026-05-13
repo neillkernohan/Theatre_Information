@@ -24,9 +24,10 @@ class User(UserMixin, db.Model):
     role = db.Column(
         db.Enum(
             'super_admin', 'auditions_creator', 'director', 'producer', 'stage_manager',
-            'admin',   # legacy alias for super_admin
-            'viewer',  # legacy alias for stage_manager
+            'admin',     # legacy alias for super_admin
+            'viewer',    # legacy alias for stage_manager
             'actor',
+            'no_rights', # disabled — can log in but has no access
             name='user_role'
         ),
         nullable=False,
@@ -109,6 +110,7 @@ class User(UserMixin, db.Model):
             'stage_manager': 'Stage Manager',
             'viewer': 'Stage Manager',
             'actor': 'Actor',
+            'no_rights': 'No Rights',
         }
         return labels.get(self.role, self.role.replace('_', ' ').title())
 
