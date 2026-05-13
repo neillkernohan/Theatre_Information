@@ -4,7 +4,7 @@ from flask import send_file, abort
 from flask_login import login_required, current_user
 from functools import wraps
 from auditions import auditions_bp
-from auditions.models import Registration, Show, User
+from auditions.models import Registration, Show, User, AuditionSlot
 from auth.decorators import export_required
 
 
@@ -197,9 +197,21 @@ def export_docx(show_id):
         abort(500, 'python-docx is not installed.')
 
     show = Show.query.get_or_404(show_id)
-    registrations = Registration.query.filter_by(show_id=show.id).filter(
-        Registration.status != 'cancelled'
-    ).order_by(Registration.status, Registration.created_at).all()
+    registrations = (
+        Registration.query
+        .join(Registration.slot)
+        .filter(Registration.show_id == show.id)
+        .filter(Registration.status != 'cancelled')
+        .order_by(AuditionSlot.date, AuditionSlot.start_time, Registration.created_at)
+        .all()
+    )
+    # Also include waitlisted (no slot) at the end
+    waitlisted = Registration.query.filter_by(
+        show_id=show.id, status='waitlisted'
+    ).filter(Registration.slot_id == None).order_by(Registration.created_at).all()  # noqa: E711
+    # Remove any waitlisted already caught by the join (those with a slot)
+    slotted_ids = {r.id for r in registrations}
+    registrations = registrations + [r for r in waitlisted if r.id not in slotted_ids]
 
     doc = Document()
 
