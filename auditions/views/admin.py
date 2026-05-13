@@ -13,14 +13,49 @@ import json
 
 
 # ---------------------------------------------------------------------------
+# Access helpers
+# ---------------------------------------------------------------------------
+
+def user_can_access_show(show_id):
+    """Return True if the current user is allowed to access a show."""
+    if current_user.role == 'viewer':
+        return True  # viewers are read-only but see all shows
+    if current_user.role == 'admin':
+        if not current_user.managed_shows:
+            return True  # super admin — all shows
+        return show_id in current_user.managed_shows
+    return False
+
+
+def shows_for_current_user():
+    """Return the Show queryset filtered to what the current user may see."""
+    if current_user.role == 'admin' and current_user.managed_shows:
+        return Show.query.filter(Show.id.in_(current_user.managed_shows))
+    return Show.query
+
+
+# ---------------------------------------------------------------------------
 # Dashboard & Show Management
 # ---------------------------------------------------------------------------
 
 @auditions_bp.route('/admin/dashboard')
 @viewer_required
 def admin_dashboard():
-    shows = Show.query.order_by(Show.created_at.desc()).all()
-    return render_template('auditions/admin/dashboard.html', shows=shows)
+    shows = shows_for_current_user().order_by(Show.created_at.desc()).all()
+
+    # Admin management data — super admins only
+    all_admins = None
+    all_shows = None
+    if current_user.is_super_admin:
+        all_admins = User.query.filter(User.role == 'admin').order_by(User.last_name).all()
+        all_shows = Show.query.order_by(Show.title).all()
+
+    return render_template(
+        'auditions/admin/dashboard.html',
+        shows=shows,
+        all_admins=all_admins,
+        all_shows=all_shows,
+    )
 
 
 @auditions_bp.route('/admin/shows/new', methods=['GET', 'POST'])
@@ -101,6 +136,8 @@ def edit_show(show_id):
 @auditions_bp.route('/admin/shows/<int:show_id>')
 @viewer_required
 def show_detail(show_id):
+    if not user_can_access_show(show_id):
+        abort(403)
     show = Show.query.get_or_404(show_id)
     slots = AuditionSlot.query.filter_by(show_id=show.id).order_by(
         AuditionSlot.date, AuditionSlot.start_time
@@ -299,6 +336,8 @@ def delete_show(show_id):
 @viewer_required
 def registration_detail(reg_id):
     registration = Registration.query.get_or_404(reg_id)
+    if not user_can_access_show(registration.show_id):
+        abort(403)
     all_tags = Tag.query.order_by(Tag.name).all()
     reg_tag_ids = [t.id for t in registration.tags]
 
@@ -621,6 +660,28 @@ def admin_register_actor(show_id):
         slots=slots,
         slots_by_date=slots_by_date,
     )
+
+
+@auditions_bp.route('/admin/admins/<int:user_id>/shows', methods=['POST'])
+@admin_required
+def set_admin_shows(user_id):
+    """Super admin: assign which shows a restricted admin can access."""
+    if not current_user.is_super_admin:
+        abort(403)
+    user = User.query.get_or_404(user_id)
+    if user.role != 'admin':
+        abort(400)
+
+    show_ids = request.form.getlist('show_ids', type=int)
+    # Empty list = full access (super admin); otherwise restrict
+    user.managed_shows = show_ids if show_ids else None
+    db.session.commit()
+
+    if user.managed_shows:
+        flash(f'{user.first_name} {user.last_name} restricted to {len(show_ids)} show(s).', 'success')
+    else:
+        flash(f'{user.first_name} {user.last_name} now has full access to all shows.', 'success')
+    return redirect(url_for('auditions.admin_dashboard'))
 
 
 @auditions_bp.route('/admin/actors/lookup')

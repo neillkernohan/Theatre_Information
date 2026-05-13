@@ -5,9 +5,18 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Auditions Dashboard</h2>
-    <a href="{{ url_for('auditions.create_show') }}" class="btn btn-dark">
-        <i class="bi bi-plus-lg"></i> New Show
-    </a>
+    <div class="d-flex gap-2">
+        {% if current_user.is_super_admin %}
+        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#manageAdminsModal">
+            <i class="bi bi-people-fill"></i> Manage Admin Access
+        </button>
+        {% endif %}
+        {% if current_user.is_super_admin %}
+        <a href="{{ url_for('auditions.create_show') }}" class="btn btn-dark">
+            <i class="bi bi-plus-lg"></i> New Show
+        </a>
+        {% endif %}
+    </div>
 </div>
 
 {% if shows %}
@@ -58,6 +67,65 @@
     <i class="bi bi-theatre-masks" style="font-size: 3rem; color: #6c757d;"></i>
     <h4 class="mt-3 text-muted">No shows yet</h4>
     <p class="text-muted">Create your first show to start managing auditions.</p>
+</div>
+{% endif %}
+
+{% if current_user.is_super_admin and all_admins %}
+<!-- Manage Admin Access Modal -->
+<div class="modal fade" id="manageAdminsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-people-fill me-2"></i>Manage Admin Show Access</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-4">
+                    By default, all admins can see every show. Tick specific shows to restrict an admin
+                    to only those shows. Leave all unchecked to restore full access.
+                </p>
+                {% for admin_user in all_admins %}
+                {% if admin_user.id != current_user.id %}
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>{{ admin_user.first_name }} {{ admin_user.last_name }}</strong>
+                        <span class="text-muted small">{{ admin_user.email }}</span>
+                        {% if admin_user.is_super_admin %}
+                        <span class="badge bg-dark">Full Access</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">Restricted</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('auditions.set_admin_shows', user_id=admin_user.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="row g-2 mb-3">
+                                {% for show in all_shows %}
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="show_ids" value="{{ show.id }}"
+                                               id="show_{{ admin_user.id }}_{{ show.id }}"
+                                               {{ 'checked' if admin_user.managed_shows and show.id in admin_user.managed_shows }}>
+                                        <label class="form-check-label" for="show_{{ admin_user.id }}_{{ show.id }}">
+                                            {{ show.title }}
+                                            <span class="badge bg-secondary ms-1" style="font-size:0.7rem">{{ show.status }}</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-dark">
+                                <i class="bi bi-save"></i> Save Access for {{ admin_user.first_name }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 </div>
 {% endif %}
 {% endblock %}

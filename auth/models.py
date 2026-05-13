@@ -49,8 +49,16 @@ class User(UserMixin, db.Model):
     past_member = db.Column(db.Boolean)
     hear_about_us = db.Column(db.String(255))
 
+    # NULL = super admin (all shows); [1, 2, ...] = restricted to those show IDs
+    managed_shows = db.Column(db.JSON, nullable=True)
+
     last_login = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def is_super_admin(self):
+        """True if this admin has full access to all shows."""
+        return self.role == 'admin' and not self.managed_shows
 
     registrations = db.relationship('Registration', backref='user', lazy='dynamic')
 
