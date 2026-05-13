@@ -411,6 +411,55 @@ def update_registration_notes(reg_id):
     return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
 
+@auditions_bp.route('/admin/registrations/<int:reg_id>/audition-notes', methods=['POST'])
+@admin_required
+def update_audition_notes(reg_id):
+    registration = Registration.query.get_or_404(reg_id)
+    registration.audition_notes = request.form.get('audition_notes', '').strip() or None
+    db.session.commit()
+    flash('Audition notes saved.', 'success')
+    return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
+
+
+@auditions_bp.route('/admin/registrations/<int:reg_id>/upload-photo', methods=['POST'])
+@admin_required
+def upload_headshot(reg_id):
+    """Upload or replace a headshot photo for a registration."""
+    import os
+    from werkzeug.utils import secure_filename
+    from flask import current_app
+
+    registration = Registration.query.get_or_404(reg_id)
+
+    photo = request.files.get('headshot')
+    if not photo or not photo.filename:
+        flash('No file selected.', 'warning')
+        return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
+
+    allowed = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+    ext = photo.filename.rsplit('.', 1)[-1].lower() if '.' in photo.filename else ''
+    if ext not in allowed:
+        flash('Only JPG, PNG, GIF, or WEBP images are allowed.', 'danger')
+        return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
+
+    upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'headshots')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Delete old file if present
+    if registration.headshot_path:
+        old_path = os.path.join(current_app.root_path, 'static', registration.headshot_path)
+        if os.path.exists(old_path):
+            os.remove(old_path)
+
+    filename = secure_filename(f'reg_{reg_id}_{registration.user.last_name}_{registration.user.first_name}.{ext}')
+    photo.save(os.path.join(upload_dir, filename))
+    registration.headshot_path = f'auditions/uploads/headshots/{filename}'
+    db.session.commit()
+
+    flash('Photo saved.', 'success')
+    return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
+
+
 @auditions_bp.route('/admin/registrations/<int:reg_id>/tags', methods=['POST'])
 @admin_required
 def update_registration_tags(reg_id):

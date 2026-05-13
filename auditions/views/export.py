@@ -48,9 +48,9 @@ def export_xlsx(show_id):
         'Comfortable Performing', 'Equity / ACTRA',
         'Schedule Conflicts', 'Training',
         'Volunteer Interests', 'Video Link',
-        'Tags', 'Notes', 'Registered At'
+        'Tags', 'Admin Notes', 'Audition Notes', 'Registered At'
     ]
-    custom_headers = [f['label'] for f in (show.custom_fields or [])]
+    custom_headers = [f['name'] for f in (show.custom_fields or [])]
     all_headers = base_headers + custom_headers
 
     ws.row_dimensions[1].height = 32
@@ -94,6 +94,7 @@ def export_xlsx(show_id):
             reg.video_link or '',
             tags,
             reg.notes or '',
+            reg.audition_notes or '',
             reg.created_at.strftime('%Y-%m-%d %H:%M'),
         ]
 
@@ -334,11 +335,15 @@ def export_docx(show_id):
             # Custom fields
             for field in (show.custom_fields or []):
                 val = (reg.custom_field_data or {}).get(field['name'], '')
-                add_row(field['label'], val)
+                add_row(field['name'], val)
 
             # Admin notes
             if reg.notes:
                 add_row('Admin Notes', reg.notes)
+
+            # Audition notes
+            if reg.audition_notes:
+                add_row('Audition Notes', reg.audition_notes)
 
             doc.add_paragraph()  # spacer between actors
 

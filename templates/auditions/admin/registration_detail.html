@@ -291,16 +291,59 @@
     <div class="col-lg-5">
 
         {% if current_user.role == 'admin' %}
-        <!-- Notes -->
+
+        <!-- Photo -->
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-camera"></i> Photo</strong></div>
+            <div class="card-body">
+                {% if reg.headshot_path %}
+                <img src="{{ url_for('static', filename=reg.headshot_path) }}"
+                     alt="Headshot" class="img-fluid rounded mb-3"
+                     style="max-height:220px; object-fit:cover; width:100%;">
+                {% endif %}
+                <form method="POST" action="{{ url_for('auditions.upload_headshot', reg_id=reg.id) }}"
+                      enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="input-group input-group-sm">
+                        <input type="file" class="form-control" name="headshot"
+                               accept="image/jpeg,image/png,image/gif,image/webp" required>
+                        <button type="submit" class="btn btn-dark">
+                            <i class="bi bi-upload"></i> {{ 'Replace' if reg.headshot_path else 'Upload' }}
+                        </button>
+                    </div>
+                    <p class="text-muted small mt-1 mb-0">JPG, PNG, GIF or WEBP · max 5 MB</p>
+                </form>
+            </div>
+        </div>
+
+        <!-- Audition Notes -->
+        <div class="card section-card shadow-sm border-warning">
+            <div class="card-header bg-warning bg-opacity-10">
+                <strong><i class="bi bi-pencil-square"></i> Audition Notes</strong>
+                <span class="text-muted small fw-normal ms-2">recorded during the audition</span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('auditions.update_audition_notes', reg_id=reg.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <textarea name="audition_notes" class="form-control mb-2" rows="5"
+                              placeholder="Impressions, strengths, concerns, song choice, movement…">{{ reg.audition_notes or '' }}</textarea>
+                    <button type="submit" class="btn btn-warning btn-sm">
+                        <i class="bi bi-save"></i> Save Audition Notes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Notes -->
         <div class="card section-card shadow-sm">
             <div class="card-header"><strong><i class="bi bi-journal-text"></i> Admin Notes</strong></div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('auditions.update_registration_notes', reg_id=reg.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <textarea name="notes" class="form-control mb-2" rows="4"
-                              placeholder="Add private notes about this actor...">{{ reg.notes or '' }}</textarea>
+                              placeholder="Pre-audition notes, logistics, reminders…">{{ reg.notes or '' }}</textarea>
                     <button type="submit" class="btn btn-dark btn-sm">
-                        <i class="bi bi-save"></i> Save Notes
+                        <i class="bi bi-save"></i> Save Admin Notes
                     </button>
                 </form>
             </div>

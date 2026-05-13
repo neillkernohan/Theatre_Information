@@ -80,7 +80,8 @@ class Registration(db.Model):
     resume_path = db.Column(db.String(500))
     video_link = db.Column(db.String(500))
     custom_field_data = db.Column(db.JSON)
-    notes = db.Column(db.Text)
+    notes = db.Column(db.Text)           # pre-audition admin notes
+    audition_notes = db.Column(db.Text)  # in-the-room notes recorded during the audition
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     tags = db.relationship('Tag', secondary=registration_tags, backref='registrations')
