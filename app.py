@@ -199,9 +199,12 @@ try:
 
     # SQLAlchemy config
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('AUDITIONS_DB_URI')
-    app.config['SQLALCHEMY_BINDS'] = {
-        'inventory': os.getenv('INVENTORY_DB_URI'),
-    }
+    # Only add optional binds when the env var is actually set
+    _binds = {}
+    if os.getenv('INVENTORY_DB_URI'):
+        _binds['inventory'] = os.getenv('INVENTORY_DB_URI')
+    if _binds:
+        app.config['SQLALCHEMY_BINDS'] = _binds
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # File upload config
