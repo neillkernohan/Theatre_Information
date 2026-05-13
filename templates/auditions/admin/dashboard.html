@@ -102,35 +102,28 @@
                         {% endif %}
                     </div>
                     <div class="card-body">
-
-                        <!-- Change Role -->
-                        <form method="POST" action="{{ url_for('auditions.set_staff_role', user_id=admin_user.id) }}"
-                              class="d-flex align-items-center gap-2 mb-3">
+                        <form method="POST" action="{{ url_for('auditions.update_staff_member', user_id=admin_user.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <label class="form-label small mb-0 text-nowrap fw-semibold">Role:</label>
-                            <select name="role" class="form-select form-select-sm" style="max-width:220px">
-                                {% for r, label in [
-                                    ('super_admin',       'Super Admin'),
-                                    ('auditions_creator', 'Auditions Creator'),
-                                    ('director',          'Director'),
-                                    ('producer',          'Producer'),
-                                    ('stage_manager',     'Stage Manager'),
-                                    ('no_rights',         'No Rights')
-                                ] %}
-                                <option value="{{ r }}" {{ 'selected' if admin_user.role == r }}>{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-outline-dark text-nowrap">
-                                <i class="bi bi-person-gear"></i> Change Role
-                            </button>
-                        </form>
 
-                        <hr class="my-2">
+                            <!-- Role -->
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <label class="form-label small mb-0 text-nowrap fw-semibold">Role:</label>
+                                <select name="role" class="form-select form-select-sm" style="max-width:220px">
+                                    {% for r, label in [
+                                        ('super_admin',       'Super Admin'),
+                                        ('auditions_creator', 'Auditions Creator'),
+                                        ('director',          'Director'),
+                                        ('producer',          'Producer'),
+                                        ('stage_manager',     'Stage Manager'),
+                                        ('no_rights',         'No Rights')
+                                    ] %}
+                                    <option value="{{ r }}" {{ 'selected' if admin_user.role == r }}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
 
-                        <!-- Show Access -->
-                        <p class="small text-muted mb-2">Show access (leave all unchecked = all shows):</p>
-                        <form method="POST" action="{{ url_for('auditions.set_admin_shows', user_id=admin_user.id) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <!-- Show Access -->
+                            <p class="small text-muted mb-2">Show access (leave all unchecked = all shows):</p>
                             <div class="row g-2 mb-3">
                                 {% for show in all_shows %}
                                 <div class="col-md-6">
@@ -147,8 +140,9 @@
                                 </div>
                                 {% endfor %}
                             </div>
+
                             <button type="submit" class="btn btn-sm btn-dark">
-                                <i class="bi bi-save"></i> Save Show Access
+                                <i class="bi bi-save"></i> Save Changes for {{ admin_user.first_name }}
                             </button>
                         </form>
                     </div>
