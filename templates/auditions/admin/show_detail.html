@@ -471,17 +471,19 @@
                     <button type="button" class="btn btn-outline-warning" onclick="showEmails('waitlisted', this)">Waitlisted</button>
                 </div>
 
-                <!-- Hidden data -->
+                <!-- Hidden data — only actors with Email Contact OK = Yes -->
                 <div id="emailData" style="display:none"
-                     data-all="{{ all_regs | selectattr('status', 'ne', 'cancelled') | map(attribute='user') | map(attribute='email') | join(', ') }}"
-                     data-confirmed="{{ all_regs | selectattr('status', 'equalto', 'confirmed') | map(attribute='user') | map(attribute='email') | join(', ') }}"
-                     data-callback="{{ all_regs | selectattr('status', 'equalto', 'callback') | map(attribute='user') | map(attribute='email') | join(', ') }}"
-                     data-waitlisted="{{ all_regs | selectattr('status', 'equalto', 'waitlisted') | map(attribute='user') | map(attribute='email') | join(', ') }}">
+                     data-all="{{ all_regs | selectattr('status', 'ne', 'cancelled') | selectattr('user.contact_email_ok') | map(attribute='user') | map(attribute='email') | join(', ') }}"
+                     data-confirmed="{{ all_regs | selectattr('status', 'equalto', 'confirmed') | selectattr('user.contact_email_ok') | map(attribute='user') | map(attribute='email') | join(', ') }}"
+                     data-callback="{{ all_regs | selectattr('status', 'equalto', 'callback') | selectattr('user.contact_email_ok') | map(attribute='user') | map(attribute='email') | join(', ') }}"
+                     data-waitlisted="{{ all_regs | selectattr('status', 'equalto', 'waitlisted') | selectattr('user.contact_email_ok') | map(attribute='user') | map(attribute='email') | join(', ') }}">
                 </div>
 
                 <textarea id="emailBox" class="form-control font-monospace" rows="6" readonly
                           style="font-size:0.85rem"></textarea>
-                <div class="form-text mt-1" id="emailCount"></div>
+                <div class="form-text mt-1" id="emailCount">
+                    Only actors who have <strong>Email Contact OK</strong> set to Yes are included.
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
