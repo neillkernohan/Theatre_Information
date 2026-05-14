@@ -42,6 +42,11 @@
             <i class="bi bi-person-plus"></i> Register Actor
         </a>
         {% endif %}
+        {% if current_user.can_evaluate %}
+        <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#emailAllModal">
+            <i class="bi bi-envelope-fill"></i> Email Auditioners
+        </button>
+        {% endif %}
         {% if current_user.can_export %}
         <!-- Export dropdown -->
         <div class="dropdown">
@@ -376,6 +381,72 @@
             <i class="bi bi-trash"></i> Delete Show
         </button>
     </form>
+</div>
+{% endif %}
+
+<!-- Email All Auditioners Modal -->
+{% if current_user.can_evaluate %}
+<div class="modal fade" id="emailAllModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('auditions.email_all_auditioners', show_id=show.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-envelope-fill me-2"></i>Email Auditioners</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Who to send to -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Send to</label>
+                        <div class="d-flex gap-3 flex-wrap">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="statuses"
+                                       value="confirmed" id="em_confirmed" checked>
+                                <label class="form-check-label" for="em_confirmed">
+                                    <span class="badge bg-success">Confirmed</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="statuses"
+                                       value="callback" id="em_callback" checked>
+                                <label class="form-check-label" for="em_callback">
+                                    <span class="badge bg-primary">Callback</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="statuses"
+                                       value="waitlisted" id="em_waitlisted">
+                                <label class="form-check-label" for="em_waitlisted">
+                                    <span class="badge bg-warning text-dark">Waitlisted</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-text">Only actors with "Email Contact OK" set to Yes will receive the email.</div>
+                    </div>
+                    <!-- Subject -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="emailSubject">Subject</label>
+                        <input type="text" class="form-control" id="emailSubject" name="subject"
+                               placeholder="e.g. Important information about your audition" required>
+                    </div>
+                    <!-- Body -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="emailBody">Message</label>
+                        <textarea class="form-control" id="emailBody" name="body" rows="10"
+                                  placeholder="Write your message here. Each actor will be addressed by their first name." required></textarea>
+                        <div class="form-text">Each email will open with "Hi [First Name]," automatically.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark">
+                        <i class="bi bi-send"></i> Send Email
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endif %}
 

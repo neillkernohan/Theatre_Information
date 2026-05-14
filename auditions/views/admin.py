@@ -888,3 +888,40 @@ def resend_confirmation(reg_id):
     send_confirmation_email(registration)
     flash(f'Confirmation email resent to {registration.user.email}.', 'success')
     return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
+
+
+@auditions_bp.route('/admin/shows/<int:show_id>/email-all', methods=['POST'])
+@evaluate_required
+def email_all_auditioners(show_id):
+    """Send a custom email to all (or filtered) auditioners for a show."""
+    from auditions.email import send_bulk_email
+    show = Show.query.get_or_404(show_id)
+    if not user_can_access_show(show_id):
+        abort(403)
+
+    subject = request.form.get('subject', '').strip()
+    body    = request.form.get('body', '').strip()
+    statuses = request.form.getlist('statuses')  # e.g. ['confirmed', 'waitlisted']
+
+    if not subject or not body:
+        flash('Subject and message are required.', 'danger')
+        return redirect(url_for('auditions.show_detail', show_id=show_id))
+
+    if not statuses:
+        statuses = ['confirmed', 'callback', 'waitlisted']
+
+    registrations = Registration.query.filter_by(show_id=show.id).filter(
+        Registration.status.in_(statuses)
+    ).all()
+
+    if not registrations:
+        flash('No matching registrations to email.', 'warning')
+        return redirect(url_for('auditions.show_detail', show_id=show_id))
+
+    sent, failed = send_bulk_email(show, registrations, subject, body)
+
+    if failed:
+        flash(f'Sent to {sent} auditioner(s). {failed} failed — check server logs.', 'warning')
+    else:
+        flash(f'Email sent successfully to {sent} auditioner(s).', 'success')
+    return redirect(url_for('auditions.show_detail', show_id=show_id))

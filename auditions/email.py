@@ -243,3 +243,51 @@ def send_cancellation_email(registration):
         user=user,
         show=show
     )
+
+
+def send_bulk_email(show, registrations, subject, body):
+    """Send a custom message to a list of registrations.
+
+    Returns a tuple (sent_count, failed_count).
+    """
+    mail = _get_mail()
+    sent = 0
+    failed = 0
+
+    for reg in registrations:
+        user = reg.user
+        if not user.contact_email_ok:
+            continue
+
+        html_body = render_template(
+            'auditions/email/bulk_message.html',
+            registration=reg,
+            user=user,
+            show=show,
+            subject=subject,
+            body=body,
+        )
+
+        msg = Message(subject=subject, recipients=[user.email], html=html_body)
+
+        log = EmailLog(
+            registration_id=reg.id,
+            user_id=user.id,
+            email_type='bulk_message',
+            sent_at=datetime.utcnow(),
+        )
+
+        try:
+            mail.send(msg)
+            log.status = 'sent'
+            sent += 1
+        except Exception as e:
+            log.status = 'failed'
+            log.error_message = str(e)
+            current_app.logger.error(f'Bulk email failed for {user.email}: {e}')
+            failed += 1
+
+        db.session.add(log)
+
+    db.session.commit()
+    return sent, failed

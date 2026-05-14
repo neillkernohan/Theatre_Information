@@ -1,0 +1,17 @@
+{% extends "auditions/email/_base.html" %}
+
+{% block content %}
+<p style="margin: 0 0 12px; color: #495057; font-size: 15px; line-height: 1.6;">
+    Hi {{ user.first_name }},
+</p>
+
+<div style="color: #212529; font-size: 15px; line-height: 1.7; white-space: pre-wrap;">{{ body }}</div>
+
+<hr style="border: none; border-top: 1px solid #dee2e6; margin: 24px 0;">
+
+<p style="margin: 0; color: #6c757d; font-size: 12px; line-height: 1.5;">
+    This message was sent regarding your audition registration for
+    <strong>{{ show.title }}</strong>.
+    If you have questions, please reply to this email.
+</p>
+{% endblock %}
