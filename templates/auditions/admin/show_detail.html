@@ -46,6 +46,9 @@
         <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#emailAllModal">
             <i class="bi bi-envelope-fill"></i> Email Auditioners
         </button>
+        <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#copyEmailsModal">
+            <i class="bi bi-clipboard"></i> Copy Emails
+        </button>
         {% endif %}
         {% if current_user.can_export %}
         <!-- Export dropdown -->
@@ -448,6 +451,72 @@
         </div>
     </div>
 </div>
+{% endif %}
+
+<!-- Copy Emails Modal -->
+{% if current_user.can_evaluate %}
+<div class="modal fade" id="copyEmailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-clipboard me-2"></i>Auditioner Email Addresses</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Filter tabs -->
+                <div class="btn-group mb-3 w-100" role="group">
+                    <button type="button" class="btn btn-outline-dark active" onclick="showEmails('all', this)">All</button>
+                    <button type="button" class="btn btn-outline-success" onclick="showEmails('confirmed', this)">Confirmed</button>
+                    <button type="button" class="btn btn-outline-primary" onclick="showEmails('callback', this)">Callback</button>
+                    <button type="button" class="btn btn-outline-warning" onclick="showEmails('waitlisted', this)">Waitlisted</button>
+                </div>
+
+                <!-- Hidden data -->
+                <div id="emailData" style="display:none"
+                     data-all="{{ all_regs | selectattr('status', 'ne', 'cancelled') | map(attribute='user') | map(attribute='email') | join(', ') }}"
+                     data-confirmed="{{ all_regs | selectattr('status', 'equalto', 'confirmed') | map(attribute='user') | map(attribute='email') | join(', ') }}"
+                     data-callback="{{ all_regs | selectattr('status', 'equalto', 'callback') | map(attribute='user') | map(attribute='email') | join(', ') }}"
+                     data-waitlisted="{{ all_regs | selectattr('status', 'equalto', 'waitlisted') | map(attribute='user') | map(attribute='email') | join(', ') }}">
+                </div>
+
+                <textarea id="emailBox" class="form-control font-monospace" rows="6" readonly
+                          style="font-size:0.85rem"></textarea>
+                <div class="form-text mt-1" id="emailCount"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-dark" onclick="copyEmails()">
+                    <i class="bi bi-clipboard-check"></i> Copy to Clipboard
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function showEmails(status, btn) {
+        const data  = document.getElementById('emailData');
+        const box   = document.getElementById('emailBox');
+        const count = document.getElementById('emailCount');
+        const emails = data.dataset[status] || '';
+        box.value = emails;
+        const n = emails ? emails.split(',').filter(e => e.trim()).length : 0;
+        count.textContent = n + ' address' + (n === 1 ? '' : 'es');
+        document.querySelectorAll('#copyEmailsModal .btn-group button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+    function copyEmails() {
+        const box = document.getElementById('emailBox');
+        box.select();
+        navigator.clipboard.writeText(box.value).then(() => {
+            const btn = document.querySelector('#copyEmailsModal .btn-dark');
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+            setTimeout(() => btn.innerHTML = '<i class="bi bi-clipboard-check"></i> Copy to Clipboard', 2000);
+        });
+    }
+    document.getElementById('copyEmailsModal').addEventListener('shown.bs.modal', function() {
+        showEmails('all', document.querySelector('#copyEmailsModal .btn-group button'));
+    });
+</script>
 {% endif %}
 
 <!-- Generate Slots Modal -->
