@@ -106,8 +106,9 @@ def register_for_show(show_id):
                     flash('That time slot is no longer available. Please choose another.', 'warning')
                     return redirect(url_for('auditions.register_for_show', show_id=show.id))
             else:
-                # No slot chosen — waitlist
-                registration.status = 'waitlisted'
+                # No slot chosen — reject and ask them to pick one
+                flash('Please select an audition time before confirming your registration.', 'danger')
+                return redirect(url_for('auditions.register_for_show', show_id=show.id))
         else:
             # Auto-assign
             assign_slot(show, registration)

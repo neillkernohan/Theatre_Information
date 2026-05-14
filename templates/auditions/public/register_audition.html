@@ -212,13 +212,23 @@
                 </div>
             </div>
 
+            {% if show.allow_choice and available_slots %}
+            <div id="noSlotWarning" class="alert alert-warning mb-3" style="display:none">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Please select an audition time above before confirming.
+            </div>
+            <button type="submit" id="submitBtn" class="btn btn-dark btn-lg w-100" disabled>
+                <i class="bi bi-clock me-2"></i>Select a time to confirm
+            </button>
+            {% else %}
             <button type="submit" class="btn btn-dark btn-lg w-100">
-                {% if available_slots or not show.allow_choice %}
+                {% if not show.allow_choice %}
                 Confirm Registration
                 {% else %}
                 Join Waiting List
                 {% endif %}
             </button>
+            {% endif %}
         </form>
     </div>
 </div>
@@ -230,7 +240,28 @@
         document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('selectedSlotId').value = slotId;
+
+        // Enable submit button and update its label
+        const submitBtn = document.getElementById('submitBtn');
+        const warning   = document.getElementById('noSlotWarning');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Confirm Registration';
+            submitBtn.classList.replace('btn-dark', 'btn-success');
+        }
+        if (warning) warning.style.display = 'none';
     }
+
+    // Final guard: prevent submission if no slot selected
+    document.querySelector('form') && document.querySelector('form').addEventListener('submit', function(e) {
+        const slotInput = document.getElementById('selectedSlotId');
+        if (slotInput && !slotInput.value) {
+            e.preventDefault();
+            const warning = document.getElementById('noSlotWarning');
+            if (warning) warning.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
 
     // Acting experience
     let experiences = [];
