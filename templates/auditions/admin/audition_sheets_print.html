@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audition Sheets — {{ show.title }}</title>
+    <style>
+        /* ---- Screen styles ---- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 10pt; background: #e0e0e0; color: #212529; }
+
+        .toolbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: #212529; color: #fff; padding: 10px 20px;
+            display: flex; align-items: center; gap: 16px;
+        }
+        .toolbar strong { font-size: 1rem; }
+        .toolbar span { color: #adb5bd; font-size: 0.85rem; }
+        .toolbar button {
+            margin-left: auto;
+            background: #fff; color: #212529; border: none;
+            padding: 6px 18px; border-radius: 4px; font-size: 0.9rem;
+            cursor: pointer; font-weight: 600;
+        }
+        .toolbar button:hover { background: #f8f9fa; }
+
+        .pages { padding-top: 56px; }
+
+        .sheet {
+            width: 8.5in;
+            min-height: 11in;
+            margin: 20px auto;
+            background: #fff;
+            padding: 1.2cm 1.8cm 1.2cm 1.8cm;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+            position: relative;
+        }
+
+        /* ---- Layout ---- */
+        .sheet-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .sheet-header-left { flex: 1; }
+        .actor-name { font-size: 20pt; font-weight: 700; line-height: 1.2; }
+        .actor-pronouns { font-size: 11pt; color: #6c757d; font-weight: 400; }
+        .slot-line { font-size: 10pt; color: #444; margin-top: 3px; font-style: italic; }
+        .status-line { margin-top: 4px; }
+        .status-badge {
+            display: inline-block; font-size: 7.5pt; font-weight: 700;
+            padding: 2px 7px; border-radius: 3px; text-transform: uppercase; letter-spacing: .04em;
+        }
+        .status-confirmed { background: #d1fae5; color: #065f46; }
+        .status-callback  { background: #dbeafe; color: #1e40af; }
+        .tag-badge {
+            display: inline-block; font-size: 7pt; padding: 1px 6px;
+            border-radius: 3px; background: #f3f4f6; color: #374151; margin-left: 4px;
+        }
+
+        .photo { width: 120px; flex-shrink: 0; margin-left: 16px; }
+        .photo img { width: 120px; height: 150px; object-fit: cover; border-radius: 4px; border: 1px solid #dee2e6; }
+
+        hr.divider { border: none; border-top: 1px solid #dee2e6; margin: 8px 0; }
+
+        /* ---- Info grid ---- */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 20px; margin-bottom: 8px; }
+        .info-item { font-size: 9pt; line-height: 1.4; }
+        .info-item .lbl { font-weight: 700; color: #495057; }
+
+        .info-full { font-size: 9pt; line-height: 1.4; margin-bottom: 4px; }
+        .info-full .lbl { font-weight: 700; color: #495057; }
+
+        /* ---- Experience table ---- */
+        .section-title { font-size: 8.5pt; font-weight: 700; text-transform: uppercase;
+                         letter-spacing: .05em; color: #495057; margin: 8px 0 4px; }
+        table.exp { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+        table.exp th { background: #f3f4f6; font-weight: 700; padding: 3px 6px;
+                       border: 1px solid #dee2e6; text-align: left; }
+        table.exp td { padding: 3px 6px; border: 1px solid #dee2e6; }
+
+        /* ---- Notes ---- */
+        .notes-section { margin-top: 12px; }
+        .notes-title { font-size: 8.5pt; font-weight: 700; text-transform: uppercase;
+                       letter-spacing: .05em; color: #495057; margin-bottom: 6px; }
+        .notes-existing { font-size: 9pt; background: #fffde7; border: 1px solid #f9c74f;
+                          padding: 6px 8px; border-radius: 4px; }
+        .notes-lines .line {
+            border-bottom: 1px solid #ccc; height: 22px; margin-bottom: 4px;
+        }
+
+        /* ---- Print ---- */
+        @media print {
+            body { background: #fff; }
+            .toolbar { display: none; }
+            .pages { padding-top: 0; }
+            .sheet {
+                width: 100%; min-height: auto; margin: 0; padding: 1cm 1.5cm;
+                box-shadow: none; page-break-after: always;
+            }
+            .sheet:last-child { page-break-after: avoid; }
+        }
+
+        @page { size: letter portrait; margin: 0; }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <strong>Audition Sheets</strong>
+    <span>{{ show.title }} &mdash; {{ registrations | length }} actor{{ 's' if registrations | length != 1 }}</span>
+    <button onclick="window.print()">&#128438; Print / Save PDF</button>
+</div>
+
+<div class="pages">
+{% for reg in registrations %}
+{% set u = reg.user %}
+<div class="sheet">
+
+    <!-- Header -->
+    <div class="sheet-header">
+        <div class="sheet-header-left">
+            <div class="actor-name">
+                {{ u.first_name }} {{ u.last_name }}
+                {% if u.pronouns %}<span class="actor-pronouns">({{ u.pronouns }})</span>{% endif %}
+            </div>
+            <div class="slot-line">
+                {{ show.title }}
+                {% if reg.slot %}
+                &middot; {{ reg.slot.date.strftime('%A, %B %d, %Y') }}
+                &middot; {{ reg.slot.start_time.strftime('%I:%M %p') }}
+                {% endif %}
+            </div>
+            <div class="status-line">
+                <span class="status-badge status-{{ reg.status }}">{{ reg.status }}</span>
+                {% for tag in reg.tags %}
+                <span class="tag-badge">{{ tag.name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% if reg.headshot_path %}
+        <div class="photo">
+            <img src="{{ url_for('static', filename=reg.headshot_path) }}" alt="{{ u.first_name }}">
+        </div>
+        {% endif %}
+    </div>
+
+    <hr class="divider">
+
+    <!-- Core info grid -->
+    <div class="info-grid">
+        <div class="info-item"><span class="lbl">Email:</span> {{ u.email }}</div>
+        <div class="info-item"><span class="lbl">Phone:</span> {{ u.phone or '—' }}</div>
+        <div class="info-item"><span class="lbl">Accept Other Role:</span> {{ 'Yes' if u.accept_other_role else 'No' }}</div>
+        <div class="info-item"><span class="lbl">Equity / ACTRA:</span> {{ 'Yes' if u.equity_or_actra else 'No' }}</div>
+        <div class="info-item"><span class="lbl">Comfortable Performing:</span> {{ 'Yes' if u.comfortable_performing else 'No' }}</div>
+        {% if reg.video_link %}
+        <div class="info-item"><span class="lbl">Video:</span> <a href="{{ reg.video_link }}">{{ reg.video_link | truncate(45) }}</a></div>
+        {% endif %}
+    </div>
+
+    {% if u.roles_auditioning_for %}
+    <div class="info-full"><span class="lbl">Roles Auditioning For:</span> {{ u.roles_auditioning_for }}</div>
+    {% endif %}
+    {% if u.schedule_conflicts %}
+    <div class="info-full"><span class="lbl">Schedule Conflicts:</span> {{ u.schedule_conflicts }}</div>
+    {% endif %}
+    {% if u.training %}
+    <div class="info-full"><span class="lbl">Training:</span> {{ u.training }}</div>
+    {% endif %}
+    {% if u.volunteer_interests %}
+    <div class="info-full"><span class="lbl">Volunteer Interests:</span> {{ u.volunteer_interests | join(', ') }}</div>
+    {% endif %}
+
+    <!-- Custom fields -->
+    {% if show.custom_fields and reg.custom_field_data %}
+    {% for field in show.custom_fields %}
+    {% set val = reg.custom_field_data.get(field.name, '') %}
+    {% if val %}
+    <div class="info-full"><span class="lbl">{{ field.name }}:</span> {{ val }}</div>
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+
+    <!-- Acting experience -->
+    {% if u.acting_experience %}
+    <div class="section-title">Acting Experience</div>
+    <table class="exp">
+        <tr><th>Show</th><th>Role</th><th>Theatre Group</th></tr>
+        {% for exp in u.acting_experience[:6] %}
+        <tr>
+            <td>{{ exp.show or '—' }}</td>
+            <td>{{ exp.role or '—' }}</td>
+            <td>{{ exp.theatre_group or '—' }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    <!-- Admin notes -->
+    {% if reg.notes %}
+    <div class="info-full" style="margin-top:8px">
+        <span class="lbl">Notes:</span> {{ reg.notes }}
+    </div>
+    {% endif %}
+
+    <!-- Audition notes -->
+    {% if can_evaluate %}
+    <div class="notes-section">
+        <div class="notes-title">Audition Notes</div>
+        {% if reg.audition_notes %}
+        <div class="notes-existing">{{ reg.audition_notes }}</div>
+        {% else %}
+        <div class="notes-lines">
+            {% for _ in range(4) %}<div class="line"></div>{% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endfor %}
+</div>
+
+</body>
+</html>

@@ -1,11 +1,20 @@
 import io
+import os
 from datetime import datetime
-from flask import send_file, abort
+from flask import send_file, abort, render_template, current_app
 from flask_login import login_required, current_user
 from functools import wraps
 from auditions import auditions_bp
 from auditions.models import Registration, Show, User, AuditionSlot
-from auth.decorators import export_required
+from auth.decorators import export_required, read_admin_required
+
+
+def _can_access_show(show_id):
+    if not current_user.can_read_admin:
+        return False
+    if not current_user.managed_shows:
+        return True
+    return show_id in current_user.managed_shows
 
 
 # ---------------------------------------------------------------------------
@@ -383,4 +392,272 @@ def export_docx(show_id):
         as_attachment=True,
         download_name=filename,
         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+
+
+# ---------------------------------------------------------------------------
+# Audition Sheets — one page per actor (Word + Print/PDF)
+# ---------------------------------------------------------------------------
+
+def _sheet_registrations(show):
+    """Confirmed + callback registrations in slot date/time order."""
+    return (
+        Registration.query
+        .join(Registration.slot)
+        .filter(Registration.show_id == show.id)
+        .filter(Registration.status.in_(['confirmed', 'callback']))
+        .order_by(AuditionSlot.date, AuditionSlot.start_time, Registration.created_at)
+        .all()
+    )
+
+
+@auditions_bp.route('/admin/shows/<int:show_id>/export/sheets/docx')
+@export_required
+def export_audition_sheets_docx(show_id):
+    """One audition sheet per actor as a Word document."""
+    try:
+        from docx import Document
+        from docx.shared import Pt, RGBColor, Inches, Cm
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+    except ImportError:
+        abort(500, 'python-docx is not installed.')
+
+    show = Show.query.get_or_404(show_id)
+    if not _can_access_show(show_id):
+        abort(403)
+
+    registrations = _sheet_registrations(show)
+    if not registrations:
+        abort(404, 'No confirmed registrations to export.')
+
+    doc = Document()
+
+    # Letter, narrow margins
+    for section in doc.sections:
+        section.page_width  = Inches(8.5)
+        section.page_height = Inches(11)
+        section.top_margin    = Cm(1.5)
+        section.bottom_margin = Cm(1.5)
+        section.left_margin   = Cm(2)
+        section.right_margin  = Cm(2)
+
+    def _shading(cell, hex_color):
+        tc = cell._tc
+        tcPr = tc.get_or_add_tcPr()
+        shd = OxmlElement('w:shd')
+        shd.set(qn('w:val'), 'clear')
+        shd.set(qn('w:color'), 'auto')
+        shd.set(qn('w:fill'), hex_color)
+        tcPr.append(shd)
+
+    def _lv(para, label, value, size=9):
+        """Add a bold label + normal value run to an existing paragraph."""
+        if not value:
+            return False
+        lr = para.add_run(f'{label}: ')
+        lr.bold = True
+        lr.font.size = Pt(size)
+        vr = para.add_run(str(value))
+        vr.font.size = Pt(size)
+        return True
+
+    def _row(label, value, size=9):
+        """Add a new paragraph with bold label + value."""
+        if not value:
+            return
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(1)
+        p.paragraph_format.space_after  = Pt(1)
+        _lv(p, label, value, size)
+
+    for idx, reg in enumerate(registrations):
+        u = reg.user
+
+        # ---- Name + pronouns ----
+        np_ = doc.add_paragraph()
+        np_.paragraph_format.space_before = Pt(0)
+        np_.paragraph_format.space_after  = Pt(2)
+        nr = np_.add_run(f'{u.first_name} {u.last_name}')
+        nr.bold = True
+        nr.font.size = Pt(18)
+        if u.pronouns:
+            pr = np_.add_run(f'  ({u.pronouns})')
+            pr.font.size = Pt(11)
+            pr.font.color.rgb = RGBColor(0x6c, 0x75, 0x7d)
+
+        # ---- Show + slot ----
+        sp = doc.add_paragraph()
+        sp.paragraph_format.space_after = Pt(3)
+        slot_str = ''
+        if reg.slot:
+            slot_str = (f'{reg.slot.date.strftime("%A, %B %d, %Y")}  ·  '
+                        f'{reg.slot.start_time.strftime("%I:%M %p")}')
+        sr = sp.add_run(f'{show.title}' + (f'  ·  {slot_str}' if slot_str else ''))
+        sr.font.size = Pt(10)
+        sr.italic = True
+        sr.font.color.rgb = RGBColor(0x21, 0x25, 0x29)
+
+        # ---- Status + tags ----
+        stp = doc.add_paragraph()
+        stp.paragraph_format.space_after = Pt(6)
+        stat_colours = {'confirmed': RGBColor(0x19, 0x87, 0x54),
+                        'callback':  RGBColor(0x00, 0x63, 0xcc)}
+        str_ = stp.add_run(reg.status.upper())
+        str_.bold = True
+        str_.font.size = Pt(8)
+        if reg.status in stat_colours:
+            str_.font.color.rgb = stat_colours[reg.status]
+        if reg.tags:
+            tr = stp.add_run('   ' + '  '.join(f'[{t.name}]' for t in reg.tags))
+            tr.font.size = Pt(8)
+            tr.font.color.rgb = RGBColor(0x6c, 0x75, 0x7d)
+
+        # ---- Photo + core details (2-col table if photo exists) ----
+        photo_path = None
+        if reg.headshot_path:
+            candidate = os.path.join(current_app.static_folder, reg.headshot_path)
+            if os.path.exists(candidate):
+                photo_path = candidate
+
+        if photo_path:
+            tbl = doc.add_table(rows=1, cols=2)
+            tbl.style = 'Table Grid'
+            lc = tbl.rows[0].cells[0]
+            rc = tbl.rows[0].cells[1]
+            lc.width = Cm(11)
+            rc.width = Cm(5)
+            _shading(lc, 'FFFFFF')
+            _shading(rc, 'FFFFFF')
+
+            try:
+                rp = rc.paragraphs[0]
+                rp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                rp.add_run().add_picture(photo_path, width=Cm(4.5))
+            except Exception:
+                pass
+
+            def _cell_row(label, value):
+                if not value:
+                    return
+                p = lc.add_paragraph()
+                p.paragraph_format.space_before = Pt(1)
+                p.paragraph_format.space_after  = Pt(1)
+                lb = p.add_run(f'{label}: ')
+                lb.bold = True
+                lb.font.size = Pt(9)
+                vr = p.add_run(str(value))
+                vr.font.size = Pt(9)
+
+            lc.paragraphs[0].clear()
+            _cell_row('Email', u.email)
+            _cell_row('Phone', u.phone)
+            _cell_row('Roles', u.roles_auditioning_for)
+            _cell_row('Accept Other Role',    'Yes' if u.accept_other_role else 'No')
+            _cell_row('Equity / ACTRA',       'Yes' if u.equity_or_actra else 'No')
+            _cell_row('Comfortable Performing','Yes' if u.comfortable_performing else 'No')
+            if u.schedule_conflicts:
+                _cell_row('Schedule Conflicts', u.schedule_conflicts)
+            doc.add_paragraph().paragraph_format.space_after = Pt(4)
+        else:
+            _row('Email', u.email)
+            _row('Phone', u.phone)
+            _row('Roles', u.roles_auditioning_for)
+            _row('Accept Other Role',     'Yes' if u.accept_other_role else 'No')
+            _row('Equity / ACTRA',        'Yes' if u.equity_or_actra else 'No')
+            _row('Comfortable Performing','Yes' if u.comfortable_performing else 'No')
+            _row('Schedule Conflicts', u.schedule_conflicts)
+
+        _row('Training', u.training)
+
+        if u.volunteer_interests:
+            _row('Volunteer Interests', ', '.join(u.volunteer_interests))
+
+        # ---- Acting experience ----
+        if u.acting_experience:
+            ep = doc.add_paragraph()
+            ep.paragraph_format.space_before = Pt(6)
+            ep.paragraph_format.space_after  = Pt(2)
+            er = ep.add_run('Acting Experience')
+            er.bold = True
+            er.font.size = Pt(9)
+
+            exp_tbl = doc.add_table(rows=1, cols=3)
+            exp_tbl.style = 'Table Grid'
+            for i, h in enumerate(['Show', 'Role', 'Theatre Group']):
+                c = exp_tbl.rows[0].cells[i]
+                _shading(c, 'F2F3F4')
+                cr = c.paragraphs[0].add_run(h)
+                cr.bold = True
+                cr.font.size = Pt(8)
+            for exp in (u.acting_experience or [])[:6]:
+                row = exp_tbl.add_row()
+                for i, key in enumerate(['show', 'role', 'theatre_group']):
+                    c = row.cells[i]
+                    c.paragraphs[0].add_run(exp.get(key, '') or '').font.size = Pt(8)
+            doc.add_paragraph().paragraph_format.space_after = Pt(4)
+
+        # ---- Custom fields ----
+        for field in (show.custom_fields or []):
+            val = (reg.custom_field_data or {}).get(field['name'], '')
+            _row(field['name'], val)
+
+        # ---- Video link ----
+        _row('Video Link', reg.video_link)
+
+        # ---- Admin notes ----
+        if reg.notes:
+            _row('Notes', reg.notes)
+
+        # ---- Audition notes / blank lines ----
+        if current_user.can_evaluate:
+            anp = doc.add_paragraph()
+            anp.paragraph_format.space_before = Pt(10)
+            anp.paragraph_format.space_after  = Pt(3)
+            anr = anp.add_run('AUDITION NOTES')
+            anr.bold = True
+            anr.font.size = Pt(9)
+
+            if reg.audition_notes:
+                ap2 = doc.add_paragraph(reg.audition_notes)
+                ap2.runs[0].font.size = Pt(9)
+            else:
+                for _ in range(4):
+                    lp = doc.add_paragraph('_' * 90)
+                    lp.paragraph_format.space_before = Pt(3)
+                    lp.paragraph_format.space_after  = Pt(3)
+                    lp.runs[0].font.size = Pt(8)
+                    lp.runs[0].font.color.rgb = RGBColor(0xCC, 0xCC, 0xCC)
+
+        if idx < len(registrations) - 1:
+            doc.add_page_break()
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+
+    filename = (f"{show.title.replace(' ', '_')}_Audition_Sheets_"
+                f"{datetime.now().strftime('%Y%m%d')}.docx")
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+
+
+@auditions_bp.route('/admin/shows/<int:show_id>/export/sheets/print')
+@export_required
+def export_audition_sheets_print(show_id):
+    """Print-optimised HTML audition sheets — use browser Print → Save as PDF."""
+    show = Show.query.get_or_404(show_id)
+    if not _can_access_show(show_id):
+        abort(403)
+    registrations = _sheet_registrations(show)
+    return render_template(
+        'auditions/admin/audition_sheets_print.html',
+        show=show,
+        registrations=registrations,
+        can_evaluate=current_user.can_evaluate,
     )
