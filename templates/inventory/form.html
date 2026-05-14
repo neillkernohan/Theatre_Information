@@ -14,7 +14,7 @@
 
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <form method="post" novalidate>
+                <form method="post" enctype="multipart/form-data" novalidate>
                     {{ form.hidden_tag() }}
 
                     <div class="row g-3">
@@ -73,6 +73,25 @@
                             {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=2, placeholder="Internal notes (condition, history, etc.)") }}
                             {% for e in form.notes.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                         </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">{{ form.image.label.text }}</label>
+                            {% if editing and item.image_path %}
+                            <div class="mb-2">
+                                <img src="{{ url_for('static', filename=item.image_path) }}"
+                                     alt="{{ item.name }}"
+                                     class="rounded border"
+                                     style="max-height:200px; max-width:100%; object-fit:contain;">
+                                <div class="form-text">Upload a new photo to replace this one.</div>
+                            </div>
+                            {% endif %}
+                            {{ form.image(class="form-control" + (" is-invalid" if form.image.errors else ""), accept="image/*", id="image-input") }}
+                            {% for e in form.image.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                            <div class="form-text">JPG, PNG, GIF or WEBP. Optional.</div>
+                            <div id="image-preview-wrap" class="mt-2 d-none">
+                                <img id="image-preview" src="" alt="Preview" class="rounded border" style="max-height:200px; max-width:100%; object-fit:contain;">
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
@@ -102,6 +121,22 @@ function fetchSuggestedCode() {
 if (suggestBtn) {
     suggestBtn.addEventListener('click', fetchSuggestedCode);
     categorySelect.addEventListener('change', fetchSuggestedCode);
+}
+
+const imageInput = document.getElementById('image-input');
+const imagePreview = document.getElementById('image-preview');
+const imagePreviewWrap = document.getElementById('image-preview-wrap');
+if (imageInput) {
+    imageInput.addEventListener('change', function () {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                imagePreview.src = e.target.result;
+                imagePreviewWrap.classList.remove('d-none');
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
 }
 </script>
 {% endblock %}

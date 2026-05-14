@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, SelectField, IntegerField, TextAreaField, SubmitField
 from wtforms.validators import DataRequired, Length, Optional, NumberRange
 
@@ -22,4 +23,5 @@ class InventoryItemForm(FlaskForm):
     ], validators=[DataRequired()])
     description = TextAreaField('Description', validators=[Optional()])
     notes = TextAreaField('Notes', validators=[Optional()])
+    image = FileField('Photo', validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png', 'gif', 'webp'], 'Images only.')])
     submit = SubmitField('Save')

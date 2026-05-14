@@ -1,8 +1,30 @@
-from flask import render_template, redirect, url_for, flash, request
+import os
+from flask import render_template, redirect, url_for, flash, request, current_app
+from werkzeug.utils import secure_filename
 from inventory import inventory_bp
 from inventory.models import db, InventoryItem, generate_item_code
 from inventory.forms import InventoryItemForm
 from auth.decorators import admin_required
+
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+
+
+def _save_image(file, item_id):
+    """Save an uploaded image and return the relative static path."""
+    ext = file.filename.rsplit('.', 1)[-1].lower()
+    filename = secure_filename(f'item_{item_id}.{ext}')
+    upload_dir = os.path.join(current_app.root_path, 'static', 'inventory', 'uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+    file.save(os.path.join(upload_dir, filename))
+    return f'inventory/uploads/{filename}'
+
+
+def _delete_image(image_path):
+    """Delete an image file from disk if it exists."""
+    if image_path:
+        full_path = os.path.join(current_app.root_path, 'static', image_path)
+        if os.path.exists(full_path):
+            os.remove(full_path)
 
 
 CATEGORY_LABELS = {
@@ -80,6 +102,9 @@ def add_item():
                 notes=form.notes.data.strip() if form.notes.data else None,
             )
             db.session.add(item)
+            db.session.flush()  # get item.id before commit
+            if form.image.data and form.image.data.filename:
+                item.image_path = _save_image(form.image.data, item.id)
             db.session.commit()
             flash(f'Item "{item.name}" ({item.item_code}) added.', 'success')
             return redirect(url_for('inventory.list_items'))
@@ -110,6 +135,9 @@ def edit_item(item_id):
             item.status = form.status.data
             item.description = form.description.data.strip() if form.description.data else None
             item.notes = form.notes.data.strip() if form.notes.data else None
+            if form.image.data and form.image.data.filename:
+                _delete_image(item.image_path)
+                item.image_path = _save_image(form.image.data, item.id)
             db.session.commit()
             flash(f'Item "{item.name}" updated.', 'success')
             return redirect(url_for('inventory.list_items'))
@@ -123,6 +151,7 @@ def delete_item(item_id):
     item = InventoryItem.query.get_or_404(item_id)
 
     if request.method == 'POST':
+        _delete_image(item.image_path)
         db.session.delete(item)
         db.session.commit()
         flash(f'Item "{item.name}" ({item.item_code}) deleted.', 'success')

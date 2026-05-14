@@ -258,7 +258,25 @@ try:
         with app.app_context():
             db.create_all(bind_key='inventory')
         click.echo('Inventory database tables created.')
-        click.echo('Auditions database tables created.')
+
+    @app.cli.command('upgrade-inventory-db')
+    def upgrade_inventory_db():
+        """Add new columns to inventory tables (safe to re-run)."""
+        from sqlalchemy import text
+        with app.app_context():
+            engine = db.engines['inventory']
+            with engine.connect() as conn:
+                try:
+                    conn.execute(text(
+                        'ALTER TABLE inventory_items ADD COLUMN image_path VARCHAR(500)'
+                    ))
+                    conn.commit()
+                    click.echo('Added image_path column.')
+                except Exception as e:
+                    if 'Duplicate column' in str(e):
+                        click.echo('image_path column already exists — skipped.')
+                    else:
+                        raise
 
     @app.cli.command('create-admin')
     @click.option('--email', prompt='Admin email')

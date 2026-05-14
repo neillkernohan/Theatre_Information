@@ -36,6 +36,7 @@ class InventoryItem(db.Model):
     )
     description = db.Column(db.Text)
     notes = db.Column(db.Text)
+    image_path = db.Column(db.String(500))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
