@@ -325,6 +325,11 @@
                             <small class="text-muted d-block">{{ reg.user.pronouns }}</small>
                             {% endif %}
                             <small class="text-muted d-block">{{ reg.user.email }}</small>
+                            {% if reg.user.contact_email_ok %}
+                            <small class="text-success d-block"><i class="bi bi-envelope-check-fill"></i> Can contact</small>
+                            {% else %}
+                            <small class="text-danger d-block"><i class="bi bi-envelope-x-fill"></i> No contact</small>
+                            {% endif %}
                         </td>
                         <td>
                             {% if reg.status == 'confirmed' %}
