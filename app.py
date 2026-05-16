@@ -538,9 +538,18 @@ def SeasonTotals():
     )
     cursor = db.cursor()
 
+    # Load available seasons from the DB first so we can use them as the default
+    seasons_cursor = db.cursor()
+    seasons_cursor.execute(
+        "SELECT DATE_FORMAT(Season, '%Y-%m-%d') AS s FROM Theatre_Information.Ticket_Info GROUP BY Season ORDER BY Season DESC"
+    )
+    seasons = [row[0] for row in seasons_cursor.fetchall()]
+
     this_season = request.args.get('this_season', type=str)
-    if this_season is None:
-        return redirect(url_for('SeasonTotals', this_season=select_season()))
+    if this_season is None or this_season not in seasons:
+        # Default to the most recent season actually in the database
+        if seasons:
+            return redirect(url_for('SeasonTotals', this_season=seasons[0]))
 
     shows_only = 1 if request.args.get('showsOnly', 'false') == 'true' else 0
 
@@ -550,12 +559,6 @@ def SeasonTotals():
     )
     update_row = update_cursor.fetchone()
     formatted_update = update_row[0].strftime('%B %-d, %Y at %-I:%M %p') if update_row else 'Not available'
-
-    seasons_cursor = db.cursor()
-    seasons_cursor.execute(
-        "SELECT DATE_FORMAT(Season, '%Y-%m-%d') AS s FROM Theatre_Information.Ticket_Info GROUP BY Season ORDER BY Season DESC"
-    )
-    seasons = [row[0] for row in seasons_cursor.fetchall()]
 
     cursor.callproc('GetSeasonShowTotals', (this_season, shows_only))
     for result in cursor.stored_results():
