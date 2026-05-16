@@ -540,7 +540,7 @@ def SeasonTotals():
 
     this_season = request.args.get('this_season', type=str)
     if this_season is None:
-        this_season = select_season()
+        return redirect(url_for('SeasonTotals', this_season=select_season()))
 
     shows_only = 1 if request.args.get('showsOnly', 'false') == 'true' else 0
 
