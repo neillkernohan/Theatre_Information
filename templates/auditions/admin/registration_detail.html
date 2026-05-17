@@ -10,6 +10,13 @@
     .tag-badge { font-size: 0.8rem; padding: 4px 10px; }
     .yes-badge { background-color: #198754; color: white; }
     .no-badge { background-color: #6c757d; color: white; }
+    /* Scoring card */
+    .score-section-title { letter-spacing:.04em; color:#6f42c1; font-size:0.75rem; }
+    .score-item { margin-bottom: 0.6rem; }
+    .score-item label { font-size: 0.8rem; margin-bottom: 1px; }
+    .score-val { font-size: 0.9rem; font-weight: 700; min-width: 1.8rem; text-align: right; }
+    .form-range { height: 1.1rem; }
+    .score-cat-badge { font-size: 0.75rem; }
 </style>
 {% endblock %}
 
@@ -294,6 +301,225 @@
 
         {% if current_user.can_evaluate %}
 
+        <!-- ===== AUDITION SCORES ===== -->
+        {% set s = reg.score %}
+        <div class="card section-card shadow-sm" style="border-color:#6f42c1;">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                 style="background:rgba(111,66,193,.07);">
+                <strong><i class="bi bi-clipboard2-data"></i> Audition Scores</strong>
+                <span id="grandTotalBadge" class="badge fs-6" style="background:#6f42c1;">— / 160</span>
+            </div>
+            <div class="card-body py-2">
+                {% if s and s.scored_at %}
+                <p class="text-muted small mb-2">
+                    <i class="bi bi-clock-history me-1"></i>
+                    Last saved {{ s.scored_at.strftime('%b %d, %Y at %I:%M %p') }}{% if s.scored_by %} · {{ s.scored_by.first_name }} {{ s.scored_by.last_name }}{% endif %}
+                </p>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('auditions.save_scores', reg_id=reg.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    {# ---- VOICE ---- #}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold text-uppercase score-section-title">Voice</span>
+                            <span class="badge bg-secondary score-cat-badge" id="cat_voice">—</span>
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Pitch accuracy / intonation</label>
+                                <span class="score-val" id="v_voice_pitch">{{ (s.voice_pitch or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="voice_pitch"
+                                   min="0" max="10" value="{{ (s.voice_pitch or 0) if s else 0 }}"
+                                   data-cat="voice" data-id="voice_pitch">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Tone quality and resonance</label>
+                                <span class="score-val" id="v_voice_tone">{{ (s.voice_tone or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="voice_tone"
+                                   min="0" max="10" value="{{ (s.voice_tone or 0) if s else 0 }}"
+                                   data-cat="voice" data-id="voice_tone">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Range</label>
+                                <span class="score-val" id="v_voice_range">{{ (s.voice_range or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="voice_range"
+                                   min="0" max="10" value="{{ (s.voice_range or 0) if s else 0 }}"
+                                   data-cat="voice" data-id="voice_range">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Projection and breath support</label>
+                                <span class="score-val" id="v_voice_projection">{{ (s.voice_projection or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="voice_projection"
+                                   min="0" max="10" value="{{ (s.voice_projection or 0) if s else 0 }}"
+                                   data-cat="voice" data-id="voice_projection">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Blend potential</label>
+                                <span class="score-val" id="v_voice_blend">{{ (s.voice_blend or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="voice_blend"
+                                   min="0" max="10" value="{{ (s.voice_blend or 0) if s else 0 }}"
+                                   data-cat="voice" data-id="voice_blend">
+                        </div>
+                    </div>
+
+                    {# ---- HARMONY ---- #}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold text-uppercase score-section-title">Harmony</span>
+                            <span class="badge bg-secondary score-cat-badge" id="cat_harmony">—</span>
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Locked in quickly (vs. wavered)</label>
+                                <span class="score-val" id="v_harmony_lock">{{ (s.harmony_lock or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="harmony_lock"
+                                   min="0" max="10" value="{{ (s.harmony_lock or 0) if s else 0 }}"
+                                   data-cat="harmony" data-id="harmony_lock">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Self-corrected when drifted</label>
+                                <span class="score-val" id="v_harmony_self_correct">{{ (s.harmony_self_correct or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="harmony_self_correct"
+                                   min="0" max="10" value="{{ (s.harmony_self_correct or 0) if s else 0 }}"
+                                   data-cat="harmony" data-id="harmony_self_correct">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Listening (vs. just singing)</label>
+                                <span class="score-val" id="v_harmony_listening">{{ (s.harmony_listening or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="harmony_listening"
+                                   min="0" max="10" value="{{ (s.harmony_listening or 0) if s else 0 }}"
+                                   data-cat="harmony" data-id="harmony_listening">
+                        </div>
+                    </div>
+
+                    {# ---- MOVEMENT / DANCE ---- #}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold text-uppercase score-section-title">Movement / Dance</span>
+                            <span class="badge bg-secondary score-cat-badge" id="cat_movement">—</span>
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Pickup speed (learning routine)</label>
+                                <span class="score-val" id="v_movement_pickup">{{ (s.movement_pickup or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="movement_pickup"
+                                   min="0" max="10" value="{{ (s.movement_pickup or 0) if s else 0 }}"
+                                   data-cat="movement" data-id="movement_pickup">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Comfort and ease on stage</label>
+                                <span class="score-val" id="v_movement_comfort">{{ (s.movement_comfort or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="movement_comfort"
+                                   min="0" max="10" value="{{ (s.movement_comfort or 0) if s else 0 }}"
+                                   data-cat="movement" data-id="movement_comfort">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Rhythmic accuracy</label>
+                                <span class="score-val" id="v_movement_rhythm">{{ (s.movement_rhythm or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="movement_rhythm"
+                                   min="0" max="10" value="{{ (s.movement_rhythm or 0) if s else 0 }}"
+                                   data-cat="movement" data-id="movement_rhythm">
+                        </div>
+                    </div>
+
+                    {# ---- STAGE PRESENCE ---- #}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold text-uppercase score-section-title">Stage Presence</span>
+                            <span class="badge bg-secondary score-cat-badge" id="cat_presence">—</span>
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Something happens when they walk in</label>
+                                <span class="score-val" id="v_presence_entrance">{{ (s.presence_entrance or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="presence_entrance"
+                                   min="0" max="10" value="{{ (s.presence_entrance or 0) if s else 0 }}"
+                                   data-cat="presence" data-id="presence_entrance">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Eye contact, energy, engagement</label>
+                                <span class="score-val" id="v_presence_engagement">{{ (s.presence_engagement or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="presence_engagement"
+                                   min="0" max="10" value="{{ (s.presence_engagement or 0) if s else 0 }}"
+                                   data-cat="presence" data-id="presence_engagement">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Cold reading — finds character</label>
+                                <span class="score-val" id="v_presence_cold_reading">{{ (s.presence_cold_reading or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="presence_cold_reading"
+                                   min="0" max="10" value="{{ (s.presence_cold_reading or 0) if s else 0 }}"
+                                   data-cat="presence" data-id="presence_cold_reading">
+                        </div>
+                    </div>
+
+                    {# ---- PRACTICAL ---- #}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold text-uppercase score-section-title">Practical</span>
+                            <span class="badge bg-secondary score-cat-badge" id="cat_practical">—</span>
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Availability (conflicts at audition)</label>
+                                <span class="score-val" id="v_practical_availability">{{ (s.practical_availability or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="practical_availability"
+                                   min="0" max="10" value="{{ (s.practical_availability or 0) if s else 0 }}"
+                                   data-cat="practical" data-id="practical_availability">
+                        </div>
+                        <div class="score-item">
+                            <div class="d-flex justify-content-between">
+                                <label class="text-muted">Attitude / takes direction in the room</label>
+                                <span class="score-val" id="v_practical_attitude">{{ (s.practical_attitude or '—') if s else '—' }}</span>
+                            </div>
+                            <input type="range" class="form-range score-slider" name="practical_attitude"
+                                   min="0" max="10" value="{{ (s.practical_attitude or 0) if s else 0 }}"
+                                   data-cat="practical" data-id="practical_attitude">
+                        </div>
+                    </div>
+
+                    {# ---- OVERALL IMPRESSION ---- #}
+                    <div class="mb-3">
+                        <label class="fw-bold text-uppercase score-section-title d-block mb-1">
+                            Overall Impression
+                        </label>
+                        <textarea name="score_notes" class="form-control form-control-sm" rows="3"
+                                  placeholder="Casting thoughts, standout moments, concerns…">{{ (s.score_notes or '') if s else '' }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-sm w-100" style="background:#6f42c1;color:white;">
+                        <i class="bi bi-save"></i> Save Scores
+                    </button>
+                </form>
+            </div>
+        </div><!-- end scoring card -->
+
         <!-- Photo -->
         <div class="card section-card shadow-sm">
             <div class="card-header"><strong><i class="bi bi-camera"></i> Photo</strong></div>
@@ -454,6 +680,65 @@
 
     </div>
 </div>
+
+<!-- Scoring sliders JS -->
+<script>
+(function () {
+    var sliders = document.querySelectorAll('.score-slider');
+    if (!sliders.length) return;
+
+    function scoreColor(v) {
+        if (v === 0) return '#adb5bd';
+        if (v >= 7)  return '#198754';
+        if (v >= 4)  return '#fd7e14';
+        return '#dc3545';
+    }
+
+    function updateDisplay(slider) {
+        var v = parseInt(slider.value, 10);
+        var el = document.getElementById('v_' + slider.dataset.id);
+        if (!el) return;
+        el.textContent  = v === 0 ? '—' : v;
+        el.style.color  = scoreColor(v);
+    }
+
+    function updateCategory(cat) {
+        var inputs = document.querySelectorAll('.score-slider[data-cat="' + cat + '"]');
+        var total = 0, scored = 0;
+        inputs.forEach(function (inp) {
+            var v = parseInt(inp.value, 10);
+            if (v > 0) { total += v; scored++; }
+        });
+        var badge = document.getElementById('cat_' + cat);
+        if (!badge) return;
+        badge.textContent  = scored > 0 ? total : '—';
+        badge.className    = 'badge score-cat-badge ' + (scored > 0 ? 'bg-primary' : 'bg-secondary');
+    }
+
+    function updateGrandTotal() {
+        var total = 0, scored = 0;
+        sliders.forEach(function (inp) {
+            var v = parseInt(inp.value, 10);
+            if (v > 0) { total += v; scored++; }
+        });
+        var badge = document.getElementById('grandTotalBadge');
+        if (!badge) return;
+        badge.textContent = scored > 0 ? (total + ' / 160') : '— / 160';
+    }
+
+    sliders.forEach(function (slider) {
+        updateDisplay(slider);
+        slider.addEventListener('input', function () {
+            updateDisplay(this);
+            updateCategory(this.dataset.cat);
+            updateGrandTotal();
+        });
+    });
+
+    ['voice','harmony','movement','presence','practical'].forEach(updateCategory);
+    updateGrandTotal();
+})();
+</script>
 
 <!-- New Tag Modal -->
 <div class="modal fade" id="newTagModal" tabindex="-1">

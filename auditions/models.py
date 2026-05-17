@@ -100,6 +100,50 @@ class Tag(db.Model):
         return f'<Tag {self.name}>'
 
 
+class AuditionScore(db.Model):
+    """One shared scorecard per registration, last save wins."""
+    __tablename__ = 'audition_scores'
+
+    id = db.Column(db.Integer, primary_key=True)
+    registration_id = db.Column(db.Integer, db.ForeignKey('registrations.id'), nullable=False, unique=True)
+    scored_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    scored_at = db.Column(db.DateTime)
+
+    # Voice (5 × 10 = 50 pts max)
+    voice_pitch      = db.Column(db.Integer)  # Pitch accuracy / intonation
+    voice_tone       = db.Column(db.Integer)  # Tone quality and resonance
+    voice_range      = db.Column(db.Integer)  # Range
+    voice_projection = db.Column(db.Integer)  # Projection and breath support
+    voice_blend      = db.Column(db.Integer)  # Blend potential
+
+    # Harmony (3 × 10 = 30 pts max)
+    harmony_lock         = db.Column(db.Integer)  # Locked in quickly or wavered?
+    harmony_self_correct = db.Column(db.Integer)  # Self-corrected when drifted?
+    harmony_listening    = db.Column(db.Integer)  # Listening or just singing?
+
+    # Movement / Dance (3 × 10 = 30 pts max)
+    movement_pickup  = db.Column(db.Integer)  # Pickup speed
+    movement_comfort = db.Column(db.Integer)  # Comfort and ease in body
+    movement_rhythm  = db.Column(db.Integer)  # Rhythmic accuracy
+
+    # Stage Presence (3 × 10 = 30 pts max)
+    presence_entrance     = db.Column(db.Integer)  # Something happen when they walk in?
+    presence_engagement   = db.Column(db.Integer)  # Eye contact, energy, engagement
+    presence_cold_reading = db.Column(db.Integer)  # Cold reading
+
+    # Practical (2 × 10 = 20 pts max)
+    practical_availability = db.Column(db.Integer)  # Availability / conflicts
+    practical_attitude     = db.Column(db.Integer)  # Attitude / takes direction
+
+    score_notes = db.Column(db.Text)  # Overall impression / casting thoughts
+
+    scored_by    = db.relationship('User', foreign_keys=[scored_by_user_id])
+    registration = db.relationship('Registration', backref=db.backref('score', uselist=False))
+
+    def __repr__(self):
+        return f'<AuditionScore reg={self.registration_id}>'
+
+
 class EmailLog(db.Model):
     __tablename__ = 'email_logs'
 
