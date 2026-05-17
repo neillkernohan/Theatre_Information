@@ -16,7 +16,7 @@
     .score-item label { font-size: 0.8rem; margin-bottom: 1px; }
     .score-val { font-size: 0.9rem; font-weight: 700; min-width: 1.8rem; text-align: right; }
     .form-range { height: 1.1rem; }
-    .score-cat-badge { font-size: 0.75rem; }
+    .score-cat-badge { font-size: 0.72rem; white-space: nowrap; }
 </style>
 {% endblock %}
 
@@ -702,28 +702,36 @@
         el.style.color  = scoreColor(v);
     }
 
+    var CAT_MAX = { voice: 50, harmony: 30, movement: 30, presence: 30, practical: 20 };
+
+    function pct(score, max) {
+        return Math.round(score / max * 100);
+    }
+
     function updateCategory(cat) {
         var inputs = document.querySelectorAll('.score-slider[data-cat="' + cat + '"]');
-        var total = 0, scored = 0;
-        inputs.forEach(function (inp) {
-            var v = parseInt(inp.value, 10);
-            if (v > 0) { total += v; scored++; }
-        });
+        var total = 0;
+        inputs.forEach(function (inp) { total += parseInt(inp.value, 10); });
         var badge = document.getElementById('cat_' + cat);
         if (!badge) return;
-        badge.textContent  = scored > 0 ? total : '—';
-        badge.className    = 'badge score-cat-badge ' + (scored > 0 ? 'bg-primary' : 'bg-secondary');
+        if (total > 0) {
+            var max = CAT_MAX[cat];
+            badge.textContent = total + ' / ' + max + '  (' + pct(total, max) + '%)';
+            badge.className   = 'badge score-cat-badge bg-primary';
+        } else {
+            badge.textContent = '—';
+            badge.className   = 'badge score-cat-badge bg-secondary';
+        }
     }
 
     function updateGrandTotal() {
-        var total = 0, scored = 0;
-        sliders.forEach(function (inp) {
-            var v = parseInt(inp.value, 10);
-            if (v > 0) { total += v; scored++; }
-        });
+        var total = 0;
+        sliders.forEach(function (inp) { total += parseInt(inp.value, 10); });
         var badge = document.getElementById('grandTotalBadge');
         if (!badge) return;
-        badge.textContent = scored > 0 ? (total + ' / 160') : '— / 160';
+        badge.textContent = total > 0
+            ? (total + ' / 160  (' + pct(total, 160) + '%)')
+            : '— / 160';
     }
 
     sliders.forEach(function (slider) {
