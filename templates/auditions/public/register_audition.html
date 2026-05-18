@@ -20,7 +20,7 @@
         <p class="mb-4" style="white-space: pre-wrap;">{{ show.description }}</p>
         {% endif %}
 
-        <form method="POST" id="auditionForm">
+        <form method="POST" id="auditionForm" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             {% if show.allow_choice %}
@@ -208,6 +208,15 @@
                         <input type="url" class="form-control" name="video_link"
                                placeholder="https://youtube.com/... or https://vimeo.com/...">
                         <div class="form-text">Link to an audition video, monologue, or reel.</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Attachments <span class="text-muted small">(optional)</span></label>
+                        <input type="file" class="form-control" name="attachments" multiple
+                               accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp">
+                        <div class="form-text">
+                            Upload your headshot, résumé, or any other supporting materials.
+                            You may select multiple files. Accepted: PDF, Word, images (JPG, PNG, etc.).
+                        </div>
                     </div>
                 </div>
             </div>

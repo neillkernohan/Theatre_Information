@@ -1,7 +1,7 @@
-from flask import render_template, abort, redirect, url_for, flash, request, jsonify
+from flask import render_template, abort, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from auditions import auditions_bp
-from auditions.models import db, Show, AuditionSlot, Registration, Tag, User, AuditionScore
+from auditions.models import db, Show, AuditionSlot, Registration, Tag, User, AuditionScore, RegistrationFile
 from datetime import datetime
 from auditions.forms import ShowForm, GenerateSlotsForm
 from auditions.utils import generate_slots, add_slots, promote_from_waitlist
@@ -14,6 +14,7 @@ from auth.decorators import (
     read_admin_required, evaluate_required, manage_shows_required, export_required
 )
 import json
+import os
 
 
 # ---------------------------------------------------------------------------
@@ -403,6 +404,21 @@ def save_scores(reg_id):
 
     db.session.commit()
     flash('Scores saved.', 'success')
+    return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
+
+
+@auditions_bp.route('/admin/registrations/files/<int:file_id>/delete', methods=['POST'])
+@manage_shows_required
+def delete_registration_file(file_id):
+    """Delete an uploaded attachment from a registration."""
+    reg_file = RegistrationFile.query.get_or_404(file_id)
+    reg_id = reg_file.registration_id
+    full_path = os.path.join(current_app.root_path, 'static', reg_file.file_path)
+    if os.path.exists(full_path):
+        os.remove(full_path)
+    db.session.delete(reg_file)
+    db.session.commit()
+    flash('Attachment deleted.', 'success')
     return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
 

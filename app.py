@@ -208,7 +208,7 @@ try:
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # File upload config
-    app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
+    app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20MB (supports multiple file uploads)
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'auditions', 'uploads')
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 

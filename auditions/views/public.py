@@ -1,13 +1,45 @@
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
 from auditions import auditions_bp
-from auditions.models import db, Show, AuditionSlot, Registration
+from auditions.models import db, Show, AuditionSlot, Registration, RegistrationFile
 from auditions.utils import assign_slot, promote_from_waitlist
 from auditions.email import send_confirmation_email, send_waitlist_email, send_cancellation_email, send_admin_notification, send_slot_changed_email
 from auditions.views.auth import _save_profile_from_form, _prepopulate_profile_form
 from auditions.forms import ActorProfileForm
 from datetime import datetime
+from werkzeug.utils import secure_filename
 import json
+import os
+import uuid
+
+ALLOWED_ATTACHMENT_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png', 'gif', 'webp'}
+
+
+def _save_registration_files(registration, file_list):
+    """Save uploaded files for a registration and create RegistrationFile records."""
+    upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'reg_files')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    for f in file_list:
+        if not f or not f.filename:
+            continue
+        ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else ''
+        if ext not in ALLOWED_ATTACHMENT_EXTENSIONS:
+            continue
+        stored = f'{uuid.uuid4().hex}_{secure_filename(f.filename)}'
+        full_path = os.path.join(upload_dir, stored)
+        f.save(full_path)
+        reg_file = RegistrationFile(
+            registration_id=registration.id,
+            original_filename=f.filename,
+            stored_filename=stored,
+            file_path=f'auditions/uploads/reg_files/{stored}',
+            mime_type=f.content_type,
+            file_size=os.path.getsize(full_path),
+        )
+        db.session.add(reg_file)
+
+    db.session.commit()
 
 
 @auditions_bp.route('/')
@@ -115,6 +147,9 @@ def register_for_show(show_id):
 
         db.session.add(registration)
         db.session.commit()
+
+        # Handle file attachments (registration ID is now available)
+        _save_registration_files(registration, request.files.getlist('attachments'))
 
         # Send confirmation or waitlist email
         if registration.status == 'confirmed':

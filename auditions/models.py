@@ -100,6 +100,25 @@ class Tag(db.Model):
         return f'<Tag {self.name}>'
 
 
+class RegistrationFile(db.Model):
+    """A file attachment uploaded by an actor at registration time."""
+    __tablename__ = 'registration_files'
+
+    id                = db.Column(db.Integer, primary_key=True)
+    registration_id   = db.Column(db.Integer, db.ForeignKey('registrations.id'), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    stored_filename   = db.Column(db.String(255), nullable=False)
+    file_path         = db.Column(db.String(500), nullable=False)  # relative to static/
+    mime_type         = db.Column(db.String(100))
+    file_size         = db.Column(db.Integer)   # bytes
+    uploaded_at       = db.Column(db.DateTime, default=datetime.utcnow)
+
+    registration = db.relationship('Registration', backref=db.backref('attachments', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<RegistrationFile {self.original_filename}>'
+
+
 class AuditionScore(db.Model):
     """One shared scorecard per registration, last save wins."""
     __tablename__ = 'audition_scores'

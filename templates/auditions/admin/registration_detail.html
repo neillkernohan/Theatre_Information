@@ -294,6 +294,49 @@
         </div>
         {% endif %}
 
+        <!-- Attachments -->
+        {% set attachments = reg.attachments.all() %}
+        {% if attachments %}
+        <div class="card section-card shadow-sm">
+            <div class="card-header"><strong><i class="bi bi-paperclip"></i> Attachments</strong></div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for f in attachments %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{{ url_for('static', filename=f.file_path) }}"
+                               target="_blank" rel="noopener" class="fw-semibold text-decoration-none">
+                                <i class="bi bi-file-earmark me-1"></i>{{ f.original_filename }}
+                            </a>
+                            {% if f.file_size %}
+                            <small class="text-muted ms-2">
+                                {% if f.file_size >= 1048576 %}
+                                    {{ '%.1f' | format(f.file_size / 1048576) }} MB
+                                {% elif f.file_size >= 1024 %}
+                                    {{ (f.file_size // 1024) }} KB
+                                {% else %}
+                                    {{ f.file_size }} B
+                                {% endif %}
+                            </small>
+                            {% endif %}
+                        </div>
+                        {% if current_user.can_manage_shows %}
+                        <form method="POST"
+                              action="{{ url_for('auditions.delete_registration_file', file_id=f.id) }}"
+                              onsubmit="return confirm('Delete {{ f.original_filename }}?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 
     <!-- RIGHT COLUMN: Admin actions -->
