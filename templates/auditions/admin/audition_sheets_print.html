@@ -74,6 +74,18 @@
                        border: 1px solid #dee2e6; text-align: left; }
         table.exp td { padding: 3px 6px; border: 1px solid #dee2e6; }
 
+        /* ---- Attachments ---- */
+        .attachments-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+        .attachment-thumb { text-align: center; }
+        .attachment-thumb img { width: 90px; height: 110px; object-fit: cover;
+                                border: 1px solid #dee2e6; border-radius: 3px; display: block; }
+        .attachment-doc { display: flex; align-items: center; gap: 4px;
+                          background: #f8f9fa; border: 1px solid #dee2e6;
+                          border-radius: 3px; padding: 4px 8px; font-size: 8.5pt; }
+        .attachment-icon { font-size: 12pt; line-height: 1; }
+        .attachment-name { font-size: 7.5pt; color: #495057; max-width: 90px;
+                           overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
         /* ---- Notes ---- */
         .notes-section { margin-top: 12px; }
         .notes-title { font-size: 8.5pt; font-weight: 700; text-transform: uppercase;
@@ -146,7 +158,7 @@
     <div class="info-grid">
         <div class="info-item"><span class="lbl">Email:</span> {{ u.email }}</div>
         <div class="info-item"><span class="lbl">Phone:</span> {{ u.phone or '—' }}</div>
-        <div class="info-item"><span class="lbl">Accept Other Role:</span> {{ 'Yes' if u.accept_other_role else 'No' }}</div>
+        <div class="info-item"><span class="lbl">Accept Other Role:</span> {{ 'Yes' if reg.accept_other_role else 'No' }}</div>
         <div class="info-item"><span class="lbl">Equity / ACTRA:</span> {{ 'Yes' if u.equity_or_actra else 'No' }}</div>
         <div class="info-item"><span class="lbl">Comfortable Performing:</span> {{ 'Yes' if u.comfortable_performing else 'No' }}</div>
         {% if reg.video_link %}
@@ -154,11 +166,11 @@
         {% endif %}
     </div>
 
-    {% if u.roles_auditioning_for %}
-    <div class="info-full"><span class="lbl">Roles Auditioning For:</span> {{ u.roles_auditioning_for }}</div>
+    {% if reg.roles_auditioning_for %}
+    <div class="info-full"><span class="lbl">Roles Auditioning For:</span> {{ reg.roles_auditioning_for }}</div>
     {% endif %}
-    {% if u.schedule_conflicts %}
-    <div class="info-full"><span class="lbl">Schedule Conflicts:</span> {{ u.schedule_conflicts }}</div>
+    {% if reg.schedule_conflicts %}
+    <div class="info-full"><span class="lbl">Schedule Conflicts:</span> {{ reg.schedule_conflicts }}</div>
     {% endif %}
     {% if u.training %}
     <div class="info-full"><span class="lbl">Training:</span> {{ u.training }}</div>
@@ -190,6 +202,28 @@
         </tr>
         {% endfor %}
     </table>
+    {% endif %}
+
+    <!-- Attachments -->
+    {% set attachments = reg.attachments.all() %}
+    {% if attachments %}
+    <div class="section-title">Attachments</div>
+    <div class="attachments-row">
+        {% for f in attachments %}
+        {% set ext = f.original_filename.rsplit('.', 1)[-1].lower() if '.' in f.original_filename else '' %}
+        {% if ext in ('jpg', 'jpeg', 'png', 'gif', 'webp') %}
+        <div class="attachment-thumb">
+            <img src="{{ url_for('static', filename=f.file_path) }}" alt="{{ f.original_filename }}">
+            <div class="attachment-name">{{ f.original_filename }}</div>
+        </div>
+        {% else %}
+        <div class="attachment-doc">
+            <span class="attachment-icon">&#128196;</span>
+            <span class="attachment-name">{{ f.original_filename }}</span>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
     {% endif %}
 
     <!-- Admin notes -->
