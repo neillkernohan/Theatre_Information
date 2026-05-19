@@ -51,37 +51,9 @@
         </button>
         {% endif %}
         {% if current_user.can_export %}
-        <!-- Export dropdown -->
-        <div class="dropdown">
-            <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
-                <i class="bi bi-download"></i> Export
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><h6 class="dropdown-header">Full Registration List</h6></li>
-                <li>
-                    <a class="dropdown-item" href="{{ url_for('auditions.export_xlsx', show_id=show.id) }}">
-                        <i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i>Excel (.xlsx)
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item" href="{{ url_for('auditions.export_docx', show_id=show.id) }}">
-                        <i class="bi bi-file-earmark-word me-2 text-primary"></i>Word (.docx)
-                    </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li><h6 class="dropdown-header">Audition Sheets (one per actor)</h6></li>
-                <li>
-                    <a class="dropdown-item" href="{{ url_for('auditions.export_audition_sheets_docx', show_id=show.id) }}">
-                        <i class="bi bi-file-earmark-person me-2 text-primary"></i>Word (.docx)
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item" href="{{ url_for('auditions.export_audition_sheets_print', show_id=show.id) }}" target="_blank">
-                        <i class="bi bi-printer me-2 text-secondary"></i>Print / Save as PDF
-                    </a>
-                </li>
-            </ul>
-        </div>
+        <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#exportModal">
+            <i class="bi bi-download"></i> Export
+        </button>
         {% endif %}
         {% if current_user.can_manage_shows %}
         <!-- Status change dropdown -->
@@ -571,6 +543,79 @@
         if (document.getElementById('ce_date')) document.getElementById('ce_date').value = '';
         refreshEmailBox();
     });
+</script>
+{% endif %}
+
+<!-- Export Modal -->
+{% if current_user.can_export %}
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-download me-2"></i>Export</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {% if slot_dates %}
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" for="exportDatePicker">Audition date</label>
+                    <select class="form-select" id="exportDatePicker">
+                        <option value="">All dates</option>
+                        {% for d in slot_dates %}
+                        <option value="{{ d.isoformat() }}">{{ d.strftime('%A, %B %d, %Y') }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Choose a specific night to export only those actors.</div>
+                </div>
+                {% endif %}
+                <p class="fw-semibold mb-2 small text-uppercase text-muted" style="letter-spacing:.04em">Full Registration List</p>
+                <div class="d-flex gap-2 flex-wrap mb-4">
+                    <a id="ex_xlsx" href="{{ url_for('auditions.export_xlsx', show_id=show.id) }}"
+                       class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel (.xlsx)
+                    </a>
+                    <a id="ex_docx" href="{{ url_for('auditions.export_docx', show_id=show.id) }}"
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-file-earmark-word me-1"></i>Word (.docx)
+                    </a>
+                </div>
+                <p class="fw-semibold mb-2 small text-uppercase text-muted" style="letter-spacing:.04em">Audition Sheets (one per actor)</p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a id="ex_sheets_docx" href="{{ url_for('auditions.export_audition_sheets_docx', show_id=show.id) }}"
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-file-earmark-person me-1"></i>Word (.docx)
+                    </a>
+                    <a id="ex_sheets_print" href="{{ url_for('auditions.export_audition_sheets_print', show_id=show.id) }}"
+                       class="btn btn-outline-secondary btn-sm" target="_blank">
+                        <i class="bi bi-printer me-1"></i>Print / Save as PDF
+                    </a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var BASE = {
+        xlsx:         '{{ url_for("auditions.export_xlsx",                show_id=show.id) }}',
+        docx:         '{{ url_for("auditions.export_docx",                show_id=show.id) }}',
+        sheets_docx:  '{{ url_for("auditions.export_audition_sheets_docx", show_id=show.id) }}',
+        sheets_print: '{{ url_for("auditions.export_audition_sheets_print",show_id=show.id) }}'
+    };
+    function updateExportLinks() {
+        var picker = document.getElementById('exportDatePicker');
+        var qs = (picker && picker.value) ? '?date=' + picker.value : '';
+        document.getElementById('ex_xlsx').href         = BASE.xlsx         + qs;
+        document.getElementById('ex_docx').href         = BASE.docx         + qs;
+        document.getElementById('ex_sheets_docx').href  = BASE.sheets_docx  + qs;
+        document.getElementById('ex_sheets_print').href = BASE.sheets_print + qs;
+    }
+    var picker = document.getElementById('exportDatePicker');
+    if (picker) picker.addEventListener('change', updateExportLinks);
+})();
 </script>
 {% endif %}
 

@@ -1,7 +1,8 @@
 import io
 import os
-from datetime import datetime
-from flask import send_file, abort, render_template, current_app
+from datetime import datetime, date as date_cls
+from flask import request as flask_request
+from flask import send_file, abort, render_template, current_app, request
 from flask_login import login_required, current_user
 from functools import wraps
 from auditions import auditions_bp
@@ -15,6 +16,17 @@ def _can_access_show(show_id):
     if not current_user.managed_shows:
         return True
     return show_id in current_user.managed_shows
+
+
+def _parse_date_filter():
+    """Return a date object from ?date=YYYY-MM-DD, or None for all dates."""
+    raw = request.args.get('date', '').strip()
+    if raw:
+        try:
+            return date_cls.fromisoformat(raw)
+        except ValueError:
+            pass
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -33,9 +45,19 @@ def export_xlsx(show_id):
         abort(500, 'openpyxl is not installed.')
 
     show = Show.query.get_or_404(show_id)
-    registrations = Registration.query.filter_by(show_id=show.id).filter(
-        Registration.status != 'cancelled'
-    ).order_by(Registration.status, Registration.created_at).all()
+    filter_date = _parse_date_filter()
+    if filter_date:
+        registrations = (Registration.query
+            .join(Registration.slot)
+            .filter(Registration.show_id == show.id,
+                    Registration.status != 'cancelled',
+                    AuditionSlot.date == filter_date)
+            .order_by(AuditionSlot.date, AuditionSlot.start_time, Registration.created_at)
+            .all())
+    else:
+        registrations = Registration.query.filter_by(show_id=show.id).filter(
+            Registration.status != 'cancelled'
+        ).order_by(Registration.status, Registration.created_at).all()
 
     wb = Workbook()
 
@@ -206,21 +228,30 @@ def export_docx(show_id):
         abort(500, 'python-docx is not installed.')
 
     show = Show.query.get_or_404(show_id)
-    registrations = (
-        Registration.query
-        .join(Registration.slot)
-        .filter(Registration.show_id == show.id)
-        .filter(Registration.status != 'cancelled')
-        .order_by(AuditionSlot.date, AuditionSlot.start_time, Registration.created_at)
-        .all()
-    )
-    # Also include waitlisted (no slot) at the end
-    waitlisted = Registration.query.filter_by(
-        show_id=show.id, status='waitlisted'
-    ).filter(Registration.slot_id == None).order_by(Registration.created_at).all()  # noqa: E711
-    # Remove any waitlisted already caught by the join (those with a slot)
-    slotted_ids = {r.id for r in registrations}
-    registrations = registrations + [r for r in waitlisted if r.id not in slotted_ids]
+    filter_date = _parse_date_filter()
+    if filter_date:
+        registrations = (Registration.query
+            .join(Registration.slot)
+            .filter(Registration.show_id == show.id,
+                    Registration.status != 'cancelled',
+                    AuditionSlot.date == filter_date)
+            .order_by(AuditionSlot.date, AuditionSlot.start_time, Registration.created_at)
+            .all())
+    else:
+        registrations = (
+            Registration.query
+            .join(Registration.slot)
+            .filter(Registration.show_id == show.id)
+            .filter(Registration.status != 'cancelled')
+            .order_by(AuditionSlot.date, AuditionSlot.start_time, Registration.created_at)
+            .all()
+        )
+        # Also include waitlisted (no slot) at the end
+        waitlisted = Registration.query.filter_by(
+            show_id=show.id, status='waitlisted'
+        ).filter(Registration.slot_id == None).order_by(Registration.created_at).all()  # noqa: E711
+        slotted_ids = {r.id for r in registrations}
+        registrations = registrations + [r for r in waitlisted if r.id not in slotted_ids]
 
     doc = Document()
 
@@ -399,16 +430,16 @@ def export_docx(show_id):
 # Audition Sheets — one page per actor (Word + Print/PDF)
 # ---------------------------------------------------------------------------
 
-def _sheet_registrations(show):
-    """Confirmed + callback registrations in slot date/time order."""
-    return (
-        Registration.query
-        .join(Registration.slot)
-        .filter(Registration.show_id == show.id)
-        .filter(Registration.status.in_(['confirmed', 'callback']))
-        .order_by(AuditionSlot.date, AuditionSlot.start_time, Registration.created_at)
-        .all()
-    )
+def _sheet_registrations(show, filter_date=None):
+    """Confirmed + callback registrations in slot date/time order.
+    Pass filter_date (date object) to restrict to a single night."""
+    q = (Registration.query
+         .join(Registration.slot)
+         .filter(Registration.show_id == show.id)
+         .filter(Registration.status.in_(['confirmed', 'callback'])))
+    if filter_date:
+        q = q.filter(AuditionSlot.date == filter_date)
+    return q.order_by(AuditionSlot.date, AuditionSlot.start_time, Registration.created_at).all()
 
 
 @auditions_bp.route('/admin/shows/<int:show_id>/export/sheets/docx')
@@ -428,7 +459,8 @@ def export_audition_sheets_docx(show_id):
     if not _can_access_show(show_id):
         abort(403)
 
-    registrations = _sheet_registrations(show)
+    filter_date = _parse_date_filter()
+    registrations = _sheet_registrations(show, filter_date)
     if not registrations:
         abort(404, 'No confirmed registrations to export.')
 
@@ -654,7 +686,8 @@ def export_audition_sheets_print(show_id):
     show = Show.query.get_or_404(show_id)
     if not _can_access_show(show_id):
         abort(403)
-    registrations = _sheet_registrations(show)
+    filter_date = _parse_date_filter()
+    registrations = _sheet_registrations(show, filter_date)
     return render_template(
         'auditions/admin/audition_sheets_print.html',
         show=show,
