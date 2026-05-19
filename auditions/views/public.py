@@ -83,9 +83,12 @@ def register_for_show(show_id):
         flash('You are already registered for this show.', 'info')
         return redirect(url_for('auditions.actor_dashboard'))
 
-    # Get available slots
+    # Get available slots — today or future only
+    today = datetime.utcnow().date()
     available_slots = AuditionSlot.query.filter_by(show_id=show.id).filter(
-        AuditionSlot.current_count < AuditionSlot.capacity
+        AuditionSlot.current_count < AuditionSlot.capacity,
+        AuditionSlot.date >= today,
+        AuditionSlot.slot_type != 'reserved',
     ).order_by(AuditionSlot.date, AuditionSlot.start_time).all()
 
     # Group available slots by date for the template
@@ -130,7 +133,7 @@ def register_for_show(show_id):
             chosen_slot_id = request.form.get('slot_id')
             if chosen_slot_id:
                 slot = AuditionSlot.query.get(int(chosen_slot_id))
-                if slot and not slot.is_full and slot.show_id == show.id:
+                if slot and not slot.is_full and slot.show_id == show.id and slot.date >= datetime.utcnow().date():
                     registration.slot_id = slot.id
                     registration.status = 'confirmed'
                     slot.current_count += 1
