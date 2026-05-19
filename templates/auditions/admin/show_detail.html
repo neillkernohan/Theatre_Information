@@ -481,20 +481,24 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <!-- Filter tabs -->
-                <div class="btn-group mb-3 w-100" role="group">
-                    <button type="button" class="btn btn-outline-dark active" onclick="showEmails('all', this)">All</button>
-                    <button type="button" class="btn btn-outline-success" onclick="showEmails('confirmed', this)">Confirmed</button>
-                    <button type="button" class="btn btn-outline-primary" onclick="showEmails('callback', this)">Callback</button>
-                    <button type="button" class="btn btn-outline-warning" onclick="showEmails('waitlisted', this)">Waitlisted</button>
+                <!-- Date filter -->
+                {% if slot_dates %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small" for="ce_date">Audition date</label>
+                    <select class="form-select form-select-sm" id="ce_date" onchange="refreshEmailBox()">
+                        <option value="">All dates</option>
+                        {% for d in slot_dates %}
+                        <option value="{{ d.isoformat() }}">{{ d.strftime('%A, %B %d, %Y') }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-
-                <!-- Hidden data — only actors with Email Contact OK = Yes -->
-                <div id="emailData" style="display:none"
-                     data-all="{{ all_regs | selectattr('status', 'ne', 'cancelled') | selectattr('user.contact_email_ok') | map(attribute='user') | map(attribute='email') | join(', ') }}"
-                     data-confirmed="{{ all_regs | selectattr('status', 'equalto', 'confirmed') | selectattr('user.contact_email_ok') | map(attribute='user') | map(attribute='email') | join(', ') }}"
-                     data-callback="{{ all_regs | selectattr('status', 'equalto', 'callback') | selectattr('user.contact_email_ok') | map(attribute='user') | map(attribute='email') | join(', ') }}"
-                     data-waitlisted="{{ all_regs | selectattr('status', 'equalto', 'waitlisted') | selectattr('user.contact_email_ok') | map(attribute='user') | map(attribute='email') | join(', ') }}">
+                {% endif %}
+                <!-- Status filter -->
+                <div class="btn-group mb-3 w-100" role="group" id="ce_status_group">
+                    <button type="button" class="btn btn-outline-dark active"    data-status="all"       onclick="setEmailStatus(this)">All</button>
+                    <button type="button" class="btn btn-outline-success"        data-status="confirmed" onclick="setEmailStatus(this)">Confirmed</button>
+                    <button type="button" class="btn btn-outline-primary"        data-status="callback"  onclick="setEmailStatus(this)">Callback</button>
+                    <button type="button" class="btn btn-outline-warning"        data-status="waitlisted" onclick="setEmailStatus(this)">Waitlisted</button>
                 </div>
 
                 <textarea id="emailBox" class="form-control font-monospace" rows="6" readonly
@@ -505,7 +509,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-dark" onclick="copyEmails()">
+                <button type="button" class="btn btn-dark" id="ce_copy_btn" onclick="copyEmails()">
                     <i class="bi bi-clipboard-check"></i> Copy to Clipboard
                 </button>
             </div>
@@ -513,28 +517,43 @@
     </div>
 </div>
 <script>
-    function showEmails(status, btn) {
-        const data  = document.getElementById('emailData');
-        const box   = document.getElementById('emailBox');
-        const count = document.getElementById('emailCount');
-        const emails = data.dataset[status] || '';
+    const CE_DATA = {{ copy_emails_json | safe }};
+    let ce_status = 'all';
+
+    function setEmailStatus(btn) {
+        ce_status = btn.dataset.status;
+        document.querySelectorAll('#ce_status_group button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        refreshEmailBox();
+    }
+
+    function refreshEmailBox() {
+        const dateKey = document.getElementById('ce_date') ? document.getElementById('ce_date').value : '';
+        const bucket  = CE_DATA[dateKey] || CE_DATA[''] || {};
+        const emails  = (bucket[ce_status] || []).join(', ');
+        const box     = document.getElementById('emailBox');
+        const count   = document.getElementById('emailCount');
         box.value = emails;
         const n = emails ? emails.split(',').filter(e => e.trim()).length : 0;
-        count.textContent = n + ' address' + (n === 1 ? '' : 'es');
-        document.querySelectorAll('#copyEmailsModal .btn-group button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        count.textContent = n + ' address' + (n === 1 ? '' : 'es') + ' — only actors with Email Contact OK = Yes';
     }
+
     function copyEmails() {
         const box = document.getElementById('emailBox');
         box.select();
         navigator.clipboard.writeText(box.value).then(() => {
-            const btn = document.querySelector('#copyEmailsModal .btn-dark');
+            const btn = document.getElementById('ce_copy_btn');
             btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
             setTimeout(() => btn.innerHTML = '<i class="bi bi-clipboard-check"></i> Copy to Clipboard', 2000);
         });
     }
+
     document.getElementById('copyEmailsModal').addEventListener('shown.bs.modal', function() {
-        showEmails('all', document.querySelector('#copyEmailsModal .btn-group button'));
+        ce_status = 'all';
+        document.querySelectorAll('#ce_status_group button').forEach(b => b.classList.remove('active'));
+        document.querySelector('#ce_status_group button[data-status="all"]').classList.add('active');
+        if (document.getElementById('ce_date')) document.getElementById('ce_date').value = '';
+        refreshEmailBox();
     });
 </script>
 {% endif %}

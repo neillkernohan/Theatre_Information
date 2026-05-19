@@ -194,6 +194,23 @@ def show_detail(show_id):
     # Unique sorted dates for the email-by-date filter
     slot_dates = sorted(set(s.date for s in slots))
 
+    # Pre-compute email lists for Copy Emails modal (by date + status)
+    # Key '' = all dates combined; date ISO string = that night only
+    _email_buckets: dict = {'': {'all': [], 'confirmed': [], 'callback': [], 'waitlisted': []}}
+    for _d in slot_dates:
+        _email_buckets[_d.isoformat()] = {'all': [], 'confirmed': [], 'callback': [], 'waitlisted': []}
+    for reg in all_regs:
+        if reg.status == 'cancelled' or not reg.user.contact_email_ok:
+            continue
+        _email = reg.user.email
+        _date_key = reg.slot.date.isoformat() if reg.slot else ''
+        for _key in (['', _date_key] if _date_key else ['']):
+            _email_buckets.setdefault(_key, {'all': [], 'confirmed': [], 'callback': [], 'waitlisted': []})
+            _email_buckets[_key]['all'].append(_email)
+            if reg.status in ('confirmed', 'callback', 'waitlisted'):
+                _email_buckets[_key][reg.status].append(_email)
+    copy_emails_json = json.dumps(_email_buckets)
+
     return render_template(
         'auditions/admin/show_detail.html',
         show=show,
@@ -205,6 +222,7 @@ def show_detail(show_id):
         all_tags=all_tags,
         status_filter=status_filter,
         tag_filter=tag_filter,
+        copy_emails_json=copy_emails_json,
         search=search,
         generate_form=GenerateSlotsForm()
     )
