@@ -188,7 +188,7 @@
                         {{ slot.start_time.strftime('%I:%M %p') }} – {{ slot.end_time.strftime('%I:%M %p') }}
                     </td>
                     <td style="color:#6f42c1">
-                        <i class="bi bi-lock-fill"></i> Blocked
+                        <i class="bi bi-lock-fill"></i> {{ slot.label or 'Reserved Block' }}
                     </td>
                     <td>
                         {% if current_user.can_manage_shows %}
@@ -675,8 +675,8 @@
                        <div class="col-auto">
                          <label class="form-label small">Block Label</label>
                          <input type="text" class="form-control form-control-sm" style="width:160px"
-                                value="${entry.reserved_label || 'Dance Audition'}"
-                                placeholder="e.g. Dance Audition"
+                                value="${entry.reserved_label || ''}"
+                                placeholder="e.g. Dance Audition, Blocked"
                                 onchange="updateAuditionDate(${idx}, 'reserved_label', this.value)">
                        </div>
                        <div class="col-auto">
@@ -797,8 +797,8 @@
                        <div class="col-auto">
                          <label class="form-label small">Block Label</label>
                          <input type="text" class="form-control form-control-sm" style="width:160px"
-                                value="${entry.reserved_label || 'Dance Audition'}"
-                                placeholder="e.g. Dance Audition"
+                                value="${entry.reserved_label || ''}"
+                                placeholder="e.g. Dance Audition, Blocked"
                                 onchange="updateAddDate(${idx}, 'reserved_label', this.value)">
                        </div>
                        <div class="col-auto">

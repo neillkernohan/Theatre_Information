@@ -36,9 +36,8 @@
                         <div class="alert alert-secondary py-2 mb-2 d-flex align-items-center gap-2" role="note">
                             <i class="bi bi-people-fill text-purple" style="color:#6f42c1; font-size:1.1rem;"></i>
                             <span>
-                                <strong>{{ slot.label or 'Group Audition' }}</strong>:
+                                <strong>{{ slot.label or 'Reserved Block' }}</strong>:
                                 {{ slot.start_time.strftime('%I:%M %p') }} – {{ slot.end_time.strftime('%I:%M %p') }}
-                                <span class="text-muted small ms-1">(all registered actors attend together)</span>
                             </span>
                         </div>
                         {% endfor %}

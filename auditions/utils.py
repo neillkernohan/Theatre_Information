@@ -45,7 +45,7 @@ def generate_slots(show, audition_dates):
 
             # Build reserved period window if provided
             reserved_start = reserved_end = None
-            reserved_label = entry.get('reserved_label', 'Group Audition').strip() or 'Group Audition'
+            reserved_label = entry.get('reserved_label', '').strip() or 'Reserved Block'
             reserved_time_str = entry.get('reserved_time', '').strip()
             reserved_duration = int(entry.get('reserved_duration', 30) or 30)
 
@@ -135,7 +135,7 @@ def add_slots(show, audition_dates):
 
             # Build reserved period window if provided
             reserved_start = reserved_end = None
-            reserved_label = entry.get('reserved_label', 'Group Audition').strip() or 'Group Audition'
+            reserved_label = entry.get('reserved_label', '').strip() or 'Reserved Block'
             reserved_time_str = entry.get('reserved_time', '').strip()
             reserved_duration = int(entry.get('reserved_duration', 30) or 30)
 
