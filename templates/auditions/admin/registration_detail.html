@@ -10,6 +10,15 @@
     .tag-badge { font-size: 0.8rem; padding: 4px 10px; }
     .yes-badge { background-color: #198754; color: white; }
     .no-badge { background-color: #6c757d; color: white; }
+    /* Unsaved-changes bar */
+    #savebar {
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 1055;
+        background: #212529; color: #fff;
+        padding: 10px 24px;
+        display: none; align-items: center; justify-content: space-between;
+        box-shadow: 0 -3px 10px rgba(0,0,0,.3);
+    }
+    #savebar.visible { display: flex; }
     /* Scoring card */
     .score-section-title { letter-spacing:.04em; color:#6f42c1; font-size:0.75rem; }
     .score-item { margin-bottom: 0.6rem; }
@@ -344,6 +353,12 @@
 
         {% if current_user.can_evaluate %}
 
+        <!-- Single save form — inputs across cards use form="saveForm" -->
+        <form id="saveForm" method="POST"
+              action="{{ url_for('auditions.save_registration_fields', reg_id=reg.id) }}" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+
         <!-- ===== AUDITION SCORES ===== -->
         {% set s = reg.score %}
         <div class="card section-card shadow-sm" style="border-color:#6f42c1;">
@@ -360,9 +375,6 @@
                 </p>
                 {% endif %}
 
-                <form method="POST" action="{{ url_for('auditions.save_scores', reg_id=reg.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
                     {# ---- VOICE ---- #}
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
@@ -374,7 +386,7 @@
                                 <label class="text-muted">Pitch accuracy / intonation</label>
                                 <span class="score-val" id="v_voice_pitch">{{ (s.voice_pitch or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="voice_pitch"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="voice_pitch"
                                    min="0" max="10" value="{{ (s.voice_pitch or 0) if s else 0 }}"
                                    data-cat="voice" data-id="voice_pitch">
                         </div>
@@ -383,7 +395,7 @@
                                 <label class="text-muted">Tone quality and resonance</label>
                                 <span class="score-val" id="v_voice_tone">{{ (s.voice_tone or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="voice_tone"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="voice_tone"
                                    min="0" max="10" value="{{ (s.voice_tone or 0) if s else 0 }}"
                                    data-cat="voice" data-id="voice_tone">
                         </div>
@@ -392,7 +404,7 @@
                                 <label class="text-muted">Range</label>
                                 <span class="score-val" id="v_voice_range">{{ (s.voice_range or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="voice_range"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="voice_range"
                                    min="0" max="10" value="{{ (s.voice_range or 0) if s else 0 }}"
                                    data-cat="voice" data-id="voice_range">
                         </div>
@@ -401,7 +413,7 @@
                                 <label class="text-muted">Projection and breath support</label>
                                 <span class="score-val" id="v_voice_projection">{{ (s.voice_projection or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="voice_projection"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="voice_projection"
                                    min="0" max="10" value="{{ (s.voice_projection or 0) if s else 0 }}"
                                    data-cat="voice" data-id="voice_projection">
                         </div>
@@ -410,7 +422,7 @@
                                 <label class="text-muted">Blend potential</label>
                                 <span class="score-val" id="v_voice_blend">{{ (s.voice_blend or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="voice_blend"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="voice_blend"
                                    min="0" max="10" value="{{ (s.voice_blend or 0) if s else 0 }}"
                                    data-cat="voice" data-id="voice_blend">
                         </div>
@@ -427,7 +439,7 @@
                                 <label class="text-muted">Locked in quickly (vs. wavered)</label>
                                 <span class="score-val" id="v_harmony_lock">{{ (s.harmony_lock or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="harmony_lock"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="harmony_lock"
                                    min="0" max="10" value="{{ (s.harmony_lock or 0) if s else 0 }}"
                                    data-cat="harmony" data-id="harmony_lock">
                         </div>
@@ -436,7 +448,7 @@
                                 <label class="text-muted">Self-corrected when drifted</label>
                                 <span class="score-val" id="v_harmony_self_correct">{{ (s.harmony_self_correct or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="harmony_self_correct"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="harmony_self_correct"
                                    min="0" max="10" value="{{ (s.harmony_self_correct or 0) if s else 0 }}"
                                    data-cat="harmony" data-id="harmony_self_correct">
                         </div>
@@ -445,7 +457,7 @@
                                 <label class="text-muted">Listening (vs. just singing)</label>
                                 <span class="score-val" id="v_harmony_listening">{{ (s.harmony_listening or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="harmony_listening"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="harmony_listening"
                                    min="0" max="10" value="{{ (s.harmony_listening or 0) if s else 0 }}"
                                    data-cat="harmony" data-id="harmony_listening">
                         </div>
@@ -462,7 +474,7 @@
                                 <label class="text-muted">Pickup speed (learning routine)</label>
                                 <span class="score-val" id="v_movement_pickup">{{ (s.movement_pickup or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="movement_pickup"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="movement_pickup"
                                    min="0" max="10" value="{{ (s.movement_pickup or 0) if s else 0 }}"
                                    data-cat="movement" data-id="movement_pickup">
                         </div>
@@ -471,7 +483,7 @@
                                 <label class="text-muted">Comfort and ease on stage</label>
                                 <span class="score-val" id="v_movement_comfort">{{ (s.movement_comfort or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="movement_comfort"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="movement_comfort"
                                    min="0" max="10" value="{{ (s.movement_comfort or 0) if s else 0 }}"
                                    data-cat="movement" data-id="movement_comfort">
                         </div>
@@ -480,7 +492,7 @@
                                 <label class="text-muted">Rhythmic accuracy</label>
                                 <span class="score-val" id="v_movement_rhythm">{{ (s.movement_rhythm or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="movement_rhythm"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="movement_rhythm"
                                    min="0" max="10" value="{{ (s.movement_rhythm or 0) if s else 0 }}"
                                    data-cat="movement" data-id="movement_rhythm">
                         </div>
@@ -497,7 +509,7 @@
                                 <label class="text-muted">Something happens when they walk in</label>
                                 <span class="score-val" id="v_presence_entrance">{{ (s.presence_entrance or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="presence_entrance"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="presence_entrance"
                                    min="0" max="10" value="{{ (s.presence_entrance or 0) if s else 0 }}"
                                    data-cat="presence" data-id="presence_entrance">
                         </div>
@@ -506,7 +518,7 @@
                                 <label class="text-muted">Eye contact, energy, engagement</label>
                                 <span class="score-val" id="v_presence_engagement">{{ (s.presence_engagement or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="presence_engagement"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="presence_engagement"
                                    min="0" max="10" value="{{ (s.presence_engagement or 0) if s else 0 }}"
                                    data-cat="presence" data-id="presence_engagement">
                         </div>
@@ -515,7 +527,7 @@
                                 <label class="text-muted">Cold reading — finds character</label>
                                 <span class="score-val" id="v_presence_cold_reading">{{ (s.presence_cold_reading or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="presence_cold_reading"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="presence_cold_reading"
                                    min="0" max="10" value="{{ (s.presence_cold_reading or 0) if s else 0 }}"
                                    data-cat="presence" data-id="presence_cold_reading">
                         </div>
@@ -532,7 +544,7 @@
                                 <label class="text-muted">Availability (conflicts at audition)</label>
                                 <span class="score-val" id="v_practical_availability">{{ (s.practical_availability or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="practical_availability"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="practical_availability"
                                    min="0" max="10" value="{{ (s.practical_availability or 0) if s else 0 }}"
                                    data-cat="practical" data-id="practical_availability">
                         </div>
@@ -541,7 +553,7 @@
                                 <label class="text-muted">Attitude / takes direction in the room</label>
                                 <span class="score-val" id="v_practical_attitude">{{ (s.practical_attitude or '—') if s else '—' }}</span>
                             </div>
-                            <input type="range" class="form-range score-slider" name="practical_attitude"
+                            <input type="range" class="form-range score-slider" form="saveForm" name="practical_attitude"
                                    min="0" max="10" value="{{ (s.practical_attitude or 0) if s else 0 }}"
                                    data-cat="practical" data-id="practical_attitude">
                         </div>
@@ -552,14 +564,10 @@
                         <label class="fw-bold text-uppercase score-section-title d-block mb-1">
                             Overall Impression
                         </label>
-                        <textarea name="score_notes" class="form-control form-control-sm" rows="3"
+                        <textarea name="score_notes" class="form-control form-control-sm" rows="3" form="saveForm"
                                   placeholder="Casting thoughts, standout moments, concerns…">{{ (s.score_notes or '') if s else '' }}</textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-sm w-100" style="background:#6f42c1;color:white;">
-                        <i class="bi bi-save"></i> Save Scores
-                    </button>
-                </form>
             </div>
         </div><!-- end scoring card -->
 
@@ -594,14 +602,8 @@
                 <span class="text-muted small fw-normal ms-2">recorded during the audition</span>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('auditions.update_audition_notes', reg_id=reg.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <textarea name="audition_notes" class="form-control mb-2" rows="5"
+                    <textarea name="audition_notes" form="saveForm" class="form-control" rows="5"
                               placeholder="Impressions, strengths, concerns, song choice, movement…">{{ reg.audition_notes or '' }}</textarea>
-                    <button type="submit" class="btn btn-warning btn-sm">
-                        <i class="bi bi-save"></i> Save Audition Notes
-                    </button>
-                </form>
             </div>
         </div>
 
@@ -609,14 +611,8 @@
         <div class="card section-card shadow-sm">
             <div class="card-header"><strong><i class="bi bi-journal-text"></i> Admin Notes</strong></div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('auditions.update_registration_notes', reg_id=reg.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <textarea name="notes" class="form-control mb-2" rows="4"
+                    <textarea name="notes" form="saveForm" class="form-control" rows="4"
                               placeholder="Pre-audition notes, logistics, reminders…">{{ reg.notes or '' }}</textarea>
-                    <button type="submit" class="btn btn-dark btn-sm">
-                        <i class="bi bi-save"></i> Save Admin Notes
-                    </button>
-                </form>
             </div>
         </div>
 
@@ -629,13 +625,11 @@
                 </button>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('auditions.update_registration_tags', reg_id=reg.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="d-flex flex-wrap gap-2 mb-3">
+                    <div class="d-flex flex-wrap gap-2">
                         {% if all_tags %}
                         {% for tag in all_tags %}
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" name="tag_ids"
+                            <input class="form-check-input" type="checkbox" name="tag_ids" form="saveForm"
                                    value="{{ tag.id }}" id="tag_{{ tag.id }}"
                                    {{ 'checked' if tag.id in reg_tag_ids else '' }}>
                             <label class="form-check-label" for="tag_{{ tag.id }}">{{ tag.name }}</label>
@@ -645,12 +639,6 @@
                         <p class="text-muted small mb-0">No tags yet. Create one to get started.</p>
                         {% endif %}
                     </div>
-                    {% if all_tags %}
-                    <button type="submit" class="btn btn-dark btn-sm">
-                        <i class="bi bi-check2"></i> Update Tags
-                    </button>
-                    {% endif %}
-                </form>
             </div>
         </div>
 
@@ -724,6 +712,37 @@
     </div>
 </div>
 
+<!-- Dirty-tracking / unified save JS -->
+<script>
+(function () {
+    var savebar = document.getElementById('savebar');
+    var saveForm = document.getElementById('saveForm');
+    if (!savebar || !saveForm) return;
+    var dirty = false;
+
+    function markDirty() {
+        if (!dirty) {
+            dirty = true;
+            savebar.classList.add('visible');
+        }
+    }
+
+    // Watch every input associated with saveForm
+    document.querySelectorAll('[form="saveForm"], #saveForm input, #saveForm textarea, #saveForm select').forEach(function (el) {
+        el.addEventListener('change', markDirty);
+        el.addEventListener('input', markDirty);
+    });
+
+    // Warn before leaving with unsaved changes
+    window.addEventListener('beforeunload', function (e) {
+        if (dirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    // Clear dirty flag on submit so the beforeunload doesn't fire
+    saveForm.addEventListener('submit', function () { dirty = false; });
+})();
+</script>
+
 <!-- Scoring sliders JS -->
 <script>
 (function () {
@@ -790,6 +809,14 @@
     updateGrandTotal();
 })();
 </script>
+
+<!-- Unsaved-changes save bar -->
+<div id="savebar">
+    <span><i class="bi bi-exclamation-circle me-2"></i>You have unsaved changes</span>
+    <button type="submit" form="saveForm" class="btn btn-success btn-sm px-4">
+        <i class="bi bi-save me-1"></i> Save All Changes
+    </button>
+</div>
 
 <!-- New Tag Modal -->
 <div class="modal fade" id="newTagModal" tabindex="-1">
