@@ -172,12 +172,14 @@
                     <th style="width:130px">Time</th>
                     <th style="width:80px">Fill</th>
                     <th>Booked</th>
+                    <th>Roles</th>
+                    <th style="width:100px">Status</th>
                 </tr>
             </thead>
             <tbody>
                 {% for date_str, date_slots in slots_by_date.items() %}
                 <tr class="table-secondary">
-                    <td colspan="3" class="fw-semibold py-2">
+                    <td colspan="5" class="fw-semibold py-2">
                         <i class="bi bi-calendar-event me-1"></i>{{ date_str }}
                     </td>
                 </tr>
@@ -190,7 +192,7 @@
                     <td style="color:#6f42c1">
                         <i class="bi bi-lock-fill"></i> {{ slot.label or 'Reserved Block' }}
                     </td>
-                    <td>
+                    <td colspan="3">
                         {% if current_user.can_manage_shows %}
                         <form method="POST" action="{{ url_for('auditions.toggle_slot_block', slot_id=slot.id) }}" class="d-inline">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -219,7 +221,7 @@
                     <td>
                         {% for reg in booked %}
                         <a href="{{ url_for('auditions.registration_detail', reg_id=reg.id) }}"
-                           class="text-decoration-none text-dark me-3" style="font-size:0.875rem">
+                           class="text-decoration-none text-dark d-block" style="font-size:0.875rem">
                             <i class="bi bi-person-fill text-muted"></i>
                             {{ reg.user.first_name }} {{ reg.user.last_name }}
                         </a>
@@ -233,6 +235,20 @@
                             </button>
                         </form>
                         {% endif %}
+                    </td>
+                    <td style="font-size:0.8rem">
+                        {% for reg in booked %}
+                        <span class="d-block text-muted">{{ reg.roles_auditioning_for or '—' }}</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% for reg in booked %}
+                        {% if reg.status == 'confirmed' %}
+                        <span class="badge bg-success d-block mb-1">Confirmed</span>
+                        {% elif reg.status == 'callback' %}
+                        <span class="badge bg-primary d-block mb-1">Callback</span>
+                        {% endif %}
+                        {% endfor %}
                     </td>
                 </tr>
                 {% endif %}
