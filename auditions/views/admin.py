@@ -191,11 +191,15 @@ def show_detail(show_id):
     # All tags for filter dropdown
     all_tags = Tag.query.order_by(Tag.name).all()
 
+    # Unique sorted dates for the email-by-date filter
+    slot_dates = sorted(set(s.date for s in slots))
+
     return render_template(
         'auditions/admin/show_detail.html',
         show=show,
         slots=slots,
         slots_by_date=slots_by_date,
+        slot_dates=slot_dates,
         registrations=registrations,
         all_regs=all_regs,
         all_tags=all_tags,
@@ -953,9 +957,10 @@ def email_all_auditioners(show_id):
     if not user_can_access_show(show_id):
         abort(403)
 
-    subject = request.form.get('subject', '').strip()
-    body    = request.form.get('body', '').strip()
-    statuses = request.form.getlist('statuses')  # e.g. ['confirmed', 'waitlisted']
+    subject    = request.form.get('subject', '').strip()
+    body       = request.form.get('body', '').strip()
+    statuses   = request.form.getlist('statuses')
+    slot_date_str = request.form.get('slot_date', '').strip()  # YYYY-MM-DD or ''
 
     if not subject or not body:
         flash('Subject and message are required.', 'danger')
@@ -967,6 +972,15 @@ def email_all_auditioners(show_id):
     registrations = Registration.query.filter_by(show_id=show.id).filter(
         Registration.status.in_(statuses)
     ).all()
+
+    # Optional: filter to a single audition date
+    if slot_date_str:
+        from datetime import date as date_cls
+        try:
+            filter_date = date_cls.fromisoformat(slot_date_str)
+            registrations = [r for r in registrations if r.slot and r.slot.date == filter_date]
+        except ValueError:
+            pass
 
     if not registrations:
         flash('No matching registrations to email.', 'warning')

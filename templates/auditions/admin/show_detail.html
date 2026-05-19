@@ -404,6 +404,19 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Audition date filter -->
+                    {% if slot_dates %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="em_slot_date">Audition date</label>
+                        <select class="form-select" name="slot_date" id="em_slot_date">
+                            <option value="">All dates</option>
+                            {% for d in slot_dates %}
+                            <option value="{{ d.isoformat() }}">{{ d.strftime('%A, %B %d, %Y') }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Choose a specific night to email only those auditioners.</div>
+                    </div>
+                    {% endif %}
                     <!-- Who to send to -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Send to</label>
