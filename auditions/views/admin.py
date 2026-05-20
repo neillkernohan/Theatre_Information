@@ -1,7 +1,7 @@
 from flask import render_template, abort, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from auditions import auditions_bp
-from auditions.models import db, Show, AuditionSlot, Registration, Tag, User, AuditionScore, RegistrationFile
+from auditions.models import db, Show, AuditionSlot, Registration, Tag, User, RegistrationFile
 from datetime import datetime
 from auditions.forms import ShowForm, GenerateSlotsForm
 from auditions.utils import generate_slots, add_slots, promote_from_waitlist
@@ -395,7 +395,7 @@ def registration_detail(reg_id):
 @auditions_bp.route('/admin/registrations/<int:reg_id>/save', methods=['POST'])
 @evaluate_required
 def save_registration_fields(reg_id):
-    """Unified save: audition notes, admin notes, tags, and scores."""
+    """Unified save: audition notes, admin notes, and tags."""
     registration = Registration.query.get_or_404(reg_id)
     if not user_can_access_show(registration.show_id):
         abort(403)
@@ -406,68 +406,8 @@ def save_registration_fields(reg_id):
     tag_ids = [int(x) for x in request.form.getlist('tag_ids') if x.isdigit()]
     registration.tags = Tag.query.filter(Tag.id.in_(tag_ids)).all() if tag_ids else []
 
-    score = registration.score
-    if not score:
-        score = AuditionScore(registration_id=registration.id)
-        db.session.add(score)
-
-    for field in [
-        'voice_pitch', 'voice_tone', 'voice_range', 'voice_projection', 'voice_blend',
-        'harmony_lock', 'harmony_self_correct', 'harmony_listening',
-        'movement_pickup', 'movement_comfort', 'movement_rhythm',
-        'presence_entrance', 'presence_engagement', 'presence_cold_reading',
-        'practical_availability', 'practical_attitude',
-    ]:
-        raw = request.form.get(field, '0')
-        try:
-            val = int(raw)
-            setattr(score, field, val if val > 0 else None)
-        except (ValueError, TypeError):
-            setattr(score, field, None)
-
-    score.score_notes = request.form.get('score_notes', '').strip() or None
-    score.scored_by_user_id = current_user.id
-    score.scored_at = datetime.utcnow()
-
     db.session.commit()
     flash('Changes saved.', 'success')
-    return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
-
-
-@auditions_bp.route('/admin/registrations/<int:reg_id>/scores', methods=['POST'])
-@evaluate_required
-def save_scores(reg_id):
-    """Save (or overwrite) the shared audition scorecard for a registration."""
-    registration = Registration.query.get_or_404(reg_id)
-    if not user_can_access_show(registration.show_id):
-        abort(403)
-
-    score = registration.score
-    if not score:
-        score = AuditionScore(registration_id=registration.id)
-        db.session.add(score)
-
-    score_fields = [
-        'voice_pitch', 'voice_tone', 'voice_range', 'voice_projection', 'voice_blend',
-        'harmony_lock', 'harmony_self_correct', 'harmony_listening',
-        'movement_pickup', 'movement_comfort', 'movement_rhythm',
-        'presence_entrance', 'presence_engagement', 'presence_cold_reading',
-        'practical_availability', 'practical_attitude',
-    ]
-    for field in score_fields:
-        raw = request.form.get(field, '0')
-        try:
-            val = int(raw)
-            setattr(score, field, val if val > 0 else None)
-        except (ValueError, TypeError):
-            setattr(score, field, None)
-
-    score.score_notes = request.form.get('score_notes', '').strip() or None
-    score.scored_by_user_id = current_user.id
-    score.scored_at = datetime.utcnow()
-
-    db.session.commit()
-    flash('Scores saved.', 'success')
     return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
 
