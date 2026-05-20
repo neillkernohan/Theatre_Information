@@ -119,6 +119,28 @@ class RegistrationFile(db.Model):
         return f'<RegistrationFile {self.original_filename}>'
 
 
+class RegistrationPersonalNote(db.Model):
+    """Private per-user note on a registration — only visible to the author."""
+    __tablename__ = 'registration_personal_notes'
+
+    id              = db.Column(db.Integer, primary_key=True)
+    registration_id = db.Column(db.Integer, db.ForeignKey('registrations.id'), nullable=False)
+    user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    note_text       = db.Column(db.Text)
+    updated_at      = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('registration_id', 'user_id', name='uq_personal_note_reg_user'),
+    )
+
+    user         = db.relationship('User', foreign_keys=[user_id])
+    registration = db.relationship('Registration',
+                                   backref=db.backref('personal_notes', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<RegistrationPersonalNote reg={self.registration_id} user={self.user_id}>'
+
+
 class AuditionScore(db.Model):
     """One shared scorecard per registration, last save wins."""
     __tablename__ = 'audition_scores'

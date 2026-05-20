@@ -470,6 +470,30 @@
 
         {% endif %}{# end evaluate right column #}
 
+        <!-- My Notes (visible to all admin/read users — private to each person) -->
+        <div class="card section-card shadow-sm border-info">
+            <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-person-lines-fill"></i> My Notes</strong>
+                <span class="text-muted small fw-normal">only you can see this</span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('auditions.save_personal_note', reg_id=reg.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <textarea name="personal_note" class="form-control mb-2" rows="4"
+                              placeholder="Your private observations, reminders, casting thoughts…">{{ personal_note.note_text if personal_note else '' }}</textarea>
+                    {% if personal_note and personal_note.updated_at %}
+                    <p class="text-muted small mb-2">
+                        <i class="bi bi-clock-history me-1"></i>
+                        Last saved {{ personal_note.updated_at.strftime('%b %d, %Y at %I:%M %p') }}
+                    </p>
+                    {% endif %}
+                    <button type="submit" class="btn btn-info btn-sm w-100">
+                        <i class="bi bi-save me-1"></i> Save My Notes
+                    </button>
+                </form>
+            </div>
+        </div>
+
         {% if current_user.can_manage_shows %}
         <!-- Resend Confirmation -->
         <div class="card section-card shadow-sm">

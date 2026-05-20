@@ -1,7 +1,7 @@
 from flask import render_template, abort, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from auditions import auditions_bp
-from auditions.models import db, Show, AuditionSlot, Registration, Tag, User, RegistrationFile
+from auditions.models import db, Show, AuditionSlot, Registration, Tag, User, RegistrationFile, RegistrationPersonalNote
 from datetime import datetime
 from auditions.forms import ShowForm, GenerateSlotsForm
 from auditions.utils import generate_slots, add_slots, promote_from_waitlist
@@ -383,12 +383,18 @@ def registration_detail(reg_id):
             slots_by_date[date_str] = []
         slots_by_date[date_str].append(slot)
 
+    personal_note = RegistrationPersonalNote.query.filter_by(
+        registration_id=registration.id,
+        user_id=current_user.id
+    ).first()
+
     return render_template(
         'auditions/admin/registration_detail.html',
         reg=registration,
         all_tags=all_tags,
         reg_tag_ids=reg_tag_ids,
         slots_by_date=slots_by_date,
+        personal_note=personal_note,
     )
 
 
@@ -408,6 +414,37 @@ def save_registration_fields(reg_id):
 
     db.session.commit()
     flash('Changes saved.', 'success')
+    return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
+
+
+@auditions_bp.route('/admin/registrations/<int:reg_id>/personal-note', methods=['POST'])
+@read_admin_required
+def save_personal_note(reg_id):
+    """Save the current user's private note on a registration."""
+    registration = Registration.query.get_or_404(reg_id)
+    if not user_can_access_show(registration.show_id):
+        abort(403)
+
+    note_text = request.form.get('personal_note', '').strip() or None
+
+    note = RegistrationPersonalNote.query.filter_by(
+        registration_id=reg_id,
+        user_id=current_user.id
+    ).first()
+
+    if note:
+        note.note_text = note_text
+        note.updated_at = datetime.utcnow()
+    else:
+        note = RegistrationPersonalNote(
+            registration_id=reg_id,
+            user_id=current_user.id,
+            note_text=note_text,
+        )
+        db.session.add(note)
+
+    db.session.commit()
+    flash('Your note has been saved.', 'success')
     return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
 
