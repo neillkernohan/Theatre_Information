@@ -60,8 +60,9 @@ def forgot_password():
     form = ForgotPasswordForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.lower().strip()).first()
-        # Always show the same message to avoid email enumeration
-        if user and user.role == 'actor':
+        # Always show the same message to avoid email enumeration.
+        # Staff (@theatreaurora.com) must use Google — everyone else can reset by email.
+        if user and not user.is_staff:
             s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
             token = s.dumps(user.email, salt='password-reset')
             reset_url = url_for('auditions.reset_password', token=token, _external=True)
@@ -90,8 +91,8 @@ def reset_password(token):
         flash('That reset link is invalid.', 'danger')
         return redirect(url_for('auditions.forgot_password'))
 
-    user = User.query.filter_by(email=email, role='actor').first()
-    if not user:
+    user = User.query.filter_by(email=email).first()
+    if not user or user.is_staff:
         flash('User not found.', 'danger')
         return redirect(url_for('auditions.forgot_password'))
 
