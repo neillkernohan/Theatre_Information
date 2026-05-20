@@ -75,7 +75,7 @@ def export_xlsx(show_id):
     is_admin = current_user.can_evaluate
 
     base_headers = [
-        'Status', 'Last Name', 'First Name', 'Pronouns', 'Email', 'Phone',
+        'Status', 'Cast As', 'Last Name', 'First Name', 'Pronouns', 'Email', 'Phone',
         'Audition Date', 'Audition Time',
         'Roles Auditioning For', 'Accept Other Role',
         'Comfortable Performing', 'Equity / ACTRA',
@@ -112,6 +112,7 @@ def export_xlsx(show_id):
 
         row_data = [
             reg.status.capitalize(),
+            reg.cast_as or '',
             u.last_name,
             u.first_name,
             u.pronouns or '',

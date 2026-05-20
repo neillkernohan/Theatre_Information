@@ -82,6 +82,7 @@ class Registration(db.Model):
     custom_field_data = db.Column(db.JSON)
     notes = db.Column(db.Text)           # pre-audition admin notes
     audition_notes = db.Column(db.Text)  # in-the-room notes recorded during the audition
+    cast_as = db.Column(db.String(255))  # role/part assigned by director/stage manager
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     tags = db.relationship('Tag', secondary=registration_tags, backref='registrations')

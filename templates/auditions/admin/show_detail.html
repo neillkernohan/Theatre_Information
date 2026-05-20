@@ -300,6 +300,7 @@
                         <th>Status</th>
                         <th>Time</th>
                         <th>Roles</th>
+                        <th>Cast As</th>
                         <th>Tags</th>
                         <th></th>
                     </tr>
@@ -341,6 +342,13 @@
                         </td>
                         <td>
                             <span class="small">{{ reg.roles_auditioning_for or '—' }}</span>
+                        </td>
+                        <td>
+                            {% if reg.cast_as %}
+                            <span class="badge bg-success fs-6 fw-normal">{{ reg.cast_as }}</span>
+                            {% else %}
+                            <span class="text-muted small">—</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% for tag in reg.tags %}
