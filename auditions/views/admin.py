@@ -406,7 +406,7 @@ def save_registration_fields(reg_id):
     if not user_can_access_show(registration.show_id):
         abort(403)
 
-    registration.cast_as = request.form.get('cast_as', '').strip() or None
+    registration.callback_for = request.form.get('callback_for', '').strip() or None
     registration.audition_notes = request.form.get('audition_notes', '').strip() or None
     registration.notes = request.form.get('notes', '').strip() or None
 

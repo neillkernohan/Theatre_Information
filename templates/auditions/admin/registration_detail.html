@@ -352,16 +352,16 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         </form>
 
-        <!-- Cast As -->
+        <!-- Callback For -->
         <div class="card section-card shadow-sm border-success">
             <div class="card-header bg-success bg-opacity-10">
-                <strong><i class="bi bi-star-fill text-success me-1"></i> Cast As</strong>
+                <strong><i class="bi bi-star-fill text-success me-1"></i> Callback For</strong>
             </div>
             <div class="card-body">
-                <input type="text" name="cast_as" form="saveForm"
+                <input type="text" name="callback_for" form="saveForm"
                        class="form-control form-control-lg fw-semibold"
                        placeholder="e.g. Phantom, Ensemble, Swing…"
-                       value="{{ reg.cast_as or '' }}">
+                       value="{{ reg.callback_for or '' }}">
                 <div class="form-text mt-1">Visible to all admin users. Only directors/SM can edit.</div>
             </div>
         </div>

@@ -146,7 +146,7 @@
                     <th>Booked</th>
                     <th>Roles</th>
                     {% if current_user.can_evaluate %}
-                    <th>Cast As</th>
+                    <th>Callback For</th>
                     {% endif %}
                     <th style="width:100px">Status</th>
                 </tr>
@@ -219,8 +219,8 @@
                     {% if current_user.can_evaluate %}
                     <td style="font-size:0.8rem">
                         {% for reg in booked %}
-                        {% if reg.cast_as %}
-                        <span class="badge bg-success fw-normal d-block mb-1">{{ reg.cast_as }}</span>
+                        {% if reg.callback_for %}
+                        <span class="badge bg-success fw-normal d-block mb-1">{{ reg.callback_for }}</span>
                         {% else %}
                         <span class="d-block text-muted">—</span>
                         {% endif %}
@@ -314,7 +314,7 @@
                         <th>Status</th>
                         <th>Time</th>
                         <th>Roles</th>
-                        <th>Cast As</th>
+                        <th>Callback For</th>
                         <th>Tags</th>
                         <th></th>
                     </tr>
@@ -358,8 +358,8 @@
                             <span class="small">{{ reg.roles_auditioning_for or '—' }}</span>
                         </td>
                         <td>
-                            {% if reg.cast_as %}
-                            <span class="badge bg-success fs-6 fw-normal">{{ reg.cast_as }}</span>
+                            {% if reg.callback_for %}
+                            <span class="badge bg-success fs-6 fw-normal">{{ reg.callback_for }}</span>
                             {% else %}
                             <span class="text-muted small">—</span>
                             {% endif %}
