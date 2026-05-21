@@ -248,14 +248,14 @@ def export_callbacks_by_name(show_id):
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
     # Title row
-    ws.merge_cells('A1:D1')
+    ws.merge_cells('A1:E1')
     title_cell = ws['A1']
     title_cell.value = f'{show.title} — Callback List'
     title_cell.font = Font(bold=True, size=14)
     title_cell.alignment = Alignment(horizontal='center', vertical='center')
     ws.row_dimensions[1].height = 24
 
-    headers = ['Last Name', 'First Name', 'Callback For', 'Email']
+    headers = ['Last Name', 'First Name', 'Callback For', 'Email', 'Phone']
     ws.row_dimensions[2].height = 20
     for col, h in enumerate(headers, 1):
         c = ws.cell(row=2, column=col, value=h)
@@ -269,7 +269,7 @@ def export_callbacks_by_name(show_id):
 
     for i, reg in enumerate(registrations, 3):
         u = reg.user
-        row_data = [u.last_name, u.first_name, reg.callback_for or '', u.email]
+        row_data = [u.last_name, u.first_name, reg.callback_for or '', u.email, u.phone or '']
         fill = row_fill_a if i % 2 == 1 else row_fill_b
         for col, val in enumerate(row_data, 1):
             c = ws.cell(row=i, column=col, value=val)
@@ -277,7 +277,7 @@ def export_callbacks_by_name(show_id):
             c.border = border
             c.fill = fill
 
-    col_widths = [18, 18, 35, 30]
+    col_widths = [18, 18, 35, 30, 16]
     for col, w in enumerate(col_widths, 1):
         ws.column_dimensions[get_column_letter(col)].width = w
 
@@ -343,7 +343,7 @@ def export_callbacks_by_role(show_id):
     name_fill_b = PatternFill('solid', fgColor='FFFFFF')
 
     # Title
-    ws.merge_cells('A1:C1')
+    ws.merge_cells('A1:D1')
     t = ws['A1']
     t.value = f'{show.title} — Callbacks by Role'
     t.font = Font(bold=True, size=14)
@@ -358,7 +358,7 @@ def export_callbacks_by_role(show_id):
             continue
 
         # Role header row
-        ws.merge_cells(f'A{current_row}:C{current_row}')
+        ws.merge_cells(f'A{current_row}:D{current_row}')
         rc = ws.cell(row=current_row, column=1, value=f'{role}  ({len(regs)})')
         rc.font = role_font
         rc.fill = role_fill
@@ -367,7 +367,7 @@ def export_callbacks_by_role(show_id):
         current_row += 1
 
         # Column sub-headers
-        for col, h in enumerate(['Last Name', 'First Name', 'Email'], 1):
+        for col, h in enumerate(['Last Name', 'First Name', 'Email', 'Phone'], 1):
             c = ws.cell(row=current_row, column=col, value=h)
             c.font = header_font
             c.fill = header_fill
@@ -377,7 +377,7 @@ def export_callbacks_by_role(show_id):
         for i, reg in enumerate(regs):
             u = reg.user
             fill = name_fill_a if i % 2 == 0 else name_fill_b
-            for col, val in enumerate([u.last_name, u.first_name, u.email], 1):
+            for col, val in enumerate([u.last_name, u.first_name, u.email, u.phone or ''], 1):
                 c = ws.cell(row=current_row, column=col, value=val)
                 c.alignment = Alignment(vertical='top')
                 c.border = border
@@ -388,7 +388,7 @@ def export_callbacks_by_role(show_id):
 
     # Unassigned callbacks at the bottom
     if no_role:
-        ws.merge_cells(f'A{current_row}:C{current_row}')
+        ws.merge_cells(f'A{current_row}:D{current_row}')
         rc = ws.cell(row=current_row, column=1, value=f'No Role Assigned  ({len(no_role)})')
         rc.font = Font(bold=True, color='FFFFFF', size=11)
         rc.fill = PatternFill('solid', fgColor='6C757D')
@@ -414,6 +414,7 @@ def export_callbacks_by_role(show_id):
     ws.column_dimensions['A'].width = 20
     ws.column_dimensions['B'].width = 20
     ws.column_dimensions['C'].width = 32
+    ws.column_dimensions['D'].width = 16
 
     buf = io.BytesIO()
     wb.save(buf)
