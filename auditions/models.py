@@ -19,6 +19,7 @@ class Show(db.Model):
     block_duration_minutes = db.Column(db.Integer, default=90)
     allow_choice = db.Column(db.Boolean, default=True)
     custom_fields = db.Column(db.JSON)
+    roles = db.Column(db.JSON)  # list of castable role names for this show
     status = db.Column(db.Enum('draft', 'open', 'closed', 'archived', name='show_status'), default='draft')
     notify_email = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

@@ -362,11 +362,25 @@
                 <strong><i class="bi bi-star-fill text-success me-1"></i> Callback For</strong>
             </div>
             <div class="card-body">
-                <input type="text" name="callback_for" form="saveForm"
-                       class="form-control form-control-lg fw-semibold"
-                       placeholder="e.g. Phantom, Ensemble, Swing…"
+                <input type="hidden" name="callback_for" id="callbackForInput" form="saveForm"
                        value="{{ reg.callback_for or '' }}">
-                <div class="form-text mt-1">Visible to all admin users. Only directors/SM can edit.</div>
+                {% if reg.show.roles %}
+                <div class="d-flex flex-wrap gap-2 mb-3" id="callbackRoleChips">
+                    {% set selected = (reg.callback_for or '').split(',') | map('trim') | list %}
+                    {% for role in reg.show.roles %}
+                    <button type="button"
+                            class="btn btn-sm callback-chip {{ 'btn-success' if role in selected else 'btn-outline-secondary' }}"
+                            data-role="{{ role }}">
+                        {{ role }}
+                    </button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <input type="text" id="callbackForExtra"
+                       class="form-control form-control-sm"
+                       placeholder="Other roles (comma-separated)…"
+                       value="{{ reg.callback_for or '' }}">
+                <div class="form-text mt-1">Click roles above to toggle, or type extras below. Visible to all admin users.</div>
             </div>
         </div>
 
@@ -573,6 +587,49 @@
     saveForm.addEventListener('submit', function () { dirty = false; });
 })();
 </script>
+
+{% if current_user.can_evaluate and reg.show.roles %}
+<script>
+(function () {
+    var hiddenInput = document.getElementById('callbackForInput');
+    var extraInput  = document.getElementById('callbackForExtra');
+    var showRoles   = {{ reg.show.roles | tojson }};
+
+    // Parse stored value into chip-roles and extra-roles
+    function parseStored() {
+        var parts = (hiddenInput.value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        var chips = parts.filter(function (r) { return showRoles.indexOf(r) !== -1; });
+        var extra = parts.filter(function (r) { return showRoles.indexOf(r) === -1; });
+        return { chips: chips, extra: extra };
+    }
+
+    // Rebuild hidden input from current chip selection + extra text box
+    function sync() {
+        var selected = [];
+        document.querySelectorAll('.callback-chip.btn-success').forEach(function (btn) {
+            selected.push(btn.dataset.role);
+        });
+        var extraVals = (extraInput.value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        hiddenInput.value = selected.concat(extraVals).join(', ');
+    }
+
+    // Initialise extra text box to only show non-chip roles
+    var parsed = parseStored();
+    extraInput.value = parsed.extra.join(', ');
+
+    // Chip click handler
+    document.querySelectorAll('.callback-chip').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            btn.classList.toggle('btn-success');
+            btn.classList.toggle('btn-outline-secondary');
+            sync();
+        });
+    });
+
+    extraInput.addEventListener('input', sync);
+})();
+</script>
+{% endif %}
 
 <!-- New Tag Modal -->
 <div class="modal fade" id="newTagModal" tabindex="-1">

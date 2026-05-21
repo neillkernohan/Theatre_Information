@@ -93,6 +93,12 @@ def create_show():
         except (json.JSONDecodeError, TypeError):
             show.custom_fields = []
 
+        roles_json = request.form.get('roles_json', '[]')
+        try:
+            show.roles = [r.strip() for r in json.loads(roles_json) if r.strip()]
+        except (json.JSONDecodeError, TypeError):
+            show.roles = []
+
         show.notify_email = form.notify_email.data.strip() if form.notify_email.data else None
 
         db.session.add(show)
@@ -128,6 +134,12 @@ def edit_show(show_id):
             show.custom_fields = json.loads(custom_fields_json)
         except (json.JSONDecodeError, TypeError):
             show.custom_fields = []
+
+        roles_json = request.form.get('roles_json', '[]')
+        try:
+            show.roles = [r.strip() for r in json.loads(roles_json) if r.strip()]
+        except (json.JSONDecodeError, TypeError):
+            show.roles = []
 
         show.notify_email = form.notify_email.data.strip() if form.notify_email.data else None
 
