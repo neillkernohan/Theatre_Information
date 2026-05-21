@@ -180,7 +180,7 @@
                     </td>
                 </tr>
                 {% else %}
-                {% set booked = slot.registrations.filter_by(status='confirmed').all() + slot.registrations.filter_by(status='callback').all() + slot.registrations.filter_by(status='no_show').all() %}
+                {% set booked = slot.registrations.filter_by(status='confirmed').all() + slot.registrations.filter_by(status='callback').all() + slot.registrations.filter_by(status='no_show').all() + slot.registrations.filter_by(status='not_selected').all() %}
                 <tr>
                     <td class="fw-semibold">
                         {{ slot.start_time.strftime('%I:%M %p') }}
@@ -202,7 +202,8 @@
                                    onclick="event.stopPropagation()">
                             {% endif %}
                             <a href="{{ url_for('auditions.registration_detail', reg_id=reg.id) }}"
-                               class="text-decoration-none text-dark" style="font-size:0.875rem"
+                               class="text-decoration-none {{ 'text-muted' if reg.status in ('no_show', 'not_selected') else 'text-dark' }}"
+                               style="font-size:0.875rem; {{ 'text-decoration:line-through!important' if reg.status == 'not_selected' else '' }}"
                                onclick="event.stopPropagation()">
                                 <i class="bi bi-person-fill text-muted"></i>
                                 {{ reg.user.first_name }} {{ reg.user.last_name }}
