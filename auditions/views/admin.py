@@ -522,9 +522,9 @@ def update_registration_status(reg_id):
     old_status = registration.status
     show_id = registration.show_id
 
-    # Free slot if cancelling, no-show, or not selected
-    inactive = ('cancelled', 'no_show', 'not_selected')
-    if new_status in inactive and old_status not in inactive:
+    # Free slot only if cancelling or not selected (no-show keeps the slot)
+    slot_freeing = ('cancelled', 'not_selected')
+    if new_status in slot_freeing and old_status not in slot_freeing:
         if registration.slot_id and registration.slot:
             registration.slot.current_count = max(0, registration.slot.current_count - 1)
         registration.slot_id = None
@@ -571,9 +571,9 @@ def bulk_update_status(show_id):
         if old_status == new_status:
             continue
 
-        # Free slot when moving to cancelled, no_show, or not_selected
-        inactive = ('cancelled', 'no_show', 'not_selected')
-        if new_status in inactive and old_status not in inactive:
+        # Free slot only if cancelling or not selected (no-show keeps the slot)
+        slot_freeing = ('cancelled', 'not_selected')
+        if new_status in slot_freeing and old_status not in slot_freeing:
             if registration.slot_id and registration.slot:
                 registration.slot.current_count = max(0, registration.slot.current_count - 1)
             registration.slot_id = None
@@ -586,7 +586,7 @@ def bulk_update_status(show_id):
     db.session.commit()
 
     # Promote from waitlist once after all cancellations are processed
-    if new_status in ('cancelled', 'no_show', 'not_selected'):
+    if new_status in ('cancelled', 'not_selected'):
         promote_from_waitlist(show_id)
 
     label = 'No Show' if new_status == 'no_show' else new_status.capitalize()
