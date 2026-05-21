@@ -85,35 +85,51 @@
 <p class="text-muted mb-4" style="white-space: pre-wrap;">{{ show.description }}</p>
 {% endif %}
 
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <h3>{{ all_regs | selectattr('status', 'ne', 'cancelled') | list | length }}</h3>
-                <small class="text-muted">Total Registrations</small>
+<div class="row mb-4 g-3">
+    <div class="col">
+        <div class="card text-center shadow-sm h-100">
+            <div class="card-body py-3">
+                <h3 class="mb-0">{{ all_regs | selectattr('status', 'ne', 'cancelled') | list | length }}</h3>
+                <small class="text-muted">Registered</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <h3>{{ all_regs | selectattr('status', 'equalto', 'confirmed') | list | length }}</h3>
+    <div class="col">
+        <div class="card text-center shadow-sm h-100 border-primary">
+            <div class="card-body py-3">
+                <h3 class="mb-0 text-primary">{{ all_regs | selectattr('status', 'equalto', 'callback') | list | length }}</h3>
+                <small class="text-muted">Callbacks</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center shadow-sm h-100">
+            <div class="card-body py-3">
+                <h3 class="mb-0">{{ all_regs | selectattr('status', 'equalto', 'confirmed') | list | length }}</h3>
                 <small class="text-muted">Confirmed</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <h3>{{ all_regs | selectattr('status', 'equalto', 'waitlisted') | list | length }}</h3>
+    <div class="col">
+        <div class="card text-center shadow-sm h-100 border-danger">
+            <div class="card-body py-3">
+                <h3 class="mb-0 text-danger">{{ all_regs | selectattr('status', 'equalto', 'not_selected') | list | length }}</h3>
+                <small class="text-muted">Not Selected</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center shadow-sm h-100">
+            <div class="card-body py-3">
+                <h3 class="mb-0">{{ all_regs | selectattr('status', 'equalto', 'waitlisted') | list | length }}</h3>
                 <small class="text-muted">Waitlisted</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <h3>{{ slots | length }}</h3>
+    <div class="col">
+        <div class="card text-center shadow-sm h-100">
+            <div class="card-body py-3">
+                <h3 class="mb-0">{{ slots | length }}</h3>
                 <small class="text-muted">{{ 'Blocks' if show.scheduling_mode == 'block' else 'Slots' }}</small>
             </div>
         </div>
