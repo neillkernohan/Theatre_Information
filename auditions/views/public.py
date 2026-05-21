@@ -212,7 +212,6 @@ def edit_registration(reg_id):
             registration.custom_field_data = custom_data
 
         db.session.commit()
-        send_admin_notification(registration, 'Registration Updated')
         flash('Your registration has been updated.', 'success')
         return redirect(url_for('auditions.actor_dashboard'))
 
@@ -264,7 +263,6 @@ def change_slot(reg_id):
         db.session.commit()
 
         send_slot_changed_email(registration)
-        send_admin_notification(registration, 'Slot Changed')
         flash('Your audition time has been updated. A confirmation email has been sent.', 'success')
         return redirect(url_for('auditions.actor_dashboard'))
 

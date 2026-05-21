@@ -512,7 +512,6 @@ def admin_change_slot(reg_id):
         from auditions.email import send_slot_changed_email
         send_slot_changed_email(registration)
 
-    send_admin_notification(registration, 'Slot Changed by Admin')
     flash(
         f'{registration.user.first_name} {registration.user.last_name} moved to '
         f'{new_slot.date.strftime("%b %d")} at {new_slot.start_time.strftime("%I:%M %p")}.',
@@ -549,8 +548,6 @@ def update_registration_status(reg_id):
         promote_from_waitlist(show_id)
 
     label = 'No Show' if new_status == 'no_show' else new_status.capitalize()
-    send_admin_notification(registration, f'Status Changed to {label}')
-
     flash(f'Registration status updated to {label}.', 'success')
     return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
