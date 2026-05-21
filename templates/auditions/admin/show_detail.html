@@ -703,6 +703,17 @@
                         <i class="bi bi-file-earmark-word me-1"></i>Word (.docx)
                     </a>
                 </div>
+                <p class="fw-semibold mb-2 small text-uppercase text-muted" style="letter-spacing:.04em">Callback Lists</p>
+                <div class="d-flex gap-2 flex-wrap mb-4">
+                    <a href="{{ url_for('auditions.export_callbacks_by_name', show_id=show.id) }}"
+                       class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>By Name (.xlsx)
+                    </a>
+                    <a href="{{ url_for('auditions.export_callbacks_by_role', show_id=show.id) }}"
+                       class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>By Role (.xlsx)
+                    </a>
+                </div>
                 <p class="fw-semibold mb-2 small text-uppercase text-muted" style="letter-spacing:.04em">Audition Sheets (one per actor)</p>
                 <div class="d-flex gap-2 flex-wrap">
                     <a id="ex_sheets_docx" href="{{ url_for('auditions.export_audition_sheets_docx', show_id=show.id) }}"

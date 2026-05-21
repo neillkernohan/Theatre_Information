@@ -211,6 +211,219 @@ def export_xlsx(show_id):
 
 
 # ---------------------------------------------------------------------------
+# Callback Lists
+# ---------------------------------------------------------------------------
+
+@auditions_bp.route('/admin/shows/<int:show_id>/export/callbacks/by-name')
+@export_required
+def export_callbacks_by_name(show_id):
+    """Callback registrations sorted by last name, first name."""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        abort(500, 'openpyxl is not installed.')
+
+    show = Show.query.get_or_404(show_id)
+    if not _can_access_show(show_id):
+        abort(403)
+
+    registrations = (
+        Registration.query
+        .join(Registration.user)
+        .filter(Registration.show_id == show_id, Registration.status == 'callback')
+        .order_by(User.last_name, User.first_name)
+        .all()
+    )
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Callbacks by Name'
+
+    header_fill = PatternFill('solid', fgColor='0D6EFD')
+    header_font = Font(bold=True, color='FFFFFF')
+    header_align = Alignment(horizontal='center', vertical='center')
+    thin = Side(border_style='thin', color='CCCCCC')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    # Title row
+    ws.merge_cells('A1:D1')
+    title_cell = ws['A1']
+    title_cell.value = f'{show.title} — Callback List'
+    title_cell.font = Font(bold=True, size=14)
+    title_cell.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 24
+
+    headers = ['Last Name', 'First Name', 'Callback For', 'Email']
+    ws.row_dimensions[2].height = 20
+    for col, h in enumerate(headers, 1):
+        c = ws.cell(row=2, column=col, value=h)
+        c.font = header_font
+        c.fill = header_fill
+        c.alignment = header_align
+        c.border = border
+
+    row_fill_a = PatternFill('solid', fgColor='EBF5FB')
+    row_fill_b = PatternFill('solid', fgColor='FFFFFF')
+
+    for i, reg in enumerate(registrations, 3):
+        u = reg.user
+        row_data = [u.last_name, u.first_name, reg.callback_for or '', u.email]
+        fill = row_fill_a if i % 2 == 1 else row_fill_b
+        for col, val in enumerate(row_data, 1):
+            c = ws.cell(row=i, column=col, value=val)
+            c.alignment = Alignment(vertical='top', wrap_text=True)
+            c.border = border
+            c.fill = fill
+
+    col_widths = [18, 18, 35, 30]
+    for col, w in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(col)].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f"{show.title.replace(' ', '_')}_Callbacks_by_Name_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    return send_file(buf, as_attachment=True, download_name=filename,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+@auditions_bp.route('/admin/shows/<int:show_id>/export/callbacks/by-role')
+@export_required
+def export_callbacks_by_role(show_id):
+    """Callback registrations grouped by role."""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        abort(500, 'openpyxl is not installed.')
+
+    show = Show.query.get_or_404(show_id)
+    if not _can_access_show(show_id):
+        abort(403)
+
+    registrations = (
+        Registration.query
+        .join(Registration.user)
+        .filter(Registration.show_id == show_id, Registration.status == 'callback')
+        .order_by(User.last_name, User.first_name)
+        .all()
+    )
+
+    # Build role → list of registrations mapping (one person can appear under multiple roles)
+    from collections import defaultdict
+    role_map = defaultdict(list)
+    no_role = []
+    for reg in registrations:
+        if reg.callback_for:
+            for role in [r.strip() for r in reg.callback_for.split(',') if r.strip()]:
+                role_map[role].append(reg)
+        else:
+            no_role.append(reg)
+
+    # Sort roles: use show.roles order if defined, then alphabetical for extras
+    ordered_roles = list(show.roles or [])
+    for role in sorted(role_map.keys()):
+        if role not in ordered_roles:
+            ordered_roles.append(role)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Callbacks by Role'
+
+    thin = Side(border_style='thin', color='CCCCCC')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    role_fill   = PatternFill('solid', fgColor='198754')
+    role_font   = Font(bold=True, color='FFFFFF', size=11)
+    header_fill = PatternFill('solid', fgColor='D1E7DD')
+    header_font = Font(bold=True, size=9)
+    name_fill_a = PatternFill('solid', fgColor='F8F9FA')
+    name_fill_b = PatternFill('solid', fgColor='FFFFFF')
+
+    # Title
+    ws.merge_cells('A1:C1')
+    t = ws['A1']
+    t.value = f'{show.title} — Callbacks by Role'
+    t.font = Font(bold=True, size=14)
+    t.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 24
+
+    current_row = 2
+
+    for role in ordered_roles:
+        regs = role_map.get(role, [])
+        if not regs:
+            continue
+
+        # Role header row
+        ws.merge_cells(f'A{current_row}:C{current_row}')
+        rc = ws.cell(row=current_row, column=1, value=f'{role}  ({len(regs)})')
+        rc.font = role_font
+        rc.fill = role_fill
+        rc.alignment = Alignment(vertical='center')
+        ws.row_dimensions[current_row].height = 20
+        current_row += 1
+
+        # Column sub-headers
+        for col, h in enumerate(['Last Name', 'First Name', 'Email'], 1):
+            c = ws.cell(row=current_row, column=col, value=h)
+            c.font = header_font
+            c.fill = header_fill
+            c.border = border
+        current_row += 1
+
+        for i, reg in enumerate(regs):
+            u = reg.user
+            fill = name_fill_a if i % 2 == 0 else name_fill_b
+            for col, val in enumerate([u.last_name, u.first_name, u.email], 1):
+                c = ws.cell(row=current_row, column=col, value=val)
+                c.alignment = Alignment(vertical='top')
+                c.border = border
+                c.fill = fill
+            current_row += 1
+
+        current_row += 1  # blank row between roles
+
+    # Unassigned callbacks at the bottom
+    if no_role:
+        ws.merge_cells(f'A{current_row}:C{current_row}')
+        rc = ws.cell(row=current_row, column=1, value=f'No Role Assigned  ({len(no_role)})')
+        rc.font = Font(bold=True, color='FFFFFF', size=11)
+        rc.fill = PatternFill('solid', fgColor='6C757D')
+        rc.alignment = Alignment(vertical='center')
+        ws.row_dimensions[current_row].height = 20
+        current_row += 1
+        for col, h in enumerate(['Last Name', 'First Name', 'Email'], 1):
+            c = ws.cell(row=current_row, column=col, value=h)
+            c.font = header_font
+            c.fill = header_fill
+            c.border = border
+        current_row += 1
+        for i, reg in enumerate(no_role):
+            u = reg.user
+            fill = name_fill_a if i % 2 == 0 else name_fill_b
+            for col, val in enumerate([u.last_name, u.first_name, u.email], 1):
+                c = ws.cell(row=current_row, column=col, value=val)
+                c.alignment = Alignment(vertical='top')
+                c.border = border
+                c.fill = fill
+            current_row += 1
+
+    ws.column_dimensions['A'].width = 20
+    ws.column_dimensions['B'].width = 20
+    ws.column_dimensions['C'].width = 32
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f"{show.title.replace(' ', '_')}_Callbacks_by_Role_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    return send_file(buf, as_attachment=True, download_name=filename,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+# ---------------------------------------------------------------------------
 # Word Export
 # ---------------------------------------------------------------------------
 
