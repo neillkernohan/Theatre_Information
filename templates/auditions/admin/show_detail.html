@@ -195,11 +195,19 @@
                     </td>
                     <td>
                         {% for reg in booked %}
-                        <a href="{{ url_for('auditions.registration_detail', reg_id=reg.id) }}"
-                           class="text-decoration-none text-dark d-block" style="font-size:0.875rem">
-                            <i class="bi bi-person-fill text-muted"></i>
-                            {{ reg.user.first_name }} {{ reg.user.last_name }}
-                        </a>
+                        <div class="d-flex align-items-center gap-2">
+                            {% if current_user.can_evaluate %}
+                            <input type="checkbox" name="reg_ids" value="{{ reg.id }}"
+                                   form="bulkForm" class="form-check-input reg-check flex-shrink-0"
+                                   onclick="event.stopPropagation()">
+                            {% endif %}
+                            <a href="{{ url_for('auditions.registration_detail', reg_id=reg.id) }}"
+                               class="text-decoration-none text-dark" style="font-size:0.875rem"
+                               onclick="event.stopPropagation()">
+                                <i class="bi bi-person-fill text-muted"></i>
+                                {{ reg.user.first_name }} {{ reg.user.last_name }}
+                            </a>
+                        </div>
                         {% endfor %}
                         {% if current_user.can_manage_shows and not slot.is_full %}
                         <form method="POST" action="{{ url_for('auditions.toggle_slot_block', slot_id=slot.id) }}" class="d-inline float-end">
