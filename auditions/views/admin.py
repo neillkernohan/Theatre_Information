@@ -543,6 +543,55 @@ def update_registration_status(reg_id):
     return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
 
+@auditions_bp.route('/admin/shows/<int:show_id>/bulk-status', methods=['POST'])
+@evaluate_required
+def bulk_update_status(show_id):
+    """Bulk-update the status of multiple registrations at once."""
+    if not user_can_access_show(show_id):
+        abort(403)
+
+    new_status = request.form.get('status')
+    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show'):
+        flash('Invalid status.', 'danger')
+        return redirect(url_for('auditions.show_detail', show_id=show_id))
+
+    reg_ids = [int(x) for x in request.form.getlist('reg_ids') if x.isdigit()]
+    if not reg_ids:
+        flash('No registrations selected.', 'warning')
+        return redirect(url_for('auditions.show_detail', show_id=show_id))
+
+    registrations = Registration.query.filter(
+        Registration.id.in_(reg_ids),
+        Registration.show_id == show_id
+    ).all()
+
+    for registration in registrations:
+        old_status = registration.status
+        if old_status == new_status:
+            continue
+
+        # Free slot when moving to cancelled or no_show
+        if new_status in ('cancelled', 'no_show') and old_status not in ('cancelled', 'no_show'):
+            if registration.slot_id and registration.slot:
+                registration.slot.current_count = max(0, registration.slot.current_count - 1)
+            registration.slot_id = None
+
+        registration.status = new_status
+
+        if new_status == 'cancelled' and old_status != 'cancelled':
+            send_cancellation_email(registration)
+
+    db.session.commit()
+
+    # Promote from waitlist once after all cancellations are processed
+    if new_status in ('cancelled', 'no_show'):
+        promote_from_waitlist(show_id)
+
+    label = 'No Show' if new_status == 'no_show' else new_status.capitalize()
+    flash(f'{len(registrations)} registration(s) updated to {label}.', 'success')
+    return redirect(url_for('auditions.show_detail', show_id=show_id))
+
+
 @auditions_bp.route('/admin/registrations/<int:reg_id>/notes', methods=['POST'])
 @evaluate_required
 def update_registration_notes(reg_id):

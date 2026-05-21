@@ -308,10 +308,17 @@
 
     <div class="card-body p-0">
         {% if registrations %}
+        <form id="bulkForm" method="POST" action="{{ url_for('auditions.bulk_update_status', show_id=show.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="status" id="bulkStatus" value="">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0" id="regTable">
                 <thead class="table-dark">
                     <tr>
+                        <th style="width:36px">
+                            <input type="checkbox" id="selectAll" class="form-check-input"
+                                   title="Select all">
+                        </th>
                         <th>Name</th>
                         <th>Status</th>
                         <th>Time</th>
@@ -324,6 +331,10 @@
                 <tbody>
                     {% for reg in registrations %}
                     <tr style="cursor:pointer" onclick="window.location='{{ url_for('auditions.registration_detail', reg_id=reg.id) }}'">
+                        <td onclick="event.stopPropagation()">
+                            <input type="checkbox" name="reg_ids" value="{{ reg.id }}"
+                                   class="form-check-input reg-check">
+                        </td>
                         <td>
                             <strong>{{ reg.user.first_name }} {{ reg.user.last_name }}</strong>
                             {% if reg.user.pronouns %}
@@ -382,6 +393,7 @@
                 </tbody>
             </table>
         </div>
+        </form>
         {% else %}
         <p class="text-muted text-center py-4 mb-0">
             {% if status_filter or tag_filter or search %}
@@ -393,6 +405,78 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Bulk action bar -->
+{% if current_user.can_evaluate %}
+<div id="bulkBar" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:1055;
+     background:#212529; color:#fff; padding:10px 24px; box-shadow:0 -3px 10px rgba(0,0,0,.3);">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        <span id="bulkCount" class="fw-semibold"></span>
+        <span class="text-secondary">— set status to:</span>
+        {% for s, label, cls in [
+            ('confirmed','Confirmed','success'),
+            ('callback','Callback','primary'),
+            ('no_show','No Show','dark'),
+            ('cancelled','Cancelled','secondary')
+        ] %}
+        <button type="button" class="btn btn-{{ cls }} btn-sm bulk-apply" data-status="{{ s }}">
+            {{ label }}
+        </button>
+        {% endfor %}
+        <button type="button" class="btn btn-outline-light btn-sm ms-auto" id="bulkCancel">
+            Cancel
+        </button>
+    </div>
+</div>
+<script>
+(function () {
+    var bar      = document.getElementById('bulkBar');
+    var countEl  = document.getElementById('bulkCount');
+    var form     = document.getElementById('bulkForm');
+    var statusIn = document.getElementById('bulkStatus');
+    var selectAll = document.getElementById('selectAll');
+    var checks   = function () { return document.querySelectorAll('.reg-check'); };
+
+    function updateBar() {
+        var checked = document.querySelectorAll('.reg-check:checked').length;
+        if (checked > 0) {
+            countEl.textContent = checked + ' selected';
+            bar.style.display = 'block';
+        } else {
+            bar.style.display = 'none';
+        }
+    }
+
+    document.getElementById('regTable').addEventListener('change', function (e) {
+        if (e.target.classList.contains('reg-check')) updateBar();
+    });
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            checks().forEach(function (c) { c.checked = selectAll.checked; });
+            updateBar();
+        });
+    }
+
+    document.querySelectorAll('.bulk-apply').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var status = btn.dataset.status;
+            var label  = btn.textContent.trim();
+            var n = document.querySelectorAll('.reg-check:checked').length;
+            if (!confirm('Set ' + n + ' registration(s) to "' + label + '"?')) return;
+            statusIn.value = status;
+            form.submit();
+        });
+    });
+
+    document.getElementById('bulkCancel').addEventListener('click', function () {
+        checks().forEach(function (c) { c.checked = false; });
+        if (selectAll) selectAll.checked = false;
+        bar.style.display = 'none';
+    });
+})();
+</script>
+{% endif %}
 
 {% if all_regs | length == 0 and current_user.can_manage_shows %}
 <div class="text-end">
