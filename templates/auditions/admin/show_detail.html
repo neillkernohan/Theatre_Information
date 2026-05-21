@@ -959,4 +959,34 @@
 
     renderAddDates();
 </script>
+
+<!-- Scroll position restore: remember where we were when navigating into a registration -->
+<script>
+(function () {
+    var SCROLL_KEY = 'show_detail_scroll_{{ show.id }}';
+
+    // On load: restore scroll position if we just came back from a registration page
+    var saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved !== null) {
+        sessionStorage.removeItem(SCROLL_KEY);
+        window.addEventListener('load', function () {
+            window.scrollTo(0, parseInt(saved, 10));
+        });
+    }
+
+    // Save scroll position whenever a registration link is followed
+    document.querySelectorAll('a[href*="/registrations/"]').forEach(function (link) {
+        link.addEventListener('click', function () {
+            sessionStorage.setItem(SCROLL_KEY, window.scrollY);
+        });
+    });
+
+    // Also catch row clicks (the tr onclick="window.location=...")
+    document.querySelectorAll('tr[onclick*="registration_detail"]').forEach(function (row) {
+        row.addEventListener('click', function () {
+            sessionStorage.setItem(SCROLL_KEY, window.scrollY);
+        });
+    });
+})();
+</script>
 {% endblock %}
