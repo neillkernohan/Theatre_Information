@@ -145,13 +145,16 @@
                     <th style="width:80px">Fill</th>
                     <th>Booked</th>
                     <th>Roles</th>
+                    {% if current_user.can_evaluate %}
+                    <th>Cast As</th>
+                    {% endif %}
                     <th style="width:100px">Status</th>
                 </tr>
             </thead>
             <tbody>
                 {% for date_str, date_slots in slots_by_date.items() %}
                 <tr class="table-secondary">
-                    <td colspan="5" class="fw-semibold py-2">
+                    <td colspan="{{ 6 if current_user.can_evaluate else 5 }}" class="fw-semibold py-2">
                         <i class="bi bi-calendar-event me-1"></i>{{ date_str }}
                     </td>
                 </tr>
@@ -164,7 +167,7 @@
                     <td style="color:#6f42c1">
                         <i class="bi bi-lock-fill"></i> {{ slot.label or 'Reserved Block' }}
                     </td>
-                    <td colspan="3">
+                    <td colspan="{{ 4 if current_user.can_evaluate else 3 }}">
                         {% if current_user.can_manage_shows %}
                         <form method="POST" action="{{ url_for('auditions.toggle_slot_block', slot_id=slot.id) }}" class="d-inline">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -213,6 +216,17 @@
                         <span class="d-block text-muted">{{ reg.roles_auditioning_for or '—' }}</span>
                         {% endfor %}
                     </td>
+                    {% if current_user.can_evaluate %}
+                    <td style="font-size:0.8rem">
+                        {% for reg in booked %}
+                        {% if reg.cast_as %}
+                        <span class="badge bg-success fw-normal d-block mb-1">{{ reg.cast_as }}</span>
+                        {% else %}
+                        <span class="d-block text-muted">—</span>
+                        {% endif %}
+                        {% endfor %}
+                    </td>
+                    {% endif %}
                     <td>
                         {% for reg in booked %}
                         {% if reg.status == 'confirmed' %}
