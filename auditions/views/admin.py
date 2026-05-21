@@ -515,15 +515,15 @@ def update_registration_status(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     new_status = request.form.get('status')
 
-    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled'):
+    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show'):
         flash('Invalid status.', 'danger')
         return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
     old_status = registration.status
     show_id = registration.show_id
 
-    # Free slot if cancelling
-    if new_status == 'cancelled' and old_status != 'cancelled':
+    # Free slot if cancelling or marking no-show
+    if new_status in ('cancelled', 'no_show') and old_status not in ('cancelled', 'no_show'):
         if registration.slot_id and registration.slot:
             registration.slot.current_count = max(0, registration.slot.current_count - 1)
         registration.slot_id = None
@@ -536,9 +536,10 @@ def update_registration_status(reg_id):
         send_cancellation_email(registration)
         promote_from_waitlist(show_id)
 
-    send_admin_notification(registration, f'Status Changed to {new_status.capitalize()}')
+    label = 'No Show' if new_status == 'no_show' else new_status.capitalize()
+    send_admin_notification(registration, f'Status Changed to {label}')
 
-    flash(f'Registration status updated to {new_status}.', 'success')
+    flash(f'Registration status updated to {label}.', 'success')
     return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
 

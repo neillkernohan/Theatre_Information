@@ -180,7 +180,7 @@
                     </td>
                 </tr>
                 {% else %}
-                {% set booked = slot.registrations.filter_by(status='confirmed').all() + slot.registrations.filter_by(status='callback').all() %}
+                {% set booked = slot.registrations.filter_by(status='confirmed').all() + slot.registrations.filter_by(status='callback').all() + slot.registrations.filter_by(status='no_show').all() %}
                 <tr>
                     <td class="fw-semibold">
                         {{ slot.start_time.strftime('%I:%M %p') }}
@@ -233,6 +233,8 @@
                         <span class="badge bg-success d-block mb-1">Confirmed</span>
                         {% elif reg.status == 'callback' %}
                         <span class="badge bg-primary d-block mb-1">Callback</span>
+                        {% elif reg.status == 'no_show' %}
+                        <span class="badge bg-dark d-block mb-1">No Show</span>
                         {% endif %}
                         {% endfor %}
                     </td>
@@ -276,9 +278,9 @@
                 <label class="form-label small mb-1">Status</label>
                 <select name="status" class="form-select form-select-sm">
                     <option value="">All statuses</option>
-                    {% for s in ['confirmed', 'waitlisted', 'callback', 'cancelled'] %}
+                    {% for s, label in [('confirmed','Confirmed'),('waitlisted','Waitlisted'),('callback','Callback'),('no_show','No Show'),('cancelled','Cancelled')] %}
                     <option value="{{ s }}" {{ 'selected' if status_filter == s else '' }}>
-                        {{ s | capitalize }}
+                        {{ label }}
                     </option>
                     {% endfor %}
                 </select>
@@ -341,6 +343,8 @@
                             <span class="badge bg-warning text-dark">Waitlisted</span>
                             {% elif reg.status == 'callback' %}
                             <span class="badge bg-primary">Callback</span>
+                            {% elif reg.status == 'no_show' %}
+                            <span class="badge bg-dark">No Show</span>
                             {% else %}
                             <span class="badge bg-secondary">Cancelled</span>
                             {% endif %}
