@@ -611,6 +611,7 @@
         });
         var extraVals = (extraInput.value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
         hiddenInput.value = selected.concat(extraVals).join(', ');
+        hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
     // Initialise extra text box to only show non-chip roles
