@@ -202,8 +202,8 @@
                                    onclick="event.stopPropagation()">
                             {% endif %}
                             <a href="{{ url_for('auditions.registration_detail', reg_id=reg.id) }}"
-                               class="text-decoration-none {{ 'text-muted' if reg.status in ('no_show', 'not_selected') else 'text-dark' }}"
-                               style="font-size:0.875rem; {{ 'text-decoration:line-through!important' if reg.status == 'not_selected' else '' }}"
+                               class="text-decoration-none text-dark"
+                               style="font-size:0.875rem"
                                onclick="event.stopPropagation()">
                                 <i class="bi bi-person-fill text-muted"></i>
                                 {{ reg.user.first_name }} {{ reg.user.last_name }}
