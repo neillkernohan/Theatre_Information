@@ -68,8 +68,8 @@ class User(UserMixin, db.Model):
 
     # Roles grouped by capability (legacy names kept for compat)
     _MANAGE_SHOWS  = {'super_admin', 'admin', 'auditions_creator'}
-    _EVALUATE      = {'super_admin', 'admin', 'auditions_creator', 'director'}
-    _CAN_EXPORT    = {'super_admin', 'admin', 'auditions_creator', 'director', 'producer'}
+    _EVALUATE      = {'super_admin', 'admin', 'auditions_creator', 'director', 'stage_manager'}
+    _CAN_EXPORT    = {'super_admin', 'admin', 'auditions_creator', 'director', 'producer', 'stage_manager'}
     _READ_ADMIN    = {'super_admin', 'admin', 'auditions_creator', 'director',
                       'producer', 'stage_manager', 'viewer'}
     _SUPER_ADMIN   = {'super_admin', 'admin'}
