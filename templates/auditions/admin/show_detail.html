@@ -230,6 +230,8 @@
                         {% for reg in booked %}
                         {% if reg.callback_for %}
                         <span class="badge bg-success fw-normal d-block mb-1">{{ reg.callback_for }}</span>
+                        {% elif reg.status == 'not_selected' %}
+                        <span class="badge bg-danger fw-normal d-block mb-1">Not Selected</span>
                         {% else %}
                         <span class="d-block text-muted">—</span>
                         {% endif %}
