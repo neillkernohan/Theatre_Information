@@ -515,7 +515,7 @@ def update_registration_status(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     new_status = request.form.get('status')
 
-    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show'):
+    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show', 'not_selected'):
         flash('Invalid status.', 'danger')
         return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
@@ -551,7 +551,7 @@ def bulk_update_status(show_id):
         abort(403)
 
     new_status = request.form.get('status')
-    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show'):
+    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show', 'not_selected'):
         flash('Invalid status.', 'danger')
         return redirect(url_for('auditions.show_detail', show_id=show_id))
 

@@ -278,7 +278,7 @@
                 <label class="form-label small mb-1">Status</label>
                 <select name="status" class="form-select form-select-sm">
                     <option value="">All statuses</option>
-                    {% for s, label in [('confirmed','Confirmed'),('waitlisted','Waitlisted'),('callback','Callback'),('no_show','No Show'),('cancelled','Cancelled')] %}
+                    {% for s, label in [('confirmed','Confirmed'),('waitlisted','Waitlisted'),('callback','Callback'),('no_show','No Show'),('not_selected','Not Selected'),('cancelled','Cancelled')] %}
                     <option value="{{ s }}" {{ 'selected' if status_filter == s else '' }}>
                         {{ label }}
                     </option>
@@ -356,6 +356,8 @@
                             <span class="badge bg-primary">Callback</span>
                             {% elif reg.status == 'no_show' %}
                             <span class="badge bg-dark">No Show</span>
+                            {% elif reg.status == 'not_selected' %}
+                            <span class="badge bg-danger">Not Selected</span>
                             {% else %}
                             <span class="badge bg-secondary">Cancelled</span>
                             {% endif %}
@@ -417,6 +419,7 @@
             ('confirmed','Confirmed','success'),
             ('callback','Callback','primary'),
             ('no_show','No Show','dark'),
+            ('not_selected','Not Selected','danger'),
             ('cancelled','Cancelled','secondary')
         ] %}
         <button type="button" class="btn btn-{{ cls }} btn-sm bulk-apply" data-status="{{ s }}">
