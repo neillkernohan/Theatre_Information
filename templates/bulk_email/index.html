@@ -1,0 +1,71 @@
+{% extends "auditions/base.html" %}
+{% block title %}Bulk Email Campaigns{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="mb-0">Bulk Email Campaigns</h2>
+    <div>
+      {% if accounts %}
+        <a href="{{ url_for('bulk_email.compose') }}" class="btn btn-primary me-2">New Campaign</a>
+      {% else %}
+        <span class="text-muted me-2" title="Add a sender account first">New Campaign</span>
+      {% endif %}
+      <a href="{{ url_for('bulk_email.accounts') }}" class="btn btn-outline-secondary">Sender Accounts</a>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    {% endfor %}
+  {% endwith %}
+
+  {% if not accounts %}
+    <div class="alert alert-warning">
+      No sender accounts configured yet.
+      <a href="{{ url_for('bulk_email.accounts') }}">Add a Gmail sender account</a> to get started.
+    </div>
+  {% endif %}
+
+  {% if campaigns %}
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Subject</th>
+        <th>From</th>
+        <th>Audience</th>
+        <th>Recipients</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in campaigns %}
+      <tr>
+        <td><a href="{{ url_for('bulk_email.campaign_detail', campaign_id=c.id) }}">{{ c.subject }}</a></td>
+        <td>{{ c.sender.email }}</td>
+        <td>{{ c.audience_label }}</td>
+        <td>
+          {{ c.total_count }}
+          {% if c.sent_count or c.failed_count %}
+            <small class="text-muted">({{ c.sent_count }} sent{% if c.failed_count %}, {{ c.failed_count }} failed{% endif %})</small>
+          {% endif %}
+        </td>
+        <td>
+          {% set badge = {'draft':'secondary','sending':'primary','paused':'warning','completed':'success','failed':'danger'} %}
+          <span class="badge bg-{{ badge.get(c.status, 'secondary') }}">{{ c.status }}</span>
+        </td>
+        <td>{{ c.created_at.strftime('%b %-d, %Y') }}</td>
+        <td>
+          <a href="{{ url_for('bulk_email.campaign_detail', campaign_id=c.id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p class="text-muted">No campaigns yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

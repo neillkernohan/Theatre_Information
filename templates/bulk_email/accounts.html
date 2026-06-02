@@ -1,0 +1,75 @@
+{% extends "auditions/base.html" %}
+{% block title %}Sender Accounts{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width:700px">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="mb-0">Sender Accounts</h2>
+    <div>
+      <a href="{{ url_for('bulk_email.add_account') }}" class="btn btn-primary me-2">Add Gmail Account</a>
+      <a href="{{ url_for('bulk_email.index') }}" class="btn btn-outline-secondary">Back to Campaigns</a>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    {% endfor %}
+  {% endwith %}
+
+  <p class="text-muted mb-4">
+    Each account goes through Google's OAuth flow so the app can send on its behalf.
+    Only <strong>@theatreaurora.com</strong> Google Workspace accounts should be added.
+  </p>
+
+  {% if accounts %}
+  <div class="list-group mb-4">
+    {% for acc in accounts %}
+    <div class="list-group-item">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <strong>{{ acc.email }}</strong><br>
+          <small class="text-muted">Display name: {{ acc.display_name or '—' }}</small><br>
+          <small class="text-muted">Added {{ acc.added_at.strftime('%b %-d, %Y') }}</small>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#rename-{{ acc.id }}">Rename</button>
+          <a href="{{ url_for('bulk_email.add_account') }}" class="btn btn-sm btn-outline-primary"
+             title="Re-authorise to refresh tokens">Re-auth</a>
+          <form method="post" action="{{ url_for('bulk_email.remove_account', account_id=acc.id) }}"
+                onsubmit="return confirm('Remove {{ acc.email }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-danger">Remove</button>
+          </form>
+        </div>
+      </div>
+      <div class="collapse mt-3" id="rename-{{ acc.id }}">
+        <form method="post" action="{{ url_for('bulk_email.update_display_name', account_id=acc.id) }}"
+              class="d-flex gap-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="text" name="display_name" class="form-control form-control-sm"
+                 value="{{ acc.display_name or '' }}" placeholder="Display name (e.g. Theatre Aurora)">
+          <button class="btn btn-sm btn-primary">Save</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p class="text-muted">No sender accounts yet. Click <em>Add Gmail Account</em> to connect one.</p>
+  {% endif %}
+
+  <div class="card bg-light border-0">
+    <div class="card-body">
+      <h6 class="card-title">How this works</h6>
+      <ol class="mb-0 small">
+        <li>Click <strong>Add Gmail Account</strong>.</li>
+        <li>Google will ask you to sign in and grant <em>Send email on your behalf</em> permission.</li>
+        <li>Sign in as the account you want to send from (e.g. <code>president@theatreaurora.com</code>).</li>
+        <li>The account will appear here and be available when composing campaigns.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+{% endblock %}

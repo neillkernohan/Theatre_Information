@@ -1,0 +1,211 @@
+{% extends "auditions/base.html" %}
+{% block title %}Campaign — {{ campaign.subject }}{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width:860px">
+
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="mb-0 text-truncate" style="max-width:600px">{{ campaign.subject }}</h2>
+    <a href="{{ url_for('bulk_email.index') }}" class="btn btn-outline-secondary">All Campaigns</a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Meta row -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small mb-1">From</div>
+          <div>{{ campaign.sender.display_name }} &lt;{{ campaign.sender.email }}&gt;</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small mb-1">Audience</div>
+          <div>{{ campaign.audience_label }}
+            {% if campaign.audience_params_dict %}
+              <small class="text-muted">
+                ({% for k,v in campaign.audience_params_dict.items() %}{{ v }}{% endfor %})
+              </small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress card -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          {% set badge = {'draft':'secondary','sending':'primary','paused':'warning','completed':'success','failed':'danger'} %}
+          <span class="badge bg-{{ badge.get(campaign.status, 'secondary') }} fs-6" id="status-badge">
+            {{ campaign.status }}
+          </span>
+        </div>
+        <div class="d-flex gap-2">
+          {% if campaign.status in ('draft', 'paused') %}
+          <form method="post" action="{{ url_for('bulk_email.start_send', campaign_id=campaign.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-success">
+              {% if campaign.status == 'paused' %}Resume Sending{% else %}Start Sending{% endif %}
+            </button>
+          </form>
+          {% endif %}
+          {% if is_running %}
+          <form method="post" action="{{ url_for('bulk_email.pause_send', campaign_id=campaign.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-warning">Pause</button>
+          </form>
+          {% endif %}
+          {% if campaign.status not in ('sending',) %}
+          <form method="post" action="{{ url_for('bulk_email.delete_campaign', campaign_id=campaign.id) }}"
+                onsubmit="return confirm('Delete this campaign? This cannot be undone.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-danger">Delete</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row text-center g-3 mb-3">
+        <div class="col">
+          <div class="fs-2 fw-bold" id="count-total">{{ campaign.total_count }}</div>
+          <div class="text-muted small">Total</div>
+        </div>
+        <div class="col">
+          <div class="fs-2 fw-bold text-success" id="count-sent">{{ campaign.sent_count }}</div>
+          <div class="text-muted small">Sent</div>
+        </div>
+        <div class="col">
+          <div class="fs-2 fw-bold text-danger" id="count-failed">{{ campaign.failed_count }}</div>
+          <div class="text-muted small">Failed</div>
+        </div>
+        <div class="col">
+          <div class="fs-2 fw-bold text-secondary" id="count-pending">
+            {{ campaign.total_count - campaign.sent_count - campaign.failed_count }}
+          </div>
+          <div class="text-muted small">Pending</div>
+        </div>
+      </div>
+
+      {% if campaign.total_count > 0 %}
+      <div class="progress" style="height:12px">
+        <div class="progress-bar bg-success" id="progress-bar"
+             style="width: {{ (campaign.sent_count / campaign.total_count * 100)|round(1) }}%"
+             role="progressbar"></div>
+        <div class="progress-bar bg-danger" id="progress-bar-failed"
+             style="width: {{ (campaign.failed_count / campaign.total_count * 100)|round(1) }}%"
+             role="progressbar"></div>
+      </div>
+      {% endif %}
+
+      {% if campaign.started_at %}
+      <div class="mt-2 small text-muted">
+        Started {{ campaign.started_at.strftime('%b %-d, %Y at %-I:%M %p') }}
+        {% if campaign.completed_at %}
+          · Completed {{ campaign.completed_at.strftime('%b %-d, %Y at %-I:%M %p') }}
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Failed recipients -->
+  {% if failed %}
+  <div class="card mb-4 border-danger">
+    <div class="card-header text-danger fw-semibold">Failed Recipients ({{ failed|length }})</div>
+    <div class="card-body p-0">
+      <table class="table table-sm mb-0">
+        <thead class="table-light"><tr><th>Email</th><th>Name</th><th>Error</th></tr></thead>
+        <tbody>
+          {% for r in failed %}
+          <tr>
+            <td>{{ r.email }}</td>
+            <td>{{ r.first_name }} {{ r.last_name }}</td>
+            <td><small class="text-danger">{{ r.error_message or '—' }}</small></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Test send -->
+  <div class="card mb-4">
+    <div class="card-header fw-semibold">Send a Test Email</div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('bulk_email.send_test', campaign_id=campaign.id) }}"
+            class="d-flex gap-2 align-items-start">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="flex-grow-1">
+          <input type="email" name="test_email" class="form-control"
+                 placeholder="your@email.com" required
+                 value="{{ current_user.email }}">
+          <div class="form-text">
+            Sends to one address with <code>{{first_name}}</code> replaced by "Test" and subject prefixed with [TEST].
+            The unsubscribe footer is included.
+          </div>
+        </div>
+        <button class="btn btn-outline-primary">Send Test</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Email preview -->
+  <div class="card mb-5">
+    <div class="card-header fw-semibold">Email Preview</div>
+    <div class="card-body">
+      <div class="border rounded p-3 bg-white" style="font-family:sans-serif">
+        {{ campaign.body_html|safe }}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% if campaign.status == 'sending' or is_running %}
+<script>
+// Poll for progress every 3 seconds while campaign is sending
+const progressUrl = {{ url_for('bulk_email.campaign_progress', campaign_id=campaign.id)|tojson }};
+const badgeColors = {draft:'secondary',sending:'primary',paused:'warning',completed:'success',failed:'danger'};
+
+function poll() {
+  fetch(progressUrl)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('count-sent').textContent    = d.sent.toLocaleString();
+      document.getElementById('count-failed').textContent  = d.failed.toLocaleString();
+      document.getElementById('count-pending').textContent = d.pending.toLocaleString();
+
+      const pct = d.total > 0 ? (d.sent / d.total * 100).toFixed(1) : 0;
+      const fpct = d.total > 0 ? (d.failed / d.total * 100).toFixed(1) : 0;
+      document.getElementById('progress-bar').style.width        = pct + '%';
+      document.getElementById('progress-bar-failed').style.width = fpct + '%';
+
+      const badge = document.getElementById('status-badge');
+      badge.textContent = d.status;
+      badge.className = `badge fs-6 bg-${badgeColors[d.status] || 'secondary'}`;
+
+      if (d.is_running) {
+        setTimeout(poll, 3000);
+      } else if (d.status === 'completed' || d.status === 'failed') {
+        // Reload to show final state with action buttons updated
+        setTimeout(() => location.reload(), 1500);
+      }
+    })
+    .catch(() => setTimeout(poll, 5000));
+}
+
+setTimeout(poll, 3000);
+</script>
+{% endif %}
+{% endblock %}
