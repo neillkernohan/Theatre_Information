@@ -339,6 +339,36 @@ def toggle_slot_block(slot_id):
     return redirect(url_for('auditions.show_detail', show_id=slot.show_id))
 
 
+@auditions_bp.route('/admin/slots/<int:slot_id>/edit-time', methods=['POST'])
+@manage_shows_required
+def edit_slot_time(slot_id):
+    """Update the start and end time of a slot."""
+    from datetime import time as time_type
+    slot = AuditionSlot.query.get_or_404(slot_id)
+
+    start_str = request.form.get('start_time', '').strip()
+    end_str   = request.form.get('end_time', '').strip()
+
+    try:
+        slot.start_time = time_type.fromisoformat(start_str)
+        slot.end_time   = time_type.fromisoformat(end_str)
+    except ValueError:
+        flash('Invalid time format.', 'danger')
+        return redirect(url_for('auditions.show_detail', show_id=slot.show_id))
+
+    if slot.end_time <= slot.start_time:
+        flash('End time must be after start time.', 'danger')
+        return redirect(url_for('auditions.show_detail', show_id=slot.show_id))
+
+    db.session.commit()
+    flash(
+        f'Slot updated to {slot.start_time.strftime("%I:%M %p")} – {slot.end_time.strftime("%I:%M %p")} '
+        f'on {slot.date.strftime("%b %d")}.',
+        'success'
+    )
+    return redirect(url_for('auditions.show_detail', show_id=slot.show_id))
+
+
 @auditions_bp.route('/admin/shows/<int:show_id>/status', methods=['POST'])
 @manage_shows_required
 def update_show_status(show_id):

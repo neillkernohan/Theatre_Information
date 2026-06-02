@@ -199,8 +199,21 @@
                 {% set booked = slot.registrations.filter_by(status='confirmed').all() + slot.registrations.filter_by(status='callback').all() + slot.registrations.filter_by(status='no_show').all() + slot.registrations.filter_by(status='not_selected').all() %}
                 <tr>
                     <td class="fw-semibold">
+                        {% if current_user.can_manage_shows %}
+                        <a href="#" class="text-dark text-decoration-none edit-slot-time"
+                           data-action="{{ url_for('auditions.edit_slot_time', slot_id=slot.id) }}"
+                           data-start="{{ slot.start_time.strftime('%H:%M') }}"
+                           data-end="{{ slot.end_time.strftime('%H:%M') }}"
+                           data-bs-toggle="modal" data-bs-target="#editSlotTimeModal"
+                           title="Edit time">
+                            {{ slot.start_time.strftime('%I:%M %p') }}
+                            <span class="text-muted fw-normal small">– {{ slot.end_time.strftime('%I:%M %p') }}</span>
+                            <i class="bi bi-pencil text-muted ms-1" style="font-size:0.7rem"></i>
+                        </a>
+                        {% else %}
                         {{ slot.start_time.strftime('%I:%M %p') }}
                         <span class="text-muted fw-normal small">– {{ slot.end_time.strftime('%I:%M %p') }}</span>
+                        {% endif %}
                     </td>
                     <td>
                         {% if slot.is_full %}
@@ -844,6 +857,47 @@
         </div>
     </div>
 </div>
+<!-- Edit Slot Time Modal -->
+{% if current_user.can_manage_shows %}
+<div class="modal fade" id="editSlotTimeModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form method="POST" id="editSlotTimeForm" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-clock me-2"></i>Edit Slot Time</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Start Time</label>
+                        <input type="time" name="start_time" id="editStartTime" class="form-control" required>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold">End Time</label>
+                        <input type="time" name="end_time" id="editEndTime" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+document.querySelectorAll('.edit-slot-time').forEach(function (link) {
+    link.addEventListener('click', function () {
+        var slotId = this.dataset.slotId;
+        document.getElementById('editStartTime').value = this.dataset.start;
+        document.getElementById('editEndTime').value   = this.dataset.end;
+        document.getElementById('editSlotTimeForm').action = this.dataset.action;
+    });
+});
+</script>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
