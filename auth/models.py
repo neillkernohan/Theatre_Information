@@ -24,10 +24,11 @@ class User(UserMixin, db.Model):
     role = db.Column(
         db.Enum(
             'super_admin', 'auditions_creator', 'director', 'producer', 'stage_manager',
-            'admin',     # legacy alias for super_admin
-            'viewer',    # legacy alias for stage_manager
+            'admin',             # legacy alias for super_admin
+            'viewer',            # legacy alias for stage_manager
             'actor',
-            'no_rights', # disabled — can log in but has no access
+            'inventory_manager', # inventory access only — no auditions visibility
+            'no_rights',         # disabled — can log in but has no access
             name='user_role'
         ),
         nullable=False,
@@ -67,12 +68,13 @@ class User(UserMixin, db.Model):
     # ------------------------------------------------------------------
 
     # Roles grouped by capability (legacy names kept for compat)
-    _MANAGE_SHOWS  = {'super_admin', 'admin', 'auditions_creator'}
-    _EVALUATE      = {'super_admin', 'admin', 'auditions_creator', 'director', 'stage_manager'}
-    _CAN_EXPORT    = {'super_admin', 'admin', 'auditions_creator', 'director', 'producer', 'stage_manager'}
-    _READ_ADMIN    = {'super_admin', 'admin', 'auditions_creator', 'director',
-                      'producer', 'stage_manager', 'viewer'}
-    _SUPER_ADMIN   = {'super_admin', 'admin'}
+    _MANAGE_SHOWS      = {'super_admin', 'admin', 'auditions_creator'}
+    _EVALUATE          = {'super_admin', 'admin', 'auditions_creator', 'director', 'stage_manager'}
+    _CAN_EXPORT        = {'super_admin', 'admin', 'auditions_creator', 'director', 'producer', 'stage_manager'}
+    _READ_ADMIN        = {'super_admin', 'admin', 'auditions_creator', 'director',
+                          'producer', 'stage_manager', 'viewer'}
+    _SUPER_ADMIN       = {'super_admin', 'admin'}
+    _ACCESS_INVENTORY  = {'super_admin', 'admin', 'auditions_creator', 'inventory_manager'}
 
     @property
     def can_manage_shows(self):
@@ -95,6 +97,11 @@ class User(UserMixin, db.Model):
         return self.role in self._READ_ADMIN
 
     @property
+    def can_access_inventory(self):
+        """View and edit inventory — granted to inventory_manager and full staff roles."""
+        return self.role in self._ACCESS_INVENTORY
+
+    @property
     def is_super_admin(self):
         """Full access including user/admin management."""
         return self.role in self._SUPER_ADMIN and not self.managed_shows
@@ -110,6 +117,7 @@ class User(UserMixin, db.Model):
             'stage_manager': 'Stage Manager',
             'viewer': 'Stage Manager',
             'actor': 'Actor',
+            'inventory_manager': 'Inventory Manager',
             'no_rights': 'No Rights',
         }
         return labels.get(self.role, self.role.replace('_', ' ').title())

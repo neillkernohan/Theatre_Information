@@ -244,6 +244,8 @@ try:
     app.register_blueprint(auditions_bp)
     app.register_blueprint(proxy_bp)
     app.register_blueprint(inventory_bp)
+    from bulk_email import bulk_email_bp
+    app.register_blueprint(bulk_email_bp)
 
     # CLI commands for auditions
     @app.cli.command('init-auditions-db')
@@ -251,6 +253,14 @@ try:
         """Create all auditions database tables."""
         with app.app_context():
             db.create_all()
+
+    @app.cli.command('init-bulk-email-db')
+    def init_bulk_email_db():
+        """Create bulk email tables (sender accounts, campaigns, recipients)."""
+        from bulk_email.models import SenderAccount, EmailCampaign, EmailRecipient  # noqa
+        with app.app_context():
+            db.create_all()
+        click.echo('Bulk email tables created.')
 
     @app.cli.command('init-inventory-db')
     def init_inventory_db():
@@ -277,6 +287,22 @@ try:
                         click.echo('image_path column already exists — skipped.')
                     else:
                         raise
+
+    @app.cli.command('add-inventory-manager-role')
+    def add_inventory_manager_role():
+        """Add inventory_manager to the users.role enum (safe to re-run)."""
+        from sqlalchemy import text
+        with app.app_context():
+            engine = db.engine
+            with engine.connect() as conn:
+                conn.execute(text(
+                    "ALTER TABLE users MODIFY COLUMN role ENUM("
+                    "  'super_admin', 'auditions_creator', 'director', 'producer', 'stage_manager',"
+                    "  'admin', 'viewer', 'actor', 'inventory_manager', 'no_rights'"
+                    ") NOT NULL DEFAULT 'actor'"
+                ))
+                conn.commit()
+            click.echo("inventory_manager role added (or already existed).")
 
     @app.cli.command('create-admin')
     @click.option('--email', prompt='Admin email')
@@ -326,18 +352,20 @@ try:
     @click.option('--last-name', prompt='Last name')
     @click.option('--role', prompt='Role',
                   type=click.Choice(['super_admin', 'auditions_creator', 'director',
-                                     'producer', 'stage_manager', 'no_rights'], case_sensitive=False),
+                                     'producer', 'stage_manager', 'inventory_manager',
+                                     'no_rights'], case_sensitive=False),
                   help='Staff role')
     def create_staff(email, first_name, last_name, role):
         """Create a staff user with a specific role. Signs in via Google.
 
         Roles and their permissions:
-          super_admin       — full access, manage users and all shows
-          auditions_creator — create/edit shows, manage slots & registrations
-          director          — evaluate auditions (notes, photos, tags, callbacks, status)
-          producer          — download Excel/Word exports
-          stage_manager     — view-only access to registrations
-          no_rights         — can log in but has no access (disabled)
+          super_admin         — full access, manage users and all shows
+          auditions_creator   — create/edit shows, manage slots & registrations
+          director            — evaluate auditions (notes, photos, tags, callbacks, status)
+          producer            — download Excel/Word exports
+          stage_manager       — view-only access to registrations
+          inventory_manager   — inventory access only, no auditions visibility
+          no_rights           — can log in but has no access (disabled)
         """
         with app.app_context():
             email = email.lower().strip()
@@ -368,7 +396,8 @@ try:
     @click.option('--email', prompt='User email')
     @click.option('--role', prompt='New role',
                   type=click.Choice(['super_admin', 'auditions_creator', 'director',
-                                     'producer', 'stage_manager', 'actor', 'no_rights'], case_sensitive=False))
+                                     'producer', 'stage_manager', 'inventory_manager',
+                                     'actor', 'no_rights'], case_sensitive=False))
     def set_role(email, role):
         """Change an existing user's role."""
         with app.app_context():

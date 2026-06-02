@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 from inventory import inventory_bp
 from inventory.models import db, InventoryItem, generate_item_code
 from inventory.forms import InventoryItemForm
-from auth.decorators import admin_required
+from auth.decorators import inventory_required
 
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 
@@ -43,7 +43,7 @@ STATUS_LABELS = {
 
 
 @inventory_bp.route('/')
-@admin_required
+@inventory_required
 def list_items():
     category_filter = request.args.get('category', '')
     status_filter = request.args.get('status', '')
@@ -78,7 +78,7 @@ def list_items():
 
 
 @inventory_bp.route('/new', methods=['GET', 'POST'])
-@admin_required
+@inventory_required
 def add_item():
     form = InventoryItemForm()
 
@@ -113,7 +113,7 @@ def add_item():
 
 
 @inventory_bp.route('/<int:item_id>/edit', methods=['GET', 'POST'])
-@admin_required
+@inventory_required
 def edit_item(item_id):
     item = InventoryItem.query.get_or_404(item_id)
     form = InventoryItemForm(obj=item)
@@ -146,7 +146,7 @@ def edit_item(item_id):
 
 
 @inventory_bp.route('/<int:item_id>/delete', methods=['GET', 'POST'])
-@admin_required
+@inventory_required
 def delete_item(item_id):
     item = InventoryItem.query.get_or_404(item_id)
 
@@ -161,7 +161,7 @@ def delete_item(item_id):
 
 
 @inventory_bp.route('/suggest-code')
-@admin_required
+@inventory_required
 def suggest_code():
     """AJAX endpoint — returns a suggested item code for a given category."""
     from flask import jsonify

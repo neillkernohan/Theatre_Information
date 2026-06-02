@@ -64,6 +64,17 @@ def export_required(f):
     return decorated
 
 
+def inventory_required(f):
+    """Inventory Manager and above — view and edit inventory."""
+    @wraps(f)
+    @login_required
+    def decorated(*args, **kwargs):
+        if not current_user.can_access_inventory:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
+
 # ---------------------------------------------------------------------------
 # Legacy aliases (keep existing code working during transition)
 # ---------------------------------------------------------------------------
