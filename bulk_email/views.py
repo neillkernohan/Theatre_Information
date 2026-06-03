@@ -206,6 +206,47 @@ def audience_count():
 
 
 # ---------------------------------------------------------------------------
+# Edit existing draft/paused campaign
+# ---------------------------------------------------------------------------
+
+@bulk_email_bp.route('/campaign/<int:campaign_id>/edit', methods=['GET', 'POST'])
+@manage_shows_required
+def edit_campaign(campaign_id):
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+    if campaign.status not in ('draft', 'paused'):
+        flash('Only draft or paused campaigns can be edited.', 'warning')
+        return redirect(url_for('bulk_email.campaign_detail', campaign_id=campaign_id))
+
+    accounts = SenderAccount.query.filter_by(is_active=True).all()
+
+    if request.method == 'POST':
+        subject = request.form.get('subject', '').strip()
+        body_html = request.form.get('body_html', '').strip()
+        sender_id = request.form.get('sender_account_id', type=int)
+
+        errors = []
+        if not subject:
+            errors.append('Subject is required.')
+        if not body_html:
+            errors.append('Email body is required.')
+        if not sender_id:
+            errors.append('Please select a sender account.')
+
+        if errors:
+            for e in errors:
+                flash(e, 'danger')
+        else:
+            campaign.subject = subject
+            campaign.body_html = body_html
+            campaign.sender_account_id = sender_id
+            db.session.commit()
+            flash('Campaign updated.', 'success')
+            return redirect(url_for('bulk_email.campaign_detail', campaign_id=campaign_id))
+
+    return render_template('bulk_email/edit_campaign.html', campaign=campaign, accounts=accounts)
+
+
+# ---------------------------------------------------------------------------
 # Compose / create campaign
 # ---------------------------------------------------------------------------
 

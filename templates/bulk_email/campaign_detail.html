@@ -52,6 +52,10 @@
         </div>
         <div class="d-flex gap-2">
           {% if campaign.status in ('draft', 'paused') %}
+          <a href="{{ url_for('bulk_email.edit_campaign', campaign_id=campaign.id) }}"
+             class="btn btn-outline-secondary">Edit</a>
+          {% endif %}
+          {% if campaign.status in ('draft', 'paused') %}
           <form method="post" action="{{ url_for('bulk_email.start_send', campaign_id=campaign.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-success">
