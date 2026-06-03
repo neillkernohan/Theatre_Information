@@ -2,7 +2,6 @@
 Gmail API helpers: OAuth2 flow + sending individual messages.
 """
 import base64
-import json
 import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -14,16 +13,40 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 SCOPES = ['https://mail.google.com/']
-_CLIENT_SECRET_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'client_secret.json')
+
+
+def _client_config():
+    """Build the OAuth client config from the shared GOOGLE_CLIENT_* env vars.
+
+    This is the same OAuth client the main-site Google login uses, so the
+    bulk-email redirect URI only has to be registered on one client. (We no
+    longer read a separate client_secret.json — that pointed at a different
+    client whose redirect URIs weren't kept in sync.)
+    """
+    client_id = os.getenv('GOOGLE_CLIENT_ID')
+    client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+    if not client_id or not client_secret:
+        raise RuntimeError(
+            'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not set — '
+            'bulk-email OAuth cannot start.'
+        )
+    return {
+        'web': {
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+            'token_uri': 'https://oauth2.googleapis.com/token',
+            'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
+        }
+    }
 
 
 def get_oauth_flow(redirect_uri):
-    flow = Flow.from_client_secrets_file(
-        _CLIENT_SECRET_PATH,
+    return Flow.from_client_config(
+        _client_config(),
         scopes=SCOPES,
         redirect_uri=redirect_uri,
     )
-    return flow
 
 
 def credentials_from_token_data(token_data):
