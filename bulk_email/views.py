@@ -24,8 +24,22 @@ from . import sender as send_service
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _force_https(url):
+    """Upgrade an http:// URL to https://.
+
+    Apache terminates TLS and proxies to Flask as http://, so both
+    url_for(..., _external=True) and request.url come back http even though the
+    public URL is https. OAuth needs the https form — both for redirect-URI
+    matching at Google and for oauthlib's secure-transport check on the
+    authorization response.
+    """
+    if url.startswith('http://'):
+        return 'https://' + url[len('http://'):]
+    return url
+
+
 def _oauth_redirect_uri():
-    return url_for('bulk_email.oauth_callback', _external=True)
+    return _force_https(url_for('bulk_email.oauth_callback', _external=True))
 
 
 # ---------------------------------------------------------------------------
@@ -43,6 +57,12 @@ def index():
 # ---------------------------------------------------------------------------
 # Sender account management
 # ---------------------------------------------------------------------------
+
+@bulk_email_bp.route('/debug-redirect')
+@manage_shows_required
+def debug_redirect():
+    return f"<pre>redirect_uri = {_oauth_redirect_uri()}</pre>"
+
 
 @bulk_email_bp.route('/accounts')
 @manage_shows_required
@@ -78,7 +98,7 @@ def oauth_callback():
 
     flow = get_oauth_flow(_oauth_redirect_uri())
     flow.fetch_token(
-        authorization_response=request.url,
+        authorization_response=_force_https(request.url),
         state=state,
     )
     credentials = flow.credentials
