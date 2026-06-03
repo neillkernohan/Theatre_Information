@@ -85,6 +85,15 @@
           <div class="text-muted small">Sent</div>
         </div>
         <div class="col">
+          <div class="fs-2 fw-bold text-primary" id="count-opened">{{ campaign.opened_count or 0 }}</div>
+          <div class="text-muted small">
+            Opened
+            {% if campaign.sent_count %}
+              <span class="text-muted">({{ ((campaign.opened_count or 0) / campaign.sent_count * 100)|round(1) }}%)</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col">
           <div class="fs-2 fw-bold text-danger" id="count-failed">{{ campaign.failed_count }}</div>
           <div class="text-muted small">Failed</div>
         </div>
@@ -183,6 +192,7 @@ function poll() {
     .then(r => r.json())
     .then(d => {
       document.getElementById('count-sent').textContent    = d.sent.toLocaleString();
+      document.getElementById('count-opened').textContent  = d.opened.toLocaleString();
       document.getElementById('count-failed').textContent  = d.failed.toLocaleString();
       document.getElementById('count-pending').textContent = d.pending.toLocaleString();
 

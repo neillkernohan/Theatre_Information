@@ -52,6 +52,7 @@ class EmailCampaign(db.Model):
     total_count = db.Column(db.Integer, default=0)
     sent_count = db.Column(db.Integer, default=0)
     failed_count = db.Column(db.Integer, default=0)
+    opened_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     started_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
@@ -87,3 +88,6 @@ class EmailRecipient(db.Model):
     )
     error_message = db.Column(db.Text)
     sent_at = db.Column(db.DateTime)
+    tracking_token = db.Column(db.String(32), unique=True, index=True)
+    opened_at = db.Column(db.DateTime)   # first open
+    open_count = db.Column(db.Integer, default=0)

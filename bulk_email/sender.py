@@ -4,6 +4,7 @@ Uses Flask app context so SQLAlchemy works from the thread.
 """
 import hashlib
 import hmac
+import secrets
 import time
 import threading
 from datetime import datetime
@@ -69,12 +70,25 @@ def send_campaign(app, campaign_id):
                         db.session.commit()
                         break
 
+                    # Assign a tracking token if not already set
+                    if not recipient.tracking_token:
+                        recipient.tracking_token = secrets.token_hex(16)
+
                     # Personalise body: swap {{first_name}} / {{last_name}} if present
                     body = campaign.body_html
                     if recipient.first_name:
                         body = body.replace('{{first_name}}', recipient.first_name)
                     if recipient.last_name:
                         body = body.replace('{{last_name}}', recipient.last_name)
+
+                    # Inject 1×1 tracking pixel just before </body> or at end
+                    pixel_url = f"{base_url}/bulk-email/track/{recipient.tracking_token}.gif"
+                    pixel = f'<img src="{pixel_url}" width="1" height="1" style="display:none" alt="">'
+                    if '</body>' in body.lower():
+                        body = body.replace('</body>', f'{pixel}</body>')
+                        body = body.replace('</BODY>', f'{pixel}</BODY>')
+                    else:
+                        body = body + pixel
 
                     # Append unsubscribe footer with a pre-signed one-click link
                     footer = _UNSUBSCRIBE_FOOTER.format(

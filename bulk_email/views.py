@@ -43,6 +43,45 @@ def _oauth_redirect_uri():
 
 
 # ---------------------------------------------------------------------------
+# Open tracking pixel (public — no login required)
+# ---------------------------------------------------------------------------
+
+# Minimal 1×1 transparent GIF
+_TRANSPARENT_GIF = (
+    b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00'
+    b'\xff\xff\xff\x00\x00\x00\x21\xf9\x04\x00\x00\x00\x00'
+    b'\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02'
+    b'\x44\x01\x00\x3b'
+)
+
+
+@bulk_email_bp.route('/track/<token>.gif')
+def track_open(token):
+    from .models import EmailRecipient
+    from datetime import datetime
+    recipient = EmailRecipient.query.filter_by(tracking_token=token).first()
+    if recipient:
+        if not recipient.opened_at:
+            recipient.opened_at = datetime.utcnow()
+            # Increment campaign opened_count on first open only
+            campaign = recipient.campaign
+            if campaign:
+                campaign.opened_count = (campaign.opened_count or 0) + 1
+        recipient.open_count = (recipient.open_count or 0) + 1
+        db.session.commit()
+
+    from flask import Response
+    return Response(
+        _TRANSPARENT_GIF,
+        mimetype='image/gif',
+        headers={
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Pragma': 'no-cache',
+        }
+    )
+
+
+# ---------------------------------------------------------------------------
 # Dashboard / campaign list
 # ---------------------------------------------------------------------------
 
@@ -310,6 +349,7 @@ def campaign_progress(campaign_id):
         'status': campaign.status,
         'total': campaign.total_count,
         'sent': campaign.sent_count,
+        'opened': campaign.opened_count or 0,
         'failed': campaign.failed_count,
         'pending': campaign.total_count - campaign.sent_count - campaign.failed_count,
         'is_running': send_service.is_running(campaign_id),
