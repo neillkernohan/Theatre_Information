@@ -1,0 +1,66 @@
+{#
+  Shared layout for all theatreapps blueprints (auditions, proxy, inventory,
+  bulk_email). Owns the page skeleton: <head> + Bootstrap, the navbar shell,
+  flash messages, and footer scripts.
+
+  Child app bases fill:
+    title       — page/app title (before the " — Theatre Aurora" suffix)
+    head_css    — optional extra <style>/<link> in <head>
+    brand_url   — where the logo links to
+    nav_items   — the contents of the collapsible navbar
+  Page templates fill: content, extra_css, extra_js.
+#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Theatre Aurora{% endblock %} — Theatre Aurora</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar-brand img { height: 40px; }
+        .content-wrapper { min-height: calc(100vh - 56px); }
+    </style>
+    {% block head_css %}{% endblock %}
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% block navbar %}
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="{% block brand_url %}#{% endblock %}">
+                <img src="{{ url_for('static', filename='Media/Wide Logo Centred Black.png') }}" alt="Theatre Aurora" class="d-inline-block align-text-top">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                {% block nav_items %}{% endblock %}
+            </div>
+        </div>
+    </nav>
+    {% endblock %}
+
+    <div class="content-wrapper">
+        <div class="container py-4">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

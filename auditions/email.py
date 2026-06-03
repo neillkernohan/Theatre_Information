@@ -1,12 +1,13 @@
-from flask import render_template, current_app, url_for
-from flask_mail import Message
-from auditions.models import db, EmailLog
-from datetime import datetime
+from flask import render_template, url_for
+from notifications.core import get_mail, send_logged_email
 
 
 def _get_mail():
-    """Get the Mail instance from the current app extensions."""
-    return current_app.extensions['mail']
+    """Get the Mail instance from the current app extensions.
+
+    Thin wrapper kept so tests can patch ``auditions.email._get_mail``.
+    """
+    return get_mail()
 
 
 def send_email(to, subject, template, registration=None, user=None, **kwargs):
@@ -21,8 +22,6 @@ def send_email(to, subject, template, registration=None, user=None, **kwargs):
         user: optional User object for logging
         **kwargs: additional context passed to the template
     """
-    mail = _get_mail()
-
     html_body = render_template(
         f'auditions/email/{template}.html',
         registration=registration,
@@ -30,32 +29,15 @@ def send_email(to, subject, template, registration=None, user=None, **kwargs):
         **kwargs
     )
 
-    msg = Message(
+    return send_logged_email(
+        _get_mail(),
+        to=to,
         subject=subject,
-        recipients=[to],
-        html=html_body
-    )
-
-    # Log the attempt
-    log = EmailLog(
+        html_body=html_body,
+        email_type=template,
         registration_id=registration.id if registration else None,
         user_id=user.id if user else (registration.user_id if registration else None),
-        email_type=template,
-        sent_at=datetime.utcnow()
     )
-
-    try:
-        mail.send(msg)
-        log.status = 'sent'
-    except Exception as e:
-        log.status = 'failed'
-        log.error_message = str(e)
-        current_app.logger.error(f'Email send failed: {e}')
-
-    db.session.add(log)
-    db.session.commit()
-
-    return log.status == 'sent'
 
 
 def send_confirmation_email(registration):
@@ -204,30 +186,15 @@ def send_admin_notification(registration, event):
         reg_url=reg_url
     )
 
-    mail = _get_mail()
-    msg = Message(
+    send_logged_email(
+        _get_mail(),
+        to=recipients,
         subject=f'{event} — {user.first_name} {user.last_name} — {show.title}',
-        recipients=recipients,
-        html=html_body
-    )
-
-    log = EmailLog(
+        html_body=html_body,
+        email_type='admin_notification',
         registration_id=registration.id,
         user_id=registration.user_id,
-        email_type='admin_notification',
-        sent_at=datetime.utcnow()
     )
-
-    try:
-        mail.send(msg)
-        log.status = 'sent'
-    except Exception as e:
-        log.status = 'failed'
-        log.error_message = str(e)
-        current_app.logger.error(f'Admin notification email failed: {e}')
-
-    db.session.add(log)
-    db.session.commit()
 
 
 def send_cancellation_email(registration):
@@ -250,6 +217,8 @@ def send_bulk_email(show, registrations, subject, body):
 
     Returns a tuple (sent_count, failed_count).
     """
+    from auth.models import db
+
     mail = _get_mail()
     sent = 0
     failed = 0
@@ -268,26 +237,20 @@ def send_bulk_email(show, registrations, subject, body):
             body=body,
         )
 
-        msg = Message(subject=subject, recipients=[user.email], html=html_body)
-
-        log = EmailLog(
+        # commit=False — log rows accumulate and are committed once after the loop.
+        if send_logged_email(
+            mail,
+            to=user.email,
+            subject=subject,
+            html_body=html_body,
+            email_type='bulk_message',
             registration_id=reg.id,
             user_id=user.id,
-            email_type='bulk_message',
-            sent_at=datetime.utcnow(),
-        )
-
-        try:
-            mail.send(msg)
-            log.status = 'sent'
+            commit=False,
+        ):
             sent += 1
-        except Exception as e:
-            log.status = 'failed'
-            log.error_message = str(e)
-            current_app.logger.error(f'Bulk email failed for {user.email}: {e}')
+        else:
             failed += 1
-
-        db.session.add(log)
 
     db.session.commit()
     return sent, failed

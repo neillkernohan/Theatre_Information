@@ -187,16 +187,6 @@ class AuditionScore(db.Model):
         return f'<AuditionScore reg={self.registration_id}>'
 
 
-class EmailLog(db.Model):
-    __tablename__ = 'email_logs'
-
-    id = db.Column(db.Integer, primary_key=True)
-    registration_id = db.Column(db.Integer, db.ForeignKey('registrations.id'), nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    email_type = db.Column(db.String(50), nullable=False)
-    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.Enum('sent', 'failed', 'pending', name='email_status'), default='pending')
-    error_message = db.Column(db.Text)
-
-    def __repr__(self):
-        return f'<EmailLog {self.email_type} {self.status}>'
+# EmailLog now lives in notifications.models — re-exported here so that existing
+# imports of the form "from auditions.models import EmailLog" keep working.
+from notifications.models import EmailLog  # noqa: F401,E402
