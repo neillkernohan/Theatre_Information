@@ -181,8 +181,10 @@
         {{ campaign.body_html|safe }}
       </div>
       <style>
-        .email-preview p { margin-bottom: 0.4em; }
-        .email-preview p:empty, .email-preview p br { display: block; margin: 0; }
+        .email-preview p { margin: 0; line-height: 1.5; }
+        .email-preview h1, .email-preview h2, .email-preview h3 { margin: 0.8em 0 0.2em; }
+        .email-preview ul, .email-preview ol { margin: 0 0 0 1.5em; padding: 0; }
+        .email-preview li { margin-bottom: 0.2em; }
       </style>
     </div>
   </div>

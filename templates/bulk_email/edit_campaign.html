@@ -3,8 +3,9 @@
 {% block extra_css %}
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 <style>
-  /* Make Quill paragraph spacing match email rendering */
-  .ql-editor p { margin-bottom: 0.4em; }
+  .ql-editor p { margin: 0; line-height: 1.5; }
+  .ql-editor ul, .ql-editor ol { margin: 0; }
+  .ql-editor li { margin-bottom: 0.2em; }
 </style>
 {% endblock %}
 {% block content %}
