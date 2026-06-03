@@ -2,6 +2,10 @@
 {% block title %}Edit Campaign{% endblock %}
 {% block extra_css %}
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+  /* Make Quill paragraph spacing match email rendering */
+  .ql-editor p { margin-bottom: 0.4em; }
+</style>
 {% endblock %}
 {% block content %}
 <div class="container mt-4" style="max-width:860px">

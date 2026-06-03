@@ -177,9 +177,13 @@
   <div class="card mb-5">
     <div class="card-header fw-semibold">Email Preview</div>
     <div class="card-body">
-      <div class="border rounded p-3 bg-white" style="font-family:sans-serif">
+      <div class="border rounded p-3 bg-white email-preview" style="font-family:sans-serif">
         {{ campaign.body_html|safe }}
       </div>
+      <style>
+        .email-preview p { margin-bottom: 0.4em; }
+        .email-preview p:empty, .email-preview p br { display: block; margin: 0; }
+      </style>
     </div>
   </div>
 
