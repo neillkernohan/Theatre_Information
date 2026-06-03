@@ -1,5 +1,7 @@
 import json
 import os
+import uuid
+from werkzeug.utils import secure_filename
 
 from flask import (
     current_app, flash, jsonify, redirect, render_template,
@@ -40,6 +42,32 @@ def _force_https(url):
 
 def _oauth_redirect_uri():
     return _force_https(url_for('bulk_email.oauth_callback', _external=True))
+
+
+# ---------------------------------------------------------------------------
+# Image upload (for Quill editor)
+# ---------------------------------------------------------------------------
+
+_ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+_UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                           'static', 'bulk_email', 'uploads')
+
+
+@bulk_email_bp.route('/upload-image', methods=['POST'])
+@manage_shows_required
+def upload_image():
+    file = request.files.get('image')
+    if not file or file.filename == '':
+        return jsonify({'error': 'No file'}), 400
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in _ALLOWED_EXTENSIONS:
+        return jsonify({'error': 'File type not allowed'}), 400
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    os.makedirs(_UPLOAD_DIR, exist_ok=True)
+    file.save(os.path.join(_UPLOAD_DIR, filename))
+    base_url = os.getenv('BASE_URL', '').rstrip('/')
+    url = f"{base_url}/static/bulk_email/uploads/{filename}"
+    return jsonify({'url': url})
 
 
 # ---------------------------------------------------------------------------

@@ -81,15 +81,45 @@
 const quill = new Quill('#quill-editor', {
   theme: 'snow',
   modules: {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline'],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      ['link'],
-      ['clean'],
-    ]
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['link', 'image'],
+        ['clean'],
+      ],
+      handlers: {
+        image: function() { uploadImage(quill); }
+      }
+    }
   }
 });
+
+function uploadImage(editor) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.click();
+  input.onchange = () => {
+    const file = input.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('image', file);
+    fd.append('csrf_token', document.querySelector('[name=csrf_token]').value);
+    fetch('{{ url_for("bulk_email.upload_image") }}', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(d => {
+        if (d.url) {
+          const range = editor.getSelection(true);
+          editor.insertEmbed(range.index, 'image', d.url);
+          editor.setSelection(range.index + 1);
+        } else {
+          alert('Image upload failed: ' + (d.error || 'unknown error'));
+        }
+      });
+  };
+}
 
 // Pre-fill with existing body
 quill.clipboard.dangerouslyPasteHTML({{ campaign.body_html | tojson }});
