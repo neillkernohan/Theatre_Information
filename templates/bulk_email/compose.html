@@ -83,6 +83,14 @@
           </select>
         </div>
 
+        <!-- specific_addresses param -->
+        <div id="addresses-row" class="d-none mb-2">
+          <label class="form-label">Email addresses</label>
+          <textarea name="addresses" class="form-control" rows="4"
+                    placeholder="One per line, or comma-separated">{{ form.get('addresses', '') }}</textarea>
+          <div class="form-text">These addresses are not checked against the opt-out list — use for testing only.</div>
+        </div>
+
         <div id="audience-count-row" class="mt-3">
           <span class="badge bg-secondary" id="audience-badge">Select an audience to see recipient count</span>
         </div>
@@ -145,9 +153,10 @@ document.getElementById('campaign-form').addEventListener('submit', () => {
 
 // Show/hide conditional audience fields + fetch count
 const audienceRadios = document.querySelectorAll('.audience-radio');
-const mlRow   = document.getElementById('marketing-list-row');
-const seasRow = document.getElementById('season-row');
-const badge   = document.getElementById('audience-badge');
+const mlRow    = document.getElementById('marketing-list-row');
+const seasRow  = document.getElementById('season-row');
+const addrRow  = document.getElementById('addresses-row');
+const badge    = document.getElementById('audience-badge');
 
 let countController = null;
 
@@ -158,6 +167,7 @@ function updateAudienceUI() {
 
   mlRow.classList.toggle('d-none',   val !== 'marketing_list');
   seasRow.classList.toggle('d-none', val !== 'season_buyers');
+  addrRow.classList.toggle('d-none', val !== 'specific_addresses');
   fetchCount();
 }
 
@@ -175,6 +185,9 @@ function fetchCount() {
   if (selected.value === 'season_buyers') {
     params.set('season', document.querySelector('[name=season]').value);
   }
+  if (selected.value === 'specific_addresses') {
+    params.set('addresses', document.querySelector('[name=addresses]').value);
+  }
 
   badge.textContent = 'Loading…';
   badge.className = 'badge bg-secondary';
@@ -191,6 +204,7 @@ function fetchCount() {
 audienceRadios.forEach(r => r.addEventListener('change', updateAudienceUI));
 document.querySelector('[name=list_name]')?.addEventListener('change', fetchCount);
 document.querySelector('[name=season]')?.addEventListener('change', fetchCount);
+document.querySelector('[name=addresses]')?.addEventListener('input', fetchCount);
 
 // On page load, reflect any pre-selected value
 updateAudienceUI();

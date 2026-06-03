@@ -197,6 +197,8 @@ def audience_count():
         params['list_name'] = request.args.get('list_name', '')
     elif audience_type == 'season_buyers':
         params['season'] = request.args.get('season', '')
+    elif audience_type == 'specific_addresses':
+        params['addresses'] = request.args.get('addresses', '')
 
     try:
         recipients = resolve_audience(audience_type, params)
@@ -269,6 +271,7 @@ def compose():
         audience_type = request.form.get('audience_type', '')
         list_name = request.form.get('list_name', '').strip()
         season = request.form.get('season', '').strip()
+        addresses = request.form.get('addresses', '').strip()
 
         errors = []
         if not sender_id:
@@ -283,6 +286,8 @@ def compose():
             errors.append('Please enter a marketing list name.')
         if audience_type == 'season_buyers' and not season:
             errors.append('Please select a season.')
+        if audience_type == 'specific_addresses' and not addresses:
+            errors.append('Please enter at least one email address.')
 
         if errors:
             for e in errors:
@@ -300,6 +305,8 @@ def compose():
             params['list_name'] = list_name
         elif audience_type == 'season_buyers':
             params['season'] = season
+        elif audience_type == 'specific_addresses':
+            params['addresses'] = addresses
 
         # Resolve recipients now so we store them
         try:

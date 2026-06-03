@@ -5,6 +5,7 @@ All queries exclude No_Email=1 and addresses in the Unsubscribed table.
 """
 import mysql.connector
 import os
+import re
 
 _BASE_EXCLUSION = """
     AND p.No_Email = 0
@@ -136,13 +137,26 @@ def get_available_marketing_lists():
         db.close()
 
 
+def audience_specific_addresses(addresses_raw):
+    """Parse a newline/comma-separated list of addresses into recipient dicts."""
+    recipients = []
+    seen = set()
+    for line in re.split(r'[\n,]+', addresses_raw):
+        email = line.strip()
+        if email and '@' in email and email.lower() not in seen:
+            seen.add(email.lower())
+            recipients.append({'email': email, 'first_name': '', 'last_name': ''})
+    return recipients
+
+
 AUDIENCE_HANDLERS = {
-    'all_opted_in':       lambda p: audience_all_opted_in(),
-    'ticket_buyers_2018': lambda p: audience_ticket_buyers_2018(),
-    'members':            lambda p: audience_members(),
-    'volunteers':         lambda p: audience_volunteers(),
-    'marketing_list':     lambda p: audience_marketing_list(p.get('list_name', '')),
-    'season_buyers':      lambda p: audience_season_buyers(p.get('season', '')),
+    'all_opted_in':        lambda p: audience_all_opted_in(),
+    'ticket_buyers_2018':  lambda p: audience_ticket_buyers_2018(),
+    'members':             lambda p: audience_members(),
+    'volunteers':          lambda p: audience_volunteers(),
+    'marketing_list':      lambda p: audience_marketing_list(p.get('list_name', '')),
+    'season_buyers':       lambda p: audience_season_buyers(p.get('season', '')),
+    'specific_addresses':  lambda p: audience_specific_addresses(p.get('addresses', '')),
 }
 
 

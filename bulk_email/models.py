@@ -27,12 +27,13 @@ class SenderAccount(db.Model):
 
 
 AUDIENCE_LABELS = {
-    'all_opted_in':      'All opted-in patrons',
+    'all_opted_in':       'All opted-in patrons',
     'ticket_buyers_2018': 'Ticket buyers since 2018 (opted in)',
-    'members':           'Current members (opted in)',
-    'volunteers':        'Volunteers mailing list (opted in)',
-    'marketing_list':    'Custom marketing list',
-    'season_buyers':     'Ticket buyers for a season',
+    'members':            'Current members (opted in)',
+    'volunteers':         'Volunteers mailing list (opted in)',
+    'marketing_list':     'Custom marketing list',
+    'season_buyers':      'Ticket buyers for a season',
+    'specific_addresses': 'Specific email addresses',
 }
 
 
