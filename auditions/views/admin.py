@@ -876,8 +876,26 @@ def add_staff_member():
         flash('Invalid role selected.', 'danger')
         return redirect(url_for('auditions.admin_dashboard'))
 
-    if User.query.filter_by(email=email).first():
-        flash(f'An account for {email} already exists.', 'warning')
+    role_labels = {
+        'super_admin': 'Super Admin', 'auditions_creator': 'Auditions Creator',
+        'director': 'Director', 'producer': 'Producer',
+        'stage_manager': 'Stage Manager', 'no_rights': 'No Rights',
+    }
+
+    existing = User.query.filter_by(email=email).first()
+    if existing:
+        # Promote the existing account to the chosen role
+        existing.role = role
+        db.session.commit()
+        flash(
+            f'{existing.first_name} {existing.last_name} already had an account — '
+            f'their role has been updated to {role_labels.get(role, role)}.',
+            'success'
+        )
+        return redirect(url_for('auditions.admin_dashboard'))
+
+    if not all([first_name, last_name]):
+        flash('First name and last name are required for new accounts.', 'danger')
         return redirect(url_for('auditions.admin_dashboard'))
 
     user = User(
@@ -889,11 +907,6 @@ def add_staff_member():
     db.session.add(user)
     db.session.commit()
 
-    role_labels = {
-        'super_admin': 'Super Admin', 'auditions_creator': 'Auditions Creator',
-        'director': 'Director', 'producer': 'Producer',
-        'stage_manager': 'Stage Manager', 'no_rights': 'No Rights',
-    }
     flash(
         f'{first_name} {last_name} added as {role_labels.get(role, role)}. '
         f'They can now sign in with Google at {email}.',
