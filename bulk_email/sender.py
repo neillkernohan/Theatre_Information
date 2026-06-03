@@ -4,6 +4,7 @@ Uses Flask app context so SQLAlchemy works from the thread.
 """
 import hashlib
 import hmac
+import re
 import secrets
 import time
 import threading
@@ -19,6 +20,24 @@ _UNSUBSCRIBE_FOOTER = """
   <a href="{unsubscribe_url}" style="color:#888;">Unsubscribe</a>
 </div>
 """
+
+
+def _prepare_html(html):
+    """Inline email-safe styles so Gmail/Outlook don't override spacing."""
+    # Add margin:0 to every <p> tag (handles Gmail's default paragraph margins)
+    html = re.sub(
+        r'<p(\s[^>]*)?>',
+        lambda m: f'<p style="margin:0;line-height:1.5"{m.group(1) or ""}>',
+        html
+    )
+    # Headings — keep bold but reset margin
+    for tag in ('h1', 'h2', 'h3'):
+        html = re.sub(
+            rf'<{tag}(\s[^>]*)?>',
+            lambda m, t=tag: f'<{t} style="margin:0.8em 0 0.2em;font-weight:bold"{m.group(1) or ""}>',
+            html
+        )
+    return html
 
 
 def _unsubscribe_url(base_url, email, secret_key):
@@ -95,6 +114,9 @@ def send_campaign(app, campaign_id):
                         unsubscribe_url=_unsubscribe_url(base_url, recipient.email, secret_key)
                     )
                     body = body + footer
+
+                    # Inline email-safe styles so Gmail doesn't add its own spacing
+                    body = _prepare_html(body)
 
                     to_name = ' '.join(filter(None, [recipient.first_name, recipient.last_name]))
                     try:

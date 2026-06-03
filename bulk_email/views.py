@@ -430,7 +430,7 @@ def send_test(campaign_id):
         return redirect(url_for('bulk_email.campaign_detail', campaign_id=campaign_id))
 
     from .gmail_api import send_message
-    from .sender import _UNSUBSCRIBE_FOOTER, _unsubscribe_url
+    from .sender import _UNSUBSCRIBE_FOOTER, _unsubscribe_url, _prepare_html
     import os
 
     body = campaign.body_html.replace('{{first_name}}', 'Test').replace('{{last_name}}', 'Recipient')
@@ -438,7 +438,7 @@ def send_test(campaign_id):
     footer = _UNSUBSCRIBE_FOOTER.format(
         unsubscribe_url=_unsubscribe_url(base_url, test_email, current_app.config['SECRET_KEY'])
     )
-    body = body + footer
+    body = _prepare_html(body + footer)
 
     try:
         send_message(campaign.sender, test_email, None, f'[TEST] {campaign.subject}', body)
