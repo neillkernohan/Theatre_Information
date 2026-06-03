@@ -81,6 +81,10 @@ def add_account():
         include_granted_scopes='false',
     )
     session['gmail_oauth_state'] = state
+    # PKCE: the callback builds a fresh Flow, so carry the one-time code_verifier
+    # generated here across the redirect. Without it, the token exchange fails
+    # with "Missing code verifier".
+    session['gmail_code_verifier'] = flow.code_verifier
     return redirect(auth_url)
 
 
@@ -97,6 +101,7 @@ def oauth_callback():
         return redirect(url_for('bulk_email.accounts'))
 
     flow = get_oauth_flow(_oauth_redirect_uri())
+    flow.code_verifier = session.pop('gmail_code_verifier', None)
     flow.fetch_token(
         authorization_response=_force_https(request.url),
         state=state,
