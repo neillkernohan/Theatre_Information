@@ -31,18 +31,30 @@
           <small class="text-muted">Display name: {{ acc.display_name or '—' }}</small><br>
           <small class="text-muted">Added {{ acc.added_at.strftime('%b %-d, %Y') }}</small>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
           <button class="btn btn-sm btn-outline-secondary"
                   data-bs-toggle="collapse"
                   data-bs-target="#rename-{{ acc.id }}">Rename</button>
           <a href="{{ url_for('bulk_email.add_account') }}" class="btn btn-sm btn-outline-primary"
              title="Re-authorise to refresh tokens">Re-auth</a>
+          <form method="post" action="{{ url_for('bulk_email.process_bounces', account_id=acc.id) }}"
+                onsubmit="return confirm('Scan {{ acc.email }} inbox for bounce messages and add undeliverables to the suppression list?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-warning">Process Bounces</button>
+          </form>
           <form method="post" action="{{ url_for('bulk_email.remove_account', account_id=acc.id) }}"
                 onsubmit="return confirm('Remove {{ acc.email }}?')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-sm btn-outline-danger">Remove</button>
           </form>
         </div>
+
+        {% if session.get('bounce_addresses') %}
+        <div class="mt-2">
+          <small class="text-success fw-semibold">Newly suppressed:</small>
+          <small class="text-muted">{{ session.pop('bounce_addresses')|join(', ') }}</small>
+        </div>
+        {% endif %}
       </div>
       <div class="collapse mt-3" id="rename-{{ acc.id }}">
         <form method="post" action="{{ url_for('bulk_email.update_display_name', account_id=acc.id) }}"

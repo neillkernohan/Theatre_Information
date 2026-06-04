@@ -202,6 +202,28 @@ def update_display_name(account_id):
     return redirect(url_for('bulk_email.accounts'))
 
 
+@bulk_email_bp.route('/accounts/<int:account_id>/process-bounces', methods=['POST'])
+@manage_shows_required
+def process_bounces(account_id):
+    from .bounce_processor import process_bounces as _process
+    from auth.models import db
+    acc = SenderAccount.query.get_or_404(account_id)
+    try:
+        result = _process(acc)
+        db.session.commit()  # persist any refreshed tokens
+        flash(
+            f'Scanned {result["scanned"]} bounce messages — '
+            f'{result["added"]} new address(es) added to Unsubscribed, '
+            f'{result["skipped"]} already suppressed.',
+            'success' if result['added'] or result['scanned'] else 'info'
+        )
+        if result['addresses']:
+            session['bounce_addresses'] = result['addresses']
+    except Exception as exc:
+        flash(f'Bounce processing failed: {exc}', 'danger')
+    return redirect(url_for('bulk_email.accounts'))
+
+
 @bulk_email_bp.route('/accounts/<int:account_id>/remove', methods=['POST'])
 @manage_shows_required
 def remove_account(account_id):
