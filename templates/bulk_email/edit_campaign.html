@@ -77,15 +77,10 @@
 </div>
 
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
-<script>window.Quill = Quill;</script>
-<script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
 <script>
-Quill.register('modules/imageResize', ImageResize);
-
 const quill = new Quill('#quill-editor', {
   theme: 'snow',
   modules: {
-    imageResize: { modules: ['Resize', 'DisplaySize'] },
     toolbar: {
       container: [
         [{ header: [1, 2, 3, false] }],
@@ -131,6 +126,18 @@ quill.clipboard.dangerouslyPasteHTML({{ campaign.body_html | tojson }});
 
 document.getElementById('edit-form').addEventListener('submit', () => {
   document.getElementById('body_html').value = quill.root.innerHTML;
+});
+
+// Double-click an image to set its width
+quill.root.addEventListener('dblclick', e => {
+  if (e.target.tagName === 'IMG') {
+    const current = e.target.style.width || e.target.getAttribute('width') || '';
+    const val = prompt('Set image width (e.g. 400px, 100%, 50%):', current);
+    if (val !== null) {
+      e.target.style.width = val;
+      e.target.removeAttribute('width');
+    }
+  }
 });
 </script>
 {% endblock %}
