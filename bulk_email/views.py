@@ -205,23 +205,29 @@ def update_display_name(account_id):
 @bulk_email_bp.route('/accounts/<int:account_id>/process-bounces', methods=['POST'])
 @manage_shows_required
 def process_bounces(account_id):
-    from .bounce_processor import process_bounces as _process
-    from auth.models import db
+    from .bounce_processor import start_bounce_job, is_running
     acc = SenderAccount.query.get_or_404(account_id)
-    try:
-        result = _process(acc)
-        db.session.commit()  # persist any refreshed tokens
-        flash(
-            f'Scanned {result["scanned"]} bounce messages — '
-            f'{result["added"]} new address(es) added to Unsubscribed, '
-            f'{result["skipped"]} already suppressed.',
-            'success' if result['added'] or result['scanned'] else 'info'
-        )
-        if result['addresses']:
-            session['bounce_addresses'] = result['addresses']
-    except Exception as exc:
-        flash(f'Bounce processing failed: {exc}', 'danger')
-    return redirect(url_for('bulk_email.accounts'))
+    if is_running(account_id):
+        flash('Bounce scan already in progress.', 'info')
+    else:
+        start_bounce_job(current_app._get_current_object(), acc)
+        flash('Bounce scan started — results will appear below.', 'info')
+    return redirect(url_for('bulk_email.bounce_progress_page', account_id=account_id))
+
+
+@bulk_email_bp.route('/accounts/<int:account_id>/bounce-progress')
+@manage_shows_required
+def bounce_progress_page(account_id):
+    acc = SenderAccount.query.get_or_404(account_id)
+    return render_template('bulk_email/bounce_progress.html', account=acc)
+
+
+@bulk_email_bp.route('/accounts/<int:account_id>/bounce-status')
+@manage_shows_required
+def bounce_status(account_id):
+    from .bounce_processor import get_job_status
+    job = get_job_status(account_id) or {'state': 'not_started'}
+    return jsonify(job)
 
 
 @bulk_email_bp.route('/accounts/<int:account_id>/remove', methods=['POST'])

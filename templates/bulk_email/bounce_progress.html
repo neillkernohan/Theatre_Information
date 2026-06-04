@@ -1,0 +1,113 @@
+{% extends "auditions/base.html" %}
+{% block title %}Processing Bounces — {{ account.email }}{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width:640px">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="mb-0">Processing Bounces</h2>
+    <a href="{{ url_for('bulk_email.accounts') }}" class="btn btn-outline-secondary">Back to Accounts</a>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="mb-1 text-muted small">Account</div>
+      <div class="fw-semibold mb-3">{{ account.display_name }} &lt;{{ account.email }}&gt;</div>
+
+      <div id="status-area">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="spinner-border spinner-border-sm text-primary" id="spinner"></div>
+          <span id="status-text">Scanning inbox…</span>
+        </div>
+
+        <div class="row text-center g-3 mb-3">
+          <div class="col">
+            <div class="fs-3 fw-bold" id="count-found">—</div>
+            <div class="text-muted small">Bounce msgs found</div>
+          </div>
+          <div class="col">
+            <div class="fs-3 fw-bold" id="count-scanned">0</div>
+            <div class="text-muted small">Processed</div>
+          </div>
+          <div class="col">
+            <div class="fs-3 fw-bold text-success" id="count-added">0</div>
+            <div class="text-muted small">Newly suppressed</div>
+          </div>
+          <div class="col">
+            <div class="fs-3 fw-bold text-muted" id="count-skipped">0</div>
+            <div class="text-muted small">Already suppressed</div>
+          </div>
+        </div>
+
+        <div class="progress mb-3" style="height:10px" id="progress-wrap">
+          <div class="progress-bar progress-bar-striped progress-bar-animated"
+               id="progress-bar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div id="addresses-area" class="d-none">
+        <div class="fw-semibold mb-1">Newly suppressed addresses:</div>
+        <ul id="addresses-list" class="small mb-0"></ul>
+      </div>
+
+      <div id="error-area" class="alert alert-danger d-none mt-3"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const statusUrl = {{ url_for('bulk_email.bounce_status', account_id=account.id)|tojson }};
+
+function poll() {
+  fetch(statusUrl)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('count-scanned').textContent = d.scanned ?? 0;
+      document.getElementById('count-added').textContent   = d.added ?? 0;
+      document.getElementById('count-skipped').textContent = d.skipped ?? 0;
+
+      if (d.found) {
+        document.getElementById('count-found').textContent = d.found;
+        const pct = d.found > 0 ? Math.round((d.scanned / d.found) * 100) : 0;
+        document.getElementById('progress-bar').style.width = pct + '%';
+      }
+
+      if (d.state === 'running') {
+        document.getElementById('status-text').textContent =
+          `Scanning inbox… (${d.scanned ?? 0} of ${d.found ?? '?'} processed)`;
+        setTimeout(poll, 1500);
+
+      } else if (d.state === 'done') {
+        document.getElementById('spinner').classList.add('d-none');
+        document.getElementById('progress-bar').classList.remove('progress-bar-animated');
+        document.getElementById('progress-bar').style.width = '100%';
+        document.getElementById('status-text').innerHTML =
+          `<span class="text-success fw-semibold">✓ Complete</span>`;
+
+        if (d.addresses && d.addresses.length > 0) {
+          const area = document.getElementById('addresses-area');
+          const list = document.getElementById('addresses-list');
+          d.addresses.forEach(addr => {
+            const li = document.createElement('li');
+            li.textContent = addr;
+            list.appendChild(li);
+          });
+          area.classList.remove('d-none');
+        }
+
+      } else if (d.state === 'error') {
+        document.getElementById('spinner').classList.add('d-none');
+        document.getElementById('status-text').textContent = 'Error';
+        const err = document.getElementById('error-area');
+        err.textContent = d.error || 'An unknown error occurred.';
+        err.classList.remove('d-none');
+
+      } else {
+        // not_started yet — keep polling briefly
+        setTimeout(poll, 800);
+      }
+    })
+    .catch(() => setTimeout(poll, 3000));
+}
+
+poll();
+</script>
+{% endblock %}
