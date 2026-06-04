@@ -141,7 +141,7 @@ def audience_specific_addresses(addresses_raw):
     """Parse a newline/comma-separated list of addresses into recipient dicts."""
     recipients = []
     seen = set()
-    for line in re.split(r'[\n,]+', addresses_raw):
+    for line in re.split(r'[\n,;]+', addresses_raw):
         email = line.strip()
         if email and '@' in email and email.lower() not in seen:
             seen.add(email.lower())
