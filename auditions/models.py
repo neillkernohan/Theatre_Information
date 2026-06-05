@@ -71,7 +71,7 @@ class Registration(db.Model):
     show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), nullable=False)
     slot_id = db.Column(db.Integer, db.ForeignKey('audition_slots.id'), nullable=True)
     status = db.Column(
-        db.Enum('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show', 'not_selected', name='registration_status'),
+        db.Enum('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show', 'not_selected', 'cast', name='registration_status'),
         default='confirmed'
     )
     roles_auditioning_for = db.Column(db.String(500))

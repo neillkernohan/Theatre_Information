@@ -49,6 +49,8 @@
             <span class="badge bg-dark fs-6">No Show</span>
             {% elif reg.status == 'not_selected' %}
             <span class="badge bg-danger fs-6">Not Selected</span>
+            {% elif reg.status == 'cast' %}
+            <span class="badge bg-success fs-6" style="background-color:#6f42c1!important">Cast</span>
             {% endif %}
             {% if reg.slot %}
             <span class="badge bg-light text-dark border fs-6">
@@ -70,13 +72,13 @@
                 <i class="bi bi-toggles"></i> Change Status
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-                {% for s in ['confirmed', 'waitlisted', 'callback', 'no_show', 'not_selected'] %}
+                {% for s in ['confirmed', 'waitlisted', 'callback', 'cast', 'no_show', 'not_selected'] %}
                 {% if s != reg.status %}
                 <li>
                     <form method="POST" action="{{ url_for('auditions.update_registration_status', reg_id=reg.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="status" value="{{ s }}">
-                        <button type="submit" class="dropdown-item">Set to {{ {'no_show': 'No Show', 'not_selected': 'Not Selected'}.get(s, s | capitalize) }}</button>
+                        <button type="submit" class="dropdown-item">Set to {{ {'no_show': 'No Show', 'not_selected': 'Not Selected', 'cast': 'Cast'}.get(s, s | capitalize) }}</button>
                     </form>
                 </li>
                 {% endif %}

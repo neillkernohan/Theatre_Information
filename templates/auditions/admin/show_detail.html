@@ -95,6 +95,14 @@
         </div>
     </div>
     <div class="col">
+        <div class="card text-center shadow-sm h-100" style="border-color:#6f42c1!important">
+            <div class="card-body py-3">
+                <h3 class="mb-0" style="color:#6f42c1">{{ all_regs | selectattr('status', 'equalto', 'cast') | list | length }}</h3>
+                <small class="text-muted">Cast</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
         <div class="card text-center shadow-sm h-100 border-primary">
             <div class="card-body py-3">
                 <h3 class="mb-0 text-primary">{{ all_regs | selectattr('status', 'equalto', 'callback') | list | length }}</h3>
@@ -196,7 +204,7 @@
                     </td>
                 </tr>
                 {% else %}
-                {% set booked = slot.registrations.filter_by(status='confirmed').all() + slot.registrations.filter_by(status='callback').all() + slot.registrations.filter_by(status='no_show').all() + slot.registrations.filter_by(status='not_selected').all() %}
+                {% set booked = slot.registrations.filter_by(status='confirmed').all() + slot.registrations.filter_by(status='callback').all() + slot.registrations.filter_by(status='cast').all() + slot.registrations.filter_by(status='no_show').all() + slot.registrations.filter_by(status='not_selected').all() %}
                 <tr>
                     <td class="fw-semibold">
                         {% if current_user.can_manage_shows %}
@@ -275,6 +283,8 @@
                         <span class="badge bg-dark d-block mb-1">No Show</span>
                         {% elif reg.status == 'not_selected' %}
                         <span class="badge bg-danger d-block mb-1">Not Selected</span>
+                        {% elif reg.status == 'cast' %}
+                        <span class="badge d-block mb-1" style="background-color:#6f42c1">Cast</span>
                         {% endif %}
                         {% endfor %}
                     </td>
@@ -318,7 +328,7 @@
                 <label class="form-label small mb-1">Status</label>
                 <select name="status" class="form-select form-select-sm">
                     <option value="">All statuses</option>
-                    {% for s, label in [('confirmed','Confirmed'),('waitlisted','Waitlisted'),('callback','Callback'),('no_show','No Show'),('not_selected','Not Selected'),('cancelled','Cancelled')] %}
+                    {% for s, label in [('confirmed','Confirmed'),('waitlisted','Waitlisted'),('callback','Callback'),('cast','Cast'),('no_show','No Show'),('not_selected','Not Selected'),('cancelled','Cancelled')] %}
                     <option value="{{ s }}" {{ 'selected' if status_filter == s else '' }}>
                         {{ label }}
                     </option>
@@ -398,6 +408,8 @@
                             <span class="badge bg-dark">No Show</span>
                             {% elif reg.status == 'not_selected' %}
                             <span class="badge bg-danger">Not Selected</span>
+                            {% elif reg.status == 'cast' %}
+                            <span class="badge" style="background-color:#6f42c1">Cast</span>
                             {% else %}
                             <span class="badge bg-secondary">Cancelled</span>
                             {% endif %}
@@ -455,14 +467,15 @@
     <div class="d-flex align-items-center gap-3 flex-wrap">
         <span id="bulkCount" class="fw-semibold"></span>
         <span class="text-secondary">— set status to:</span>
-        {% for s, label, cls in [
-            ('confirmed','Confirmed','success'),
-            ('callback','Callback','primary'),
-            ('no_show','No Show','dark'),
-            ('not_selected','Not Selected','danger'),
-            ('cancelled','Cancelled','secondary')
+        {% for s, label, cls, extra_style in [
+            ('confirmed','Confirmed','success',''),
+            ('callback','Callback','primary',''),
+            ('cast','Cast','secondary','background-color:#6f42c1;border-color:#6f42c1;'),
+            ('no_show','No Show','dark',''),
+            ('not_selected','Not Selected','danger',''),
+            ('cancelled','Cancelled','secondary','')
         ] %}
-        <button type="button" class="btn btn-{{ cls }} btn-sm bulk-apply" data-status="{{ s }}">
+        <button type="button" class="btn btn-{{ cls }} btn-sm bulk-apply" data-status="{{ s }}" style="{{ extra_style }}">
             {{ label }}
         </button>
         {% endfor %}

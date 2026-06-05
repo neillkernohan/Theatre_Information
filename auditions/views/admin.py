@@ -556,7 +556,7 @@ def update_registration_status(reg_id):
     registration = Registration.query.get_or_404(reg_id)
     new_status = request.form.get('status')
 
-    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show', 'not_selected'):
+    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show', 'not_selected', 'cast'):
         flash('Invalid status.', 'danger')
         return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
@@ -577,7 +577,7 @@ def update_registration_status(reg_id):
         send_cancellation_email(registration)
         promote_from_waitlist(show_id)
 
-    label = 'No Show' if new_status == 'no_show' else new_status.capitalize()
+    label = {'no_show': 'No Show', 'not_selected': 'Not Selected'}.get(new_status, new_status.capitalize())
     flash(f'Registration status updated to {label}.', 'success')
     return redirect(url_for('auditions.registration_detail', reg_id=reg_id))
 
@@ -590,7 +590,7 @@ def bulk_update_status(show_id):
         abort(403)
 
     new_status = request.form.get('status')
-    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show', 'not_selected'):
+    if new_status not in ('confirmed', 'waitlisted', 'callback', 'cancelled', 'no_show', 'not_selected', 'cast'):
         flash('Invalid status.', 'danger')
         return redirect(url_for('auditions.show_detail', show_id=show_id))
 
@@ -626,7 +626,7 @@ def bulk_update_status(show_id):
     if new_status == 'cancelled':
         promote_from_waitlist(show_id)
 
-    label = 'No Show' if new_status == 'no_show' else new_status.capitalize()
+    label = {'no_show': 'No Show', 'not_selected': 'Not Selected'}.get(new_status, new_status.capitalize())
     flash(f'{len(registrations)} registration(s) updated to {label}.', 'success')
     return redirect(url_for('auditions.show_detail', show_id=show_id))
 
