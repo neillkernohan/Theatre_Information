@@ -1019,13 +1019,14 @@ def OurPeople():
         show_season_map[ticket_show] = season
 
     def get_season_label(season_date):
-        """Convert a season start date (e.g. 2024-07-01) to '2024-2025'."""
+        """Convert a season start date to a 'YYYY-YYYY' label.
+        Seasons can start as early as May, so use month >= 5 as the cutoff."""
         if isinstance(season_date, str):
             from dateutil.parser import parse
             season_date = parse(season_date)
         year = season_date.year
         month = season_date.month
-        if month >= 7:
+        if month >= 5:
             return f"{year}-{year + 1}"
         else:
             return f"{year - 1}-{year}"
