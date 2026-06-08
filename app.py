@@ -605,27 +605,22 @@ def SeasonTotals():
     # Subscription comparison for this season and previous season
     sub_seasons = [this_season] + ([prev_season] if prev_season else [])
     sub_query = """
-        SELECT TI.Season, TI.Person_type_edited,
-               ROUND(SUM(TI.Item_count) / pkg.max_shows) AS subscriber_count,
-               SUM(TI.Amount) AS sales
-        FROM Theatre_Information.Ticket_Info TI
-        JOIN (
-            SELECT s.Season, MAX(sc.show_count) AS max_shows
-            FROM (SELECT DISTINCT Season FROM Theatre_Information.Ticket_Info WHERE Subscription_package IS NOT NULL AND Subscription_package != '') s
-            JOIN (
-                SELECT Season, Subscription_package, COUNT(DISTINCT Show_name) AS show_count
-                FROM Theatre_Information.Ticket_Info
-                WHERE Subscription_package IS NOT NULL AND Subscription_package != ''
-                GROUP BY Season, Subscription_package
-            ) sc ON s.Season = sc.Season
-            GROUP BY s.Season
-        ) pkg ON TI.Season = pkg.Season
-        WHERE TI.Season IN ({})
-          AND TI.Subscription_package IS NOT NULL AND TI.Subscription_package != ''
-          AND TI.Transaction_type != 'Reserve'
-        GROUP BY TI.Season, TI.Person_type_edited
-        ORDER BY TI.Season DESC,
-            CASE TI.Person_type_edited WHEN 'Regular' THEN 1 WHEN 'Senior' THEN 2 WHEN 'Student' THEN 3 ELSE 4 END
+        SELECT Season, Person_type_edited,
+               SUM(subscriber_count) AS subscriber_count,
+               SUM(sales) AS sales
+        FROM (
+            SELECT TI.Season, TI.Person_type_edited, TI.Subscription_package,
+                   ROUND(SUM(TI.Item_count) / COUNT(DISTINCT TI.Show_name)) AS subscriber_count,
+                   SUM(TI.Amount) AS sales
+            FROM Theatre_Information.Ticket_Info TI
+            WHERE TI.Season IN ({})
+              AND TI.Subscription_package IS NOT NULL AND TI.Subscription_package != ''
+              AND TI.Transaction_type != 'Reserve'
+            GROUP BY TI.Season, TI.Person_type_edited, TI.Subscription_package
+        ) per_package
+        GROUP BY Season, Person_type_edited
+        ORDER BY Season DESC,
+            CASE Person_type_edited WHEN 'Regular' THEN 1 WHEN 'Senior' THEN 2 WHEN 'Student' THEN 3 ELSE 4 END
     """.format(','.join(['%s'] * len(sub_seasons)))
     sub_cursor = db.cursor()
     sub_cursor.execute(sub_query, sub_seasons)
