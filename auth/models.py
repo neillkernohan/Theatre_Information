@@ -98,8 +98,9 @@ class User(UserMixin, db.Model):
 
     @property
     def can_access_inventory(self):
-        """View and edit inventory — granted to inventory_manager and full staff roles."""
-        return self.role in self._ACCESS_INVENTORY
+        """View and edit inventory — granted to inventory_manager, full staff roles,
+        and any @theatreaurora.com account."""
+        return self.role in self._ACCESS_INVENTORY or self.is_staff
 
     @property
     def is_super_admin(self):
