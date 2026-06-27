@@ -56,7 +56,7 @@
                 </td>
                 <td>{{ show.registration_open.strftime('%b %d, %Y') if show.registration_open else '—' }}</td>
                 <td>{{ show.registration_close.strftime('%b %d, %Y') if show.registration_close else '—' }}</td>
-                <td>{{ show.registrations.filter_by(status='confirmed').count() + show.registrations.filter_by(status='waitlisted').count() + show.registrations.filter_by(status='callback').count() }}</td>
+                <td>{{ show.registrations.count() - show.registrations.filter_by(status='cancelled').count() }}</td>
                 <td>
                     <a href="{{ url_for('auditions.show_detail', show_id=show.id) }}" class="btn btn-sm btn-outline-dark">View</a>
                 </td>
