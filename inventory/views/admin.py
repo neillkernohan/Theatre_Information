@@ -9,13 +9,38 @@ from auth.decorators import inventory_required
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 
 
+MAX_IMAGE_DIMENSION = 1600
+
+
 def _save_image(file, item_id):
-    """Save an uploaded image and return the relative static path."""
+    """Save an uploaded image, resized to a web-friendly size, and return the relative static path."""
+    from PIL import Image
+
     ext = file.filename.rsplit('.', 1)[-1].lower()
-    filename = secure_filename(f'item_{item_id}.{ext}')
     upload_dir = os.path.join(current_app.root_path, 'static', 'inventory', 'uploads')
     os.makedirs(upload_dir, exist_ok=True)
-    file.save(os.path.join(upload_dir, filename))
+
+    if ext == 'gif':
+        # Don't recompress GIFs — resizing would drop animation frames
+        filename = secure_filename(f'item_{item_id}.gif')
+        file.save(os.path.join(upload_dir, filename))
+        return f'inventory/uploads/{filename}'
+
+    img = Image.open(file)
+    # Apply EXIF rotation from phone cameras, then discard the tag
+    from PIL import ImageOps
+    img = ImageOps.exif_transpose(img)
+    img.thumbnail((MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION))
+
+    if ext in ('jpg', 'jpeg'):
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        filename = secure_filename(f'item_{item_id}.jpg')
+        img.save(os.path.join(upload_dir, filename), 'JPEG', quality=85, optimize=True)
+    else:
+        filename = secure_filename(f'item_{item_id}.{ext}')
+        img.save(os.path.join(upload_dir, filename))
+
     return f'inventory/uploads/{filename}'
 
 
