@@ -34,13 +34,6 @@ CATEGORY_LABELS = {
     'equipment': 'Equipment',
 }
 
-STATUS_LABELS = {
-    'available': 'Available',
-    'in_use': 'In Use',
-    'needs_repair': 'Needs Repair',
-    'retired': 'Retired',
-}
-
 
 @inventory_bp.route('/')
 @inventory_required
@@ -53,8 +46,14 @@ def list_items():
 
     if category_filter:
         query = query.filter_by(category=category_filter)
-    if status_filter:
-        query = query.filter_by(status=status_filter)
+    if status_filter == 'available':
+        query = query.filter(InventoryItem.qty_available > 0)
+    elif status_filter == 'in_use':
+        query = query.filter(InventoryItem.qty_in_use > 0)
+    elif status_filter == 'needs_repair':
+        query = query.filter(InventoryItem.qty_needs_repair > 0)
+    elif status_filter == 'retired':
+        query = query.filter(InventoryItem.qty_retired > 0)
     if search:
         query = query.filter(
             db.or_(
@@ -73,7 +72,6 @@ def list_items():
         status_filter=status_filter,
         search=search,
         category_labels=CATEGORY_LABELS,
-        status_labels=STATUS_LABELS,
     )
 
 
@@ -97,7 +95,10 @@ def add_item():
                 category=form.category.data,
                 quantity=form.quantity.data,
                 storage_location=form.storage_location.data.strip() if form.storage_location.data else None,
-                status=form.status.data,
+                qty_available=form.qty_available.data,
+                qty_in_use=form.qty_in_use.data,
+                qty_needs_repair=form.qty_needs_repair.data,
+                qty_retired=form.qty_retired.data,
                 description=form.description.data.strip() if form.description.data else None,
                 notes=form.notes.data.strip() if form.notes.data else None,
             )
@@ -132,7 +133,10 @@ def edit_item(item_id):
             item.category = form.category.data
             item.quantity = form.quantity.data
             item.storage_location = form.storage_location.data.strip() if form.storage_location.data else None
-            item.status = form.status.data
+            item.qty_available = form.qty_available.data
+            item.qty_in_use = form.qty_in_use.data
+            item.qty_needs_repair = form.qty_needs_repair.data
+            item.qty_retired = form.qty_retired.data
             item.description = form.description.data.strip() if form.description.data else None
             item.notes = form.notes.data.strip() if form.notes.data else None
             if form.image.data and form.image.data.filename:

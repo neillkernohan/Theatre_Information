@@ -29,11 +29,10 @@ class InventoryItem(db.Model):
     )
     quantity = db.Column(db.Integer, nullable=False, default=1)
     storage_location = db.Column(db.String(255))
-    status = db.Column(
-        db.Enum('available', 'in_use', 'needs_repair', 'retired', name='inv_status'),
-        nullable=False,
-        default='available'
-    )
+    qty_available = db.Column(db.Integer, nullable=False, default=0)
+    qty_in_use = db.Column(db.Integer, nullable=False, default=0)
+    qty_needs_repair = db.Column(db.Integer, nullable=False, default=0)
+    qty_retired = db.Column(db.Integer, nullable=False, default=0)
     description = db.Column(db.Text)
     notes = db.Column(db.Text)
     image_path = db.Column(db.String(500))

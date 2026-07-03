@@ -81,14 +81,17 @@
                 <td>{{ item.quantity }}</td>
                 <td>{{ item.storage_location or '—' }}</td>
                 <td>
-                    {% if item.status == 'available' %}
-                    <span class="badge bg-success">Available</span>
-                    {% elif item.status == 'in_use' %}
-                    <span class="badge bg-primary">In Use</span>
-                    {% elif item.status == 'needs_repair' %}
-                    <span class="badge bg-warning text-dark">Needs Repair</span>
-                    {% elif item.status == 'retired' %}
-                    <span class="badge bg-secondary">Retired</span>
+                    {% if item.qty_available %}
+                    <span class="badge bg-success">{{ item.qty_available }} Available</span>
+                    {% endif %}
+                    {% if item.qty_in_use %}
+                    <span class="badge bg-primary">{{ item.qty_in_use }} In Use</span>
+                    {% endif %}
+                    {% if item.qty_needs_repair %}
+                    <span class="badge bg-warning text-dark">{{ item.qty_needs_repair }} Repair</span>
+                    {% endif %}
+                    {% if item.qty_retired %}
+                    <span class="badge bg-secondary">{{ item.qty_retired }} Retired</span>
                     {% endif %}
                 </td>
                 <td class="text-end">

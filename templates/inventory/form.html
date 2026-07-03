@@ -46,20 +46,52 @@
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">{{ form.quantity.label.text }}</label>
-                            {{ form.quantity(class="form-control" + (" is-invalid" if form.quantity.errors else "")) }}
+                            {{ form.quantity(class="form-control" + (" is-invalid" if form.quantity.errors else ""), id="total-qty") }}
                             {% for e in form.quantity.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                         </div>
 
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">{{ form.status.label.text }}</label>
-                            {{ form.status(class="form-select" + (" is-invalid" if form.status.errors else "")) }}
-                            {% for e in form.status.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-                        </div>
-
-                        <div class="col-md-4">
+                        <div class="col-md-8">
                             <label class="form-label fw-semibold">{{ form.storage_location.label.text }}</label>
                             {{ form.storage_location(class="form-control" + (" is-invalid" if form.storage_location.errors else ""), placeholder="e.g. Costume Room Rack B") }}
                             {% for e in form.storage_location.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Status Breakdown</label>
+                            <div class="row g-2" id="status-breakdown">
+                                <div class="col-6 col-md-3">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-success text-white border-0" style="width:36px"><i class="bi bi-check-circle-fill"></i></span>
+                                        {{ form.qty_available(class="form-control" + (" is-invalid" if form.qty_available.errors else ""), placeholder="Available") }}
+                                    </div>
+                                    <div class="form-text">Available</div>
+                                    {% for e in form.qty_available.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-primary text-white border-0" style="width:36px"><i class="bi bi-play-fill"></i></span>
+                                        {{ form.qty_in_use(class="form-control" + (" is-invalid" if form.qty_in_use.errors else ""), placeholder="In Use") }}
+                                    </div>
+                                    <div class="form-text">In Use</div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-warning text-dark border-0" style="width:36px"><i class="bi bi-wrench-fill"></i></span>
+                                        {{ form.qty_needs_repair(class="form-control" + (" is-invalid" if form.qty_needs_repair.errors else ""), placeholder="Needs Repair") }}
+                                    </div>
+                                    <div class="form-text">Needs Repair</div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-secondary text-white border-0" style="width:36px"><i class="bi bi-archive-fill"></i></span>
+                                        {{ form.qty_retired(class="form-control" + (" is-invalid" if form.qty_retired.errors else ""), placeholder="Retired") }}
+                                    </div>
+                                    <div class="form-text">Retired</div>
+                                </div>
+                            </div>
+                            <div id="qty-sum-warning" class="text-danger small mt-1 d-none">
+                                <i class="bi bi-exclamation-triangle me-1"></i>Status quantities must add up to total quantity.
+                            </div>
                         </div>
 
                         <div class="col-12">
@@ -121,6 +153,22 @@ function fetchSuggestedCode() {
 if (suggestBtn) {
     suggestBtn.addEventListener('click', fetchSuggestedCode);
     categorySelect.addEventListener('change', fetchSuggestedCode);
+}
+
+const totalQtyInput = document.getElementById('total-qty');
+const statusInputs = ['qty_available', 'qty_in_use', 'qty_needs_repair', 'qty_retired'].map(id => document.getElementById(id));
+const qtyWarning = document.getElementById('qty-sum-warning');
+
+function checkQtySum() {
+    if (!totalQtyInput) return;
+    const total = parseInt(totalQtyInput.value) || 0;
+    const sum = statusInputs.reduce((acc, el) => acc + (parseInt(el.value) || 0), 0);
+    qtyWarning.classList.toggle('d-none', sum === total);
+}
+
+if (totalQtyInput) {
+    totalQtyInput.addEventListener('input', checkQtySum);
+    statusInputs.forEach(el => el && el.addEventListener('input', checkQtySum));
 }
 
 const imageInput = document.getElementById('image-input');
