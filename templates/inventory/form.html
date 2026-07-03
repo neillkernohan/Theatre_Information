@@ -52,7 +52,13 @@
 
                         <div class="col-md-8">
                             <label class="form-label fw-semibold">{{ form.storage_location.label.text }}</label>
-                            {{ form.storage_location(class="form-control" + (" is-invalid" if form.storage_location.errors else ""), placeholder="e.g. Costume Room Rack B") }}
+                            {{ form.storage_location(class="form-control" + (" is-invalid" if form.storage_location.errors else ""), placeholder="e.g. Costume Room Rack B", list="location-options", autocomplete="off") }}
+                            <datalist id="location-options">
+                                {% for loc in locations %}
+                                <option value="{{ loc }}">
+                                {% endfor %}
+                            </datalist>
+                            <div class="form-text">Start typing to reuse an existing location.</div>
                             {% for e in form.storage_location.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                         </div>
 

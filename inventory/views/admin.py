@@ -1,10 +1,40 @@
 import os
+import re
 from flask import render_template, redirect, url_for, flash, request, current_app
 from werkzeug.utils import secure_filename
 from inventory import inventory_bp
 from inventory.models import db, InventoryItem, generate_item_code
 from inventory.forms import InventoryItemForm
 from auth.decorators import inventory_required
+
+
+def _clean(text):
+    """Trim and collapse repeated whitespace; return None for empty strings."""
+    if not text:
+        return None
+    cleaned = re.sub(r'\s+', ' ', text).strip()
+    return cleaned or None
+
+
+def _distinct_locations():
+    """All distinct storage locations currently in use, sorted alphabetically."""
+    rows = (db.session.query(InventoryItem.storage_location)
+            .filter(InventoryItem.storage_location.isnot(None))
+            .distinct().all())
+    return sorted((r[0] for r in rows), key=str.lower)
+
+
+def _canonical_location(text, exclude_id=None):
+    """Clean a location and, if it matches an existing one ignoring case,
+    reuse the existing spelling so locations stay consistent."""
+    cleaned = _clean(text)
+    if not cleaned:
+        return None
+    query = InventoryItem.query.filter(InventoryItem.storage_location.ilike(cleaned))
+    if exclude_id:
+        query = query.filter(InventoryItem.id != exclude_id)
+    existing = query.first()
+    return existing.storage_location if existing else cleaned
 
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 
@@ -111,21 +141,23 @@ def add_item():
         form.item_code.data = generate_item_code(default_category)
 
     if form.validate_on_submit():
+        name = _clean(form.name.data)
         if InventoryItem.query.filter_by(item_code=form.item_code.data.upper().strip()).first():
             flash(f'Item code "{form.item_code.data}" is already in use.', 'danger')
         else:
+            duplicate = InventoryItem.query.filter(InventoryItem.name.ilike(name)).first()
             item = InventoryItem(
                 item_code=form.item_code.data.upper().strip(),
-                name=form.name.data.strip(),
+                name=name,
                 category=form.category.data,
                 quantity=form.quantity.data,
-                storage_location=form.storage_location.data.strip() if form.storage_location.data else None,
+                storage_location=_canonical_location(form.storage_location.data),
                 qty_available=form.qty_available.data,
                 qty_in_use=form.qty_in_use.data,
                 qty_needs_repair=form.qty_needs_repair.data,
                 qty_retired=form.qty_retired.data,
-                description=form.description.data.strip() if form.description.data else None,
-                notes=form.notes.data.strip() if form.notes.data else None,
+                description=_clean(form.description.data),
+                notes=_clean(form.notes.data),
             )
             db.session.add(item)
             db.session.flush()  # get item.id before commit
@@ -133,9 +165,15 @@ def add_item():
                 item.image_path = _save_image(form.image.data, item.id)
             db.session.commit()
             flash(f'Item "{item.name}" ({item.item_code}) added.', 'success')
+            if duplicate:
+                flash(
+                    f'Heads up: another item is also named "{duplicate.name}" ({duplicate.item_code}). '
+                    'If they are the same thing, consider editing that one and adjusting its quantity instead.',
+                    'warning'
+                )
             return redirect(url_for('inventory.list_items'))
 
-    return render_template('inventory/form.html', form=form, editing=False)
+    return render_template('inventory/form.html', form=form, editing=False, locations=_distinct_locations())
 
 
 @inventory_bp.route('/<int:item_id>/edit', methods=['GET', 'POST'])
@@ -154,16 +192,16 @@ def edit_item(item_id):
             flash(f'Item code "{new_code}" is already in use.', 'danger')
         else:
             item.item_code = new_code
-            item.name = form.name.data.strip()
+            item.name = _clean(form.name.data)
             item.category = form.category.data
             item.quantity = form.quantity.data
-            item.storage_location = form.storage_location.data.strip() if form.storage_location.data else None
+            item.storage_location = _canonical_location(form.storage_location.data, exclude_id=item.id)
             item.qty_available = form.qty_available.data
             item.qty_in_use = form.qty_in_use.data
             item.qty_needs_repair = form.qty_needs_repair.data
             item.qty_retired = form.qty_retired.data
-            item.description = form.description.data.strip() if form.description.data else None
-            item.notes = form.notes.data.strip() if form.notes.data else None
+            item.description = _clean(form.description.data)
+            item.notes = _clean(form.notes.data)
             if form.image.data and form.image.data.filename:
                 _delete_image(item.image_path)
                 item.image_path = _save_image(form.image.data, item.id)
@@ -171,7 +209,7 @@ def edit_item(item_id):
             flash(f'Item "{item.name}" updated.', 'success')
             return redirect(url_for('inventory.list_items'))
 
-    return render_template('inventory/form.html', form=form, editing=True, item=item)
+    return render_template('inventory/form.html', form=form, editing=True, item=item, locations=_distinct_locations())
 
 
 @inventory_bp.route('/<int:item_id>/delete', methods=['GET', 'POST'])
