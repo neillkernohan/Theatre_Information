@@ -38,6 +38,13 @@
         <a href="{{ url_for('auditions.edit_show', show_id=show.id) }}" class="btn btn-outline-dark">
             <i class="bi bi-pencil"></i> Edit
         </a>
+        <form method="POST" action="{{ url_for('auditions.duplicate_show', show_id=show.id) }}" class="d-inline">
+            {{ generate_form.hidden_tag() }}
+            <button type="submit" class="btn btn-outline-secondary"
+                    onclick="return confirm('Duplicate this show? You\'ll be taken to edit the copy.')">
+                <i class="bi bi-copy"></i> Duplicate
+            </button>
+        </form>
         <a href="{{ url_for('auditions.admin_register_actor', show_id=show.id) }}" class="btn btn-primary">
             <i class="bi bi-person-plus"></i> Register Actor
         </a>

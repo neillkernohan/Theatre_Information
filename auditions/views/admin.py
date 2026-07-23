@@ -109,6 +109,45 @@ def create_show():
     return render_template('auditions/admin/show_form.html', form=form, editing=False)
 
 
+@auditions_bp.route('/admin/shows/<int:show_id>/duplicate', methods=['POST'])
+@manage_shows_required
+def duplicate_show(show_id):
+    original = Show.query.get_or_404(show_id)
+    new_show = Show(
+        title=f'Copy of {original.title}',
+        description=original.description,
+        scheduling_mode=original.scheduling_mode,
+        allow_choice=original.allow_choice,
+        registration_open=original.registration_open,
+        registration_close=original.registration_close,
+        slot_duration_minutes=original.slot_duration_minutes,
+        max_per_block=original.max_per_block,
+        block_duration_minutes=original.block_duration_minutes,
+        custom_fields=original.custom_fields,
+        roles=original.roles,
+        notify_email=original.notify_email,
+        status='draft',
+    )
+    db.session.add(new_show)
+    db.session.flush()
+
+    for slot in original.slots:
+        db.session.add(AuditionSlot(
+            show_id=new_show.id,
+            date=slot.date,
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+            capacity=slot.capacity,
+            current_count=0,
+            slot_type=slot.slot_type,
+            label=slot.label,
+        ))
+
+    db.session.commit()
+    flash(f'"{original.title}" duplicated as a draft. Update the details below.', 'success')
+    return redirect(url_for('auditions.edit_show', show_id=new_show.id))
+
+
 @auditions_bp.route('/admin/shows/<int:show_id>/edit', methods=['GET', 'POST'])
 @manage_shows_required
 def edit_show(show_id):
