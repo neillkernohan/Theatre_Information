@@ -61,18 +61,13 @@
             <th class="text-end">Youth<br>Reserved</th>
             <th class="text-end">Total<br>Booked</th>
             <th class="text-end">% of<br>Capacity</th>
-            <th class="text-end">Per Item<br>Fees</th>
-            <th class="text-end">Production<br>Costs</th>
-            <th class="text-end">Rights</th>
-            <th class="text-end">Net<br>Income</th>
         </tr>
     </thead>
     <tbody>
         {% set ns = namespace(
             reg_sold=0, sen_sold=0, yth_sold=0, tot_sold=0,
             revenue=0,
-            reg_res=0, sen_res=0, yth_res=0, tot_booked=0,
-            fees=0, prod_costs=0, rights=0, net_income=0
+            reg_res=0, sen_res=0, yth_res=0, tot_booked=0
         ) %}
         {% for row in show_rows %}
         {# row: Show_name, Opening_Date, Regular_Sold, Senior_Sold, Youth_Sold,
@@ -90,10 +85,6 @@
             <td class="text-end">{{ row[9] }}</td>
             <td class="text-end">{{ row[10] }}</td>
             <td class="text-end">{{ row[11] }}%</td>
-            <td class="text-end">${{ "%.2f"|format(row[12]) }}</td>
-            <td class="text-end">${{ "%.2f"|format(row[13]) }}</td>
-            <td class="text-end">${{ "%.2f"|format(row[14]) }}</td>
-            <td class="text-end">${{ "%.2f"|format(row[15]) }}</td>
         </tr>
         {% set ns.reg_sold   = ns.reg_sold   + row[2] %}
         {% set ns.sen_sold   = ns.sen_sold   + row[3] %}
@@ -104,10 +95,6 @@
         {% set ns.sen_res    = ns.sen_res    + row[8] %}
         {% set ns.yth_res    = ns.yth_res    + row[9] %}
         {% set ns.tot_booked = ns.tot_booked + row[10] %}
-        {% set ns.fees       = ns.fees       + row[12] %}
-        {% set ns.prod_costs = ns.prod_costs + row[13] %}
-        {% set ns.rights     = ns.rights     + row[14] %}
-        {% set ns.net_income = ns.net_income + row[15] %}
         {% endfor %}
     </tbody>
     <tfoot>
@@ -123,10 +110,6 @@
             <td class="text-end">{{ ns.yth_res }}</td>
             <td class="text-end">{{ ns.tot_booked }}</td>
             <td class="text-end"></td>
-            <td class="text-end">${{ "%.2f"|format(ns.fees) }}</td>
-            <td class="text-end">${{ "%.2f"|format(ns.prod_costs) }}</td>
-            <td class="text-end">${{ "%.2f"|format(ns.rights) }}</td>
-            <td class="text-end">${{ "%.2f"|format(ns.net_income) }}</td>
         </tr>
     </tfoot>
 </table>
