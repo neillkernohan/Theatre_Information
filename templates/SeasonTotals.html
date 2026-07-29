@@ -216,6 +216,38 @@
 </div>
 {% endif %}
 
+{% if daily_sales %}
+<div class="row mt-5 justify-content-center">
+  <div class="col-auto">
+    <h5 class="text-center mb-3">Tickets Sold &mdash; Last 14 Days</h5>
+    <table class="table table-sm table-bordered" style="width:auto;">
+      <thead class="table-dark">
+        <tr>
+          <th>Date</th>
+          <th class="text-end">Tickets Sold</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set ds = namespace(total=0) %}
+        {% for sale_date, tickets in daily_sales %}
+        <tr>
+          <td>{{ sale_date.strftime('%A, %B %-d') }}</td>
+          <td class="text-end">{{ tickets }}</td>
+        </tr>
+        {% set ds.total = ds.total + tickets %}
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="table-secondary fw-bold">
+          <td>Total</td>
+          <td class="text-end">{{ ds.total }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 <script>
 function changeSeason() {
     const season = document.getElementById('seasonSelect').value;

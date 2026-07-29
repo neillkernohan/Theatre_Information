@@ -631,6 +631,19 @@ def SeasonTotals():
     for row in sub_raw:
         sub_data[(row[0], row[1])] = {'count': int(row[2] or 0), 'sales': float(row[3] or 0)}
 
+    # Tickets sold per day over the last 14 days
+    daily_cursor = db.cursor()
+    daily_cursor.execute("""
+        SELECT DATE(Purchase_date) AS sale_date, SUM(Item_count) AS tickets
+        FROM Theatre_Information.Ticket_Info
+        WHERE Season = %s
+          AND Transaction_type != 'Reserve'
+          AND Purchase_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+        GROUP BY DATE(Purchase_date)
+        ORDER BY sale_date
+    """, (this_season,))
+    daily_sales = daily_cursor.fetchall()
+
     db.close()
 
     person_types = ['Regular', 'Senior', 'Student']
@@ -670,7 +683,8 @@ def SeasonTotals():
         shows_only=shows_only,
         ticket_rows=ticket_rows,
         ticket_totals=ticket_totals,
-        sub_rows=sub_rows)
+        sub_rows=sub_rows,
+        daily_sales=daily_sales)
 
 # @app.route('/TotalSales')
 # def TotalSales():
