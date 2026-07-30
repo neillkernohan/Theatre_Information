@@ -631,18 +631,38 @@ def SeasonTotals():
     for row in sub_raw:
         sub_data[(row[0], row[1])] = {'count': int(row[2] or 0), 'sales': float(row[3] or 0)}
 
-    # Tickets sold per day over the last 14 days
+    # Tickets sold per day per show over the last 14 days
     daily_cursor = db.cursor()
     daily_cursor.execute("""
-        SELECT DATE(Purchase_date) AS sale_date, SUM(Item_count) AS tickets
+        SELECT DATE(Purchase_date) AS sale_date, Show_name, SUM(Item_count) AS tickets
         FROM Theatre_Information.Ticket_Info
         WHERE Season = %s
           AND Transaction_type != 'Reserve'
           AND Purchase_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
-        GROUP BY DATE(Purchase_date)
-        ORDER BY sale_date
+        GROUP BY DATE(Purchase_date), Show_name
+        ORDER BY sale_date, Show_name
     """, (this_season,))
-    daily_sales = daily_cursor.fetchall()
+    daily_raw = daily_cursor.fetchall()
+
+    # Pivot into {date: {show: count}} and collect show names
+    from collections import OrderedDict
+    daily_show_names = []
+    daily_by_date = OrderedDict()
+    for sale_date, show_name, tickets in daily_raw:
+        if show_name not in daily_show_names:
+            daily_show_names.append(show_name)
+        if sale_date not in daily_by_date:
+            daily_by_date[sale_date] = {}
+        daily_by_date[sale_date][show_name] = int(tickets)
+
+    daily_sales = [
+        (d, {s: counts.get(s, 0) for s in daily_show_names}, sum(counts.values()))
+        for d, counts in daily_by_date.items()
+    ]
+    daily_show_totals = {
+        s: sum(counts.get(s, 0) for counts in daily_by_date.values())
+        for s in daily_show_names
+    }
 
     db.close()
 
@@ -684,7 +704,9 @@ def SeasonTotals():
         ticket_rows=ticket_rows,
         ticket_totals=ticket_totals,
         sub_rows=sub_rows,
-        daily_sales=daily_sales)
+        daily_sales=daily_sales,
+        daily_show_names=daily_show_names,
+        daily_show_totals=daily_show_totals)
 
 # @app.route('/TotalSales')
 # def TotalSales():

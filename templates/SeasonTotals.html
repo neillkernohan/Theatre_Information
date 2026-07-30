@@ -224,23 +224,32 @@
       <thead class="table-dark">
         <tr>
           <th>Date</th>
-          <th class="text-end">Tickets Sold</th>
+          {% for show in daily_show_names %}
+          <th class="text-end">{{ show }}</th>
+          {% endfor %}
+          <th class="text-end">Total</th>
         </tr>
       </thead>
       <tbody>
-        {% set ds = namespace(total=0) %}
-        {% for sale_date, tickets in daily_sales %}
+        {% set ds = namespace(grand=0) %}
+        {% for sale_date, shows, day_total in daily_sales %}
         <tr>
           <td>{{ sale_date.strftime('%A, %B %-d') }}</td>
-          <td class="text-end">{{ tickets }}</td>
+          {% for show in daily_show_names %}
+          <td class="text-end">{{ shows[show] if shows[show] else '' }}</td>
+          {% endfor %}
+          <td class="text-end fw-semibold">{{ day_total }}</td>
         </tr>
-        {% set ds.total = ds.total + tickets %}
+        {% set ds.grand = ds.grand + day_total %}
         {% endfor %}
       </tbody>
       <tfoot>
         <tr class="table-secondary fw-bold">
           <td>Total</td>
-          <td class="text-end">{{ ds.total }}</td>
+          {% for show in daily_show_names %}
+          <td class="text-end">{{ daily_show_totals[show] }}</td>
+          {% endfor %}
+          <td class="text-end">{{ ds.grand }}</td>
         </tr>
       </tfoot>
     </table>
