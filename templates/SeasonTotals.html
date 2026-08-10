@@ -223,33 +223,47 @@
     <table class="table table-sm table-bordered" style="width:auto;">
       <thead class="table-dark">
         <tr>
-          <th>Date</th>
+          <th rowspan="2" class="align-bottom">Date</th>
           {% for show in daily_show_names %}
-          <th class="text-end">{{ show }}</th>
+          <th colspan="2" class="text-center">{{ show }}</th>
           {% endfor %}
-          <th class="text-end">Total</th>
+          <th colspan="2" class="text-center">Total</th>
+        </tr>
+        <tr>
+          {% for show in daily_show_names %}
+          <th class="text-end">New</th>
+          <th class="text-end">Return</th>
+          {% endfor %}
+          <th class="text-end">New</th>
+          <th class="text-end">Return</th>
         </tr>
       </thead>
       <tbody>
-        {% set ds = namespace(grand=0) %}
-        {% for sale_date, shows, day_total in daily_sales %}
+        {% set ds = namespace(grand_new=0, grand_ret=0) %}
+        {% for sale_date, shows, day_new, day_ret, day_total in daily_sales %}
         <tr>
           <td>{{ sale_date.strftime('%A, %B %-d') }}</td>
           {% for show in daily_show_names %}
-          <td class="text-end">{{ shows[show] if shows[show] else '' }}</td>
+          {% set s = shows.get(show, {'new': 0, 'returning': 0}) %}
+          <td class="text-end">{{ s['new'] if s['new'] else '' }}</td>
+          <td class="text-end">{{ s['returning'] if s['returning'] else '' }}</td>
           {% endfor %}
-          <td class="text-end fw-semibold">{{ day_total }}</td>
+          <td class="text-end fw-semibold">{{ day_new if day_new else '' }}</td>
+          <td class="text-end fw-semibold">{{ day_ret if day_ret else '' }}</td>
         </tr>
-        {% set ds.grand = ds.grand + day_total %}
+        {% set ds.grand_new = ds.grand_new + day_new %}
+        {% set ds.grand_ret = ds.grand_ret + day_ret %}
         {% endfor %}
       </tbody>
       <tfoot>
         <tr class="table-secondary fw-bold">
           <td>Total</td>
           {% for show in daily_show_names %}
-          <td class="text-end">{{ daily_show_totals[show] }}</td>
+          <td class="text-end">{{ daily_show_totals[show]['new'] }}</td>
+          <td class="text-end">{{ daily_show_totals[show]['returning'] }}</td>
           {% endfor %}
-          <td class="text-end">{{ ds.grand }}</td>
+          <td class="text-end">{{ ds.grand_new }}</td>
+          <td class="text-end">{{ ds.grand_ret }}</td>
         </tr>
       </tfoot>
     </table>

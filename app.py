@@ -631,38 +631,59 @@ def SeasonTotals():
     for row in sub_raw:
         sub_data[(row[0], row[1])] = {'count': int(row[2] or 0), 'sales': float(row[3] or 0)}
 
-    # Tickets sold per day per show over the last 14 days
+    # Tickets sold per day over the last 14 days, split by new vs returning patron
     daily_cursor = db.cursor()
     daily_cursor.execute("""
-        SELECT DATE(Purchase_date) AS sale_date, Show_name, SUM(Item_count) AS tickets
-        FROM Theatre_Information.Ticket_Info
-        WHERE Season = %s
-          AND Transaction_type != 'Reserve'
-          AND Purchase_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
-        GROUP BY DATE(Purchase_date), Show_name
-        ORDER BY sale_date, Show_name
+        SELECT DATE(TI.Purchase_date) AS sale_date,
+               TI.Show_name,
+               SUM(CASE WHEN first_buy.first_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+                        THEN TI.Item_count ELSE 0 END) AS new_tickets,
+               SUM(CASE WHEN first_buy.first_date < DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+                        THEN TI.Item_count ELSE 0 END) AS returning_tickets
+        FROM Theatre_Information.Ticket_Info TI
+        JOIN (
+            SELECT Customer, MIN(Purchase_date) AS first_date
+            FROM Theatre_Information.Ticket_Info
+            WHERE Transaction_type != 'Reserve'
+              AND Item_count > 0
+            GROUP BY Customer
+        ) first_buy ON TI.Customer = first_buy.Customer
+        WHERE TI.Season = %s
+          AND TI.Transaction_type != 'Reserve'
+          AND TI.Purchase_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+        GROUP BY DATE(TI.Purchase_date), TI.Show_name
+        ORDER BY sale_date, TI.Show_name
     """, (this_season,))
     daily_raw = daily_cursor.fetchall()
 
-    # Pivot into {date: {show: count}} and collect show names
     from collections import OrderedDict
     daily_show_names = []
     daily_by_date = OrderedDict()
-    for sale_date, show_name, tickets in daily_raw:
+    for sale_date, show_name, new_tickets, returning_tickets in daily_raw:
         if show_name not in daily_show_names:
             daily_show_names.append(show_name)
         if sale_date not in daily_by_date:
             daily_by_date[sale_date] = {}
-        daily_by_date[sale_date][show_name] = int(tickets)
+        daily_by_date[sale_date][show_name] = {
+            'new': int(new_tickets),
+            'returning': int(returning_tickets),
+            'total': int(new_tickets) + int(returning_tickets)
+        }
 
-    daily_sales = [
-        (d, {s: counts.get(s, 0) for s in daily_show_names}, sum(counts.values()))
-        for d, counts in daily_by_date.items()
-    ]
-    daily_show_totals = {
-        s: sum(counts.get(s, 0) for counts in daily_by_date.values())
-        for s in daily_show_names
-    }
+    empty_show = {'new': 0, 'returning': 0, 'total': 0}
+    daily_sales = []
+    for d, counts in daily_by_date.items():
+        day_new = sum(counts.get(s, empty_show)['new'] for s in daily_show_names)
+        day_ret = sum(counts.get(s, empty_show)['returning'] for s in daily_show_names)
+        daily_sales.append((d, counts, day_new, day_ret, day_new + day_ret))
+
+    daily_show_totals = {}
+    for s in daily_show_names:
+        daily_show_totals[s] = {
+            'new': sum(counts.get(s, empty_show)['new'] for counts in daily_by_date.values()),
+            'returning': sum(counts.get(s, empty_show)['returning'] for counts in daily_by_date.values()),
+            'total': sum(counts.get(s, empty_show)['total'] for counts in daily_by_date.values()),
+        }
 
     db.close()
 
