@@ -63,6 +63,9 @@ class EmailCampaign(db.Model):
 
     @property
     def audience_label(self):
+        if self.audience_type == 'multi':
+            types = self.audience_params_dict.get('types', [])
+            return ' + '.join(AUDIENCE_LABELS.get(t, t) for t in types)
         return AUDIENCE_LABELS.get(self.audience_type, self.audience_type)
 
     @property

@@ -52,18 +52,17 @@
         <div class="mb-3">
           {% for key, label in audience_labels.items() %}
           <div class="form-check">
-            <input class="form-check-input audience-radio" type="radio" name="audience_type"
+            <input class="form-check-input audience-check" type="checkbox" name="audience_type"
                    id="aud_{{ key }}" value="{{ key }}"
-                   {% if form.get('audience_type') == key %}checked{% endif %}
-                   required>
+                   {% if key in (form.getlist('audience_type') if form else []) %}checked{% endif %}>
             <label class="form-check-label" for="aud_{{ key }}">{{ label }}</label>
           </div>
           {% endfor %}
         </div>
 
         <!-- marketing_list param -->
-        <div id="marketing-list-row" class="d-none mb-2">
-          <label class="form-label">Marketing list name</label>
+        <div id="marketing-list-row" class="d-none mb-2 ms-4">
+          <label class="form-label">Marketing list</label>
           <select name="list_name" class="form-select">
             <option value="">— select —</option>
             {% for ml in marketing_lists %}
@@ -73,7 +72,7 @@
         </div>
 
         <!-- season_buyers param -->
-        <div id="season-row" class="d-none mb-2">
+        <div id="season-row" class="d-none mb-2 ms-4">
           <label class="form-label">Season</label>
           <select name="season" class="form-select">
             <option value="">— select —</option>
@@ -84,7 +83,7 @@
         </div>
 
         <!-- specific_addresses param -->
-        <div id="addresses-row" class="d-none mb-2">
+        <div id="addresses-row" class="d-none mb-2 ms-4">
           <label class="form-label">Email addresses</label>
           <textarea name="addresses" class="form-control" rows="4"
                     placeholder="One per line, or separated by commas or semicolons">{{ form.get('addresses', '') }}</textarea>
@@ -194,7 +193,7 @@ quill.root.addEventListener('dblclick', e => {
 });
 
 // Show/hide conditional audience fields + fetch count
-const audienceRadios = document.querySelectorAll('.audience-radio');
+const audienceChecks = document.querySelectorAll('.audience-check');
 const mlRow    = document.getElementById('marketing-list-row');
 const seasRow  = document.getElementById('season-row');
 const addrRow  = document.getElementById('addresses-row');
@@ -202,14 +201,15 @@ const badge    = document.getElementById('audience-badge');
 
 let countController = null;
 
-function updateAudienceUI() {
-  const selected = document.querySelector('.audience-radio:checked');
-  if (!selected) return;
-  const val = selected.value;
+function checkedTypes() {
+  return [...document.querySelectorAll('.audience-check:checked')].map(c => c.value);
+}
 
-  mlRow.classList.toggle('d-none',   val !== 'marketing_list');
-  seasRow.classList.toggle('d-none', val !== 'season_buyers');
-  addrRow.classList.toggle('d-none', val !== 'specific_addresses');
+function updateAudienceUI() {
+  const types = checkedTypes();
+  mlRow.classList.toggle('d-none',   !types.includes('marketing_list'));
+  seasRow.classList.toggle('d-none', !types.includes('season_buyers'));
+  addrRow.classList.toggle('d-none', !types.includes('specific_addresses'));
   fetchCount();
 }
 
@@ -217,19 +217,18 @@ function fetchCount() {
   if (countController) countController.abort();
   countController = new AbortController();
 
-  const selected = document.querySelector('.audience-radio:checked');
-  if (!selected) return;
+  const types = checkedTypes();
+  if (!types.length) {
+    badge.textContent = 'Select an audience to see recipient count';
+    badge.className = 'badge bg-secondary';
+    return;
+  }
 
-  const params = new URLSearchParams({ type: selected.value });
-  if (selected.value === 'marketing_list') {
-    params.set('list_name', document.querySelector('[name=list_name]').value);
-  }
-  if (selected.value === 'season_buyers') {
-    params.set('season', document.querySelector('[name=season]').value);
-  }
-  if (selected.value === 'specific_addresses') {
-    params.set('addresses', document.querySelector('[name=addresses]').value);
-  }
+  const params = new URLSearchParams();
+  types.forEach(t => params.append('type', t));
+  params.set('list_name', document.querySelector('[name=list_name]').value);
+  params.set('season', document.querySelector('[name=season]').value);
+  params.set('addresses', document.querySelector('[name=addresses]').value);
 
   badge.textContent = 'Loading…';
   badge.className = 'badge bg-secondary';
@@ -243,12 +242,12 @@ function fetchCount() {
     .catch(() => {});
 }
 
-audienceRadios.forEach(r => r.addEventListener('change', updateAudienceUI));
+audienceChecks.forEach(c => c.addEventListener('change', updateAudienceUI));
 document.querySelector('[name=list_name]')?.addEventListener('change', fetchCount);
 document.querySelector('[name=season]')?.addEventListener('change', fetchCount);
 document.querySelector('[name=addresses]')?.addEventListener('input', fetchCount);
 
-// On page load, reflect any pre-selected value
+// On page load, reflect any pre-checked values
 updateAudienceUI();
 </script>
 {% endblock %}

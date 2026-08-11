@@ -165,3 +165,16 @@ def resolve_audience(audience_type, params=None):
     if not handler:
         return []
     return handler(params or {})
+
+
+def resolve_audiences(audience_types, params=None):
+    """Resolve one or more audience types and deduplicate by email."""
+    seen = set()
+    result = []
+    for t in audience_types:
+        for row in resolve_audience(t, params):
+            key = row['email'].lower()
+            if key not in seen:
+                seen.add(key)
+                result.append(row)
+    return result

@@ -14,7 +14,7 @@ from auth.models import db
 from . import bulk_email_bp
 from .models import EmailCampaign, EmailRecipient, SenderAccount, AUDIENCE_LABELS
 from .audiences import (
-    resolve_audience, get_available_seasons, get_available_marketing_lists,
+    resolve_audience, resolve_audiences, get_available_seasons, get_available_marketing_lists,
 )
 from .gmail_api import (
     get_oauth_flow, get_authenticated_email, token_data_from_credentials,
@@ -247,17 +247,18 @@ def remove_account(account_id):
 @bulk_email_bp.route('/audience-count')
 @manage_shows_required
 def audience_count():
-    audience_type = request.args.get('type', '')
-    params = {}
-    if audience_type == 'marketing_list':
-        params['list_name'] = request.args.get('list_name', '')
-    elif audience_type == 'season_buyers':
-        params['season'] = request.args.get('season', '')
-    elif audience_type == 'specific_addresses':
-        params['addresses'] = request.args.get('addresses', '')
+    audience_types = request.args.getlist('type')
+    if not audience_types:
+        return jsonify({'count': 0})
+
+    params = {
+        'list_name': request.args.get('list_name', ''),
+        'season': request.args.get('season', ''),
+        'addresses': request.args.get('addresses', ''),
+    }
 
     try:
-        recipients = resolve_audience(audience_type, params)
+        recipients = resolve_audiences(audience_types, params)
         return jsonify({'count': len(recipients)})
     except Exception as exc:
         return jsonify({'count': 0, 'error': str(exc)}), 500
@@ -324,7 +325,7 @@ def compose():
         sender_id = request.form.get('sender_account_id', type=int)
         subject = request.form.get('subject', '').strip()
         body_html = request.form.get('body_html', '').strip()
-        audience_type = request.form.get('audience_type', '')
+        audience_types = request.form.getlist('audience_type')
         list_name = request.form.get('list_name', '').strip()
         season = request.form.get('season', '').strip()
         addresses = request.form.get('addresses', '').strip()
@@ -336,13 +337,13 @@ def compose():
             errors.append('Subject is required.')
         if not body_html:
             errors.append('Email body is required.')
-        if not audience_type:
-            errors.append('Please select an audience.')
-        if audience_type == 'marketing_list' and not list_name:
-            errors.append('Please enter a marketing list name.')
-        if audience_type == 'season_buyers' and not season:
+        if not audience_types:
+            errors.append('Please select at least one audience.')
+        if 'marketing_list' in audience_types and not list_name:
+            errors.append('Please select a marketing list.')
+        if 'season_buyers' in audience_types and not season:
             errors.append('Please select a season.')
-        if audience_type == 'specific_addresses' and not addresses:
+        if 'specific_addresses' in audience_types and not addresses:
             errors.append('Please enter at least one email address.')
 
         if errors:
@@ -356,17 +357,15 @@ def compose():
                 form=request.form,
             )
 
-        params = {}
-        if audience_type == 'marketing_list':
-            params['list_name'] = list_name
-        elif audience_type == 'season_buyers':
-            params['season'] = season
-        elif audience_type == 'specific_addresses':
-            params['addresses'] = addresses
+        params = {
+            'list_name': list_name,
+            'season': season,
+            'addresses': addresses,
+        }
 
         # Resolve recipients now so we store them
         try:
-            audience = resolve_audience(audience_type, params)
+            audience = resolve_audiences(audience_types, params)
         except Exception as exc:
             flash(f'Error loading audience: {exc}', 'danger')
             return render_template(
@@ -387,12 +386,15 @@ def compose():
                 form=request.form,
             )
 
+        stored_type = audience_types[0] if len(audience_types) == 1 else 'multi'
+        params['types'] = audience_types
+
         campaign = EmailCampaign(
             sender_account_id=sender_id,
             subject=subject,
             body_html=body_html,
-            audience_type=audience_type,
-            audience_params=json.dumps(params) if params else None,
+            audience_type=stored_type,
+            audience_params=json.dumps(params),
             status='draft',
             total_count=len(audience),
         )
