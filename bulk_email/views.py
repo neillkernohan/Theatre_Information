@@ -466,9 +466,13 @@ def campaign_progress(campaign_id):
 @manage_shows_required
 def start_send(campaign_id):
     campaign = EmailCampaign.query.get_or_404(campaign_id)
-    if campaign.status not in ('draft', 'paused'):
+    stuck = campaign.status == 'sending' and not send_service.is_running(campaign_id)
+    if campaign.status not in ('draft', 'paused') and not stuck:
         flash('Campaign cannot be started in its current state.', 'warning')
         return redirect(url_for('bulk_email.campaign_detail', campaign_id=campaign_id))
+    if stuck:
+        campaign.status = 'paused'
+        db.session.commit()
     if send_service.is_running(campaign_id):
         flash('Campaign is already sending.', 'info')
         return redirect(url_for('bulk_email.campaign_detail', campaign_id=campaign_id))

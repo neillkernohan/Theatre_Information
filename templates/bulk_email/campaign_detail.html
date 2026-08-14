@@ -55,11 +55,11 @@
           <a href="{{ url_for('bulk_email.edit_campaign', campaign_id=campaign.id) }}"
              class="btn btn-outline-secondary">Edit</a>
           {% endif %}
-          {% if campaign.status in ('draft', 'paused') %}
+          {% if campaign.status in ('draft', 'paused') or (campaign.status == 'sending' and not is_running) %}
           <form method="post" action="{{ url_for('bulk_email.start_send', campaign_id=campaign.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-success">
-              {% if campaign.status == 'paused' %}Resume Sending{% else %}Start Sending{% endif %}
+              {% if campaign.status == 'paused' or (campaign.status == 'sending' and not is_running) %}Resume Sending{% else %}Start Sending{% endif %}
             </button>
           </form>
           {% endif %}
