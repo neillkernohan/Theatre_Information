@@ -211,6 +211,170 @@ def export_xlsx(show_id):
 
 
 # ---------------------------------------------------------------------------
+# Audition Schedule
+# ---------------------------------------------------------------------------
+
+@auditions_bp.route('/admin/shows/<int:show_id>/export/schedule')
+@export_required
+def export_schedule(show_id):
+    """Audition schedule: slots in date/time order with booked actor details."""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        abort(500, 'openpyxl is not installed.')
+
+    show = Show.query.get_or_404(show_id)
+    if not _can_access_show(show_id):
+        abort(403)
+
+    filter_date = _parse_date_filter()
+    slot_q = AuditionSlot.query.filter_by(show_id=show_id).order_by(
+        AuditionSlot.date, AuditionSlot.start_time
+    )
+    if filter_date:
+        slot_q = slot_q.filter(AuditionSlot.date == filter_date)
+    slots = slot_q.all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Audition Schedule'
+
+    thin = Side(border_style='thin', color='CCCCCC')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    date_fill   = PatternFill('solid', fgColor='212529')
+    date_font   = Font(bold=True, color='FFFFFF', size=11)
+    hdr_fill    = PatternFill('solid', fgColor='495057')
+    hdr_font    = Font(bold=True, color='FFFFFF', size=9)
+    avail_font  = Font(italic=True, color='6C757D', size=9)
+    rsv_font    = Font(italic=True, color='6F42C1', size=9)
+    center      = Alignment(horizontal='center', vertical='center')
+    top_wrap    = Alignment(vertical='top', wrap_text=True)
+
+    status_fills = {
+        'confirmed':    PatternFill('solid', fgColor='D1FAE5'),
+        'callback':     PatternFill('solid', fgColor='DBEAFE'),
+        'cast':         PatternFill('solid', fgColor='EDE9FE'),
+        'no_show':      PatternFill('solid', fgColor='F3F4F6'),
+        'not_selected': PatternFill('solid', fgColor='FEE2E2'),
+        'waitlisted':   PatternFill('solid', fgColor='FEF9C3'),
+    }
+    status_labels = {
+        'confirmed': 'Confirmed', 'callback': 'Callback', 'cast': 'Cast',
+        'no_show': 'No Show', 'not_selected': 'Not Selected',
+        'waitlisted': 'Waitlisted', 'cancelled': 'Cancelled',
+    }
+
+    COLS = ['Time', 'Last Name', 'First Name', 'Phone', 'Email',
+            'Roles Auditioning For', 'Status', 'Callback For']
+    NUM_COLS = len(COLS)
+
+    # Title
+    ws.merge_cells(f'A1:{get_column_letter(NUM_COLS)}1')
+    t = ws['A1']
+    t.value = f'{show.title} — Audition Schedule'
+    t.font = Font(bold=True, size=14)
+    t.alignment = center
+    ws.row_dimensions[1].height = 26
+
+    current_row = 2
+    current_date = None
+
+    for slot in slots:
+        # Date section header when date changes
+        if slot.date != current_date:
+            current_date = slot.date
+            current_row += 1  # blank gap between dates (skip on first)
+            ws.merge_cells(f'A{current_row}:{get_column_letter(NUM_COLS)}{current_row}')
+            dc = ws.cell(row=current_row, column=1,
+                         value=slot.date.strftime('%A, %B %d, %Y'))
+            dc.font = date_font
+            dc.fill = date_fill
+            dc.alignment = Alignment(horizontal='left', vertical='center', indent=1)
+            ws.row_dimensions[current_row].height = 22
+            current_row += 1
+
+            # Column headers under each date section
+            for col, h in enumerate(COLS, 1):
+                c = ws.cell(row=current_row, column=col, value=h)
+                c.font = hdr_font
+                c.fill = hdr_fill
+                c.alignment = center
+                c.border = border
+            ws.row_dimensions[current_row].height = 18
+            current_row += 1
+
+        time_str = (f'{slot.start_time.strftime("%I:%M %p").lstrip("0")}'
+                    f' – {slot.end_time.strftime("%I:%M %p").lstrip("0")}')
+
+        if slot.slot_type == 'reserved':
+            # Reserved slot — single row, no actor info
+            ws.merge_cells(f'B{current_row}:{get_column_letter(NUM_COLS)}{current_row}')
+            tc = ws.cell(row=current_row, column=1, value=time_str)
+            tc.alignment = top_wrap
+            tc.border = border
+            lbl = slot.label or 'Reserved'
+            rc = ws.cell(row=current_row, column=2, value=lbl)
+            rc.font = rsv_font
+            rc.alignment = top_wrap
+            rc.border = border
+            for col in range(3, NUM_COLS + 1):
+                ws.cell(row=current_row, column=col).border = border
+            current_row += 1
+            continue
+
+        # Find active (non-cancelled) registrations for this slot
+        booked = [r for r in slot.registrations
+                  if r.status != 'cancelled']
+
+        if not booked:
+            # Empty slot
+            ws.cell(row=current_row, column=1, value=time_str).border = border
+            ws.cell(row=current_row, column=1).alignment = top_wrap
+            ec = ws.cell(row=current_row, column=2, value='— Available —')
+            ec.font = avail_font
+            ec.border = border
+            for col in range(2, NUM_COLS + 1):
+                ws.cell(row=current_row, column=col).border = border
+            current_row += 1
+        else:
+            for i, reg in enumerate(booked):
+                u = reg.user
+                fill = status_fills.get(reg.status)
+                row_vals = [
+                    time_str if i == 0 else '',
+                    u.last_name,
+                    u.first_name,
+                    u.phone or '',
+                    u.email,
+                    reg.roles_auditioning_for or u.roles_auditioning_for or '',
+                    status_labels.get(reg.status, reg.status.capitalize()),
+                    reg.callback_for or '',
+                ]
+                for col, val in enumerate(row_vals, 1):
+                    c = ws.cell(row=current_row, column=col, value=val)
+                    c.alignment = top_wrap
+                    c.border = border
+                    if fill:
+                        c.fill = fill
+                current_row += 1
+
+    # Column widths
+    col_widths = [16, 16, 14, 14, 28, 28, 14, 24]
+    for col, w in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(col)].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    suffix = f"_{filter_date.isoformat()}" if filter_date else ''
+    filename = f"{show.title.replace(' ', '_')}_Schedule{suffix}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    return send_file(buf, as_attachment=True, download_name=filename,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+# ---------------------------------------------------------------------------
 # Callback Lists
 # ---------------------------------------------------------------------------
 

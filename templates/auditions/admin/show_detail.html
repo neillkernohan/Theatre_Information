@@ -741,6 +741,13 @@
                     <div class="form-text">Choose a specific night to export only those actors.</div>
                 </div>
                 {% endif %}
+                <p class="fw-semibold mb-2 small text-uppercase text-muted" style="letter-spacing:.04em">Audition Schedule</p>
+                <div class="d-flex gap-2 flex-wrap mb-4">
+                    <a id="ex_schedule" href="{{ url_for('auditions.export_schedule', show_id=show.id) }}"
+                       class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-calendar3 me-1"></i>Schedule (.xlsx)
+                    </a>
+                </div>
                 <p class="fw-semibold mb-2 small text-uppercase text-muted" style="letter-spacing:.04em">Full Registration List</p>
                 <div class="d-flex gap-2 flex-wrap mb-4">
                     <a id="ex_xlsx" href="{{ url_for('auditions.export_xlsx', show_id=show.id) }}"
@@ -784,6 +791,7 @@
 <script>
 (function () {
     var BASE = {
+        schedule:     '{{ url_for("auditions.export_schedule",            show_id=show.id) }}',
         xlsx:         '{{ url_for("auditions.export_xlsx",                show_id=show.id) }}',
         docx:         '{{ url_for("auditions.export_docx",                show_id=show.id) }}',
         sheets_docx:  '{{ url_for("auditions.export_audition_sheets_docx", show_id=show.id) }}',
@@ -792,6 +800,7 @@
     function updateExportLinks() {
         var picker = document.getElementById('exportDatePicker');
         var qs = (picker && picker.value) ? '?date=' + picker.value : '';
+        document.getElementById('ex_schedule').href     = BASE.schedule     + qs;
         document.getElementById('ex_xlsx').href         = BASE.xlsx         + qs;
         document.getElementById('ex_docx').href         = BASE.docx         + qs;
         document.getElementById('ex_sheets_docx').href  = BASE.sheets_docx  + qs;
