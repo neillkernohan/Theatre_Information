@@ -79,6 +79,7 @@
                                         {{ form.qty_in_use(class="form-control" + (" is-invalid" if form.qty_in_use.errors else ""), placeholder="In Use") }}
                                     </div>
                                     <div class="form-text">In Use</div>
+                                    {% for e in form.qty_in_use.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <div class="input-group">
@@ -86,6 +87,7 @@
                                         {{ form.qty_needs_repair(class="form-control" + (" is-invalid" if form.qty_needs_repair.errors else ""), placeholder="Needs Repair") }}
                                     </div>
                                     <div class="form-text">Needs Repair</div>
+                                    {% for e in form.qty_needs_repair.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <div class="input-group">
@@ -93,6 +95,7 @@
                                         {{ form.qty_retired(class="form-control" + (" is-invalid" if form.qty_retired.errors else ""), placeholder="Retired") }}
                                     </div>
                                     <div class="form-text">Retired</div>
+                                    {% for e in form.qty_retired.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
                                 </div>
                             </div>
                             <div id="qty-sum-warning" class="text-danger small mt-1 d-none">
