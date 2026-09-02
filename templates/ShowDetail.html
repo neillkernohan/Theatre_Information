@@ -139,6 +139,47 @@
 </div>
 {% endif %}
 
+{# ── Why People Bought Tickets ── #}
+{% if show_answered %}
+<h4 class="text-center mb-3">Why People Bought Tickets</h4>
+<div class="row justify-content-center mb-5">
+  <div class="col-auto">
+    <table class="table table-sm table-bordered" style="width:auto;">
+      <thead class="table-dark">
+        <tr>
+          <th>Reason</th>
+          <th class="text-end">Tickets</th>
+          <th class="text-end">%</th>
+          <th class="text-end">All Shows %</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reason, show_t, show_pct, all_pct in reason_rows %}
+        <tr>
+          <td>{{ reason }}</td>
+          <td class="text-end">{{ show_t if show_t else '' }}</td>
+          <td class="text-end">{{ "%.1f"|format(show_pct) ~ '%' if show_t else '' }}</td>
+          <td class="text-end">{{ "%.1f"|format(all_pct) }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="table-secondary fw-bold">
+          <td>Total Answered</td>
+          <td class="text-end">{{ show_answered }}</td>
+          <td class="text-end"></td>
+          <td class="text-end"></td>
+        </tr>
+      </tfoot>
+    </table>
+    <p class="text-muted small text-center">
+      From the &ldquo;How did you hear about us?&rdquo; question at checkout.
+      No answer given for {{ show_no_answer }} tickets.
+    </p>
+  </div>
+</div>
+{% endif %}
+
 {# ── Show Rankings — by genre ── #}
 <h4 class="text-center mb-3">Show Rankings — {{ show_info[0] }}</h4>
 <div class="row justify-content-center g-4 mb-5">

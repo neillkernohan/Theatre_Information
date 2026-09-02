@@ -883,6 +883,39 @@ def GetShowDetail():
     cursor.execute("SELECT Update_date_time FROM Theatre_Information.Updates ORDER BY Update_date_time DESC LIMIT 1")
     update_row = cursor.fetchone()
     formatted_update = update_row[0].strftime('%B %-d, %Y at %-I:%M %p') if update_row else 'Not available'
+
+    # Why people bought tickets to this show, with all-show shares for context
+    reason_cursor = db.cursor()
+    reason_cursor.execute("""
+        SELECT Show_name = %s AS is_this_show, Dropdown_comments, SUM(Item_count)
+        FROM Theatre_Information.Ticket_Info
+        WHERE Transaction_type != 'Reserve'
+        GROUP BY is_this_show, Dropdown_comments
+    """, (show_name,))
+    show_reasons, all_reasons = {}, {}
+    show_no_answer = 0
+    for is_this_show, raw, tickets in reason_cursor.fetchall():
+        category = normalize_purchase_reason(raw)
+        tickets = int(tickets or 0)
+        if category is None:
+            if is_this_show:
+                show_no_answer = tickets
+            continue
+        all_reasons[category] = all_reasons.get(category, 0) + tickets
+        if is_this_show:
+            show_reasons[category] = show_reasons.get(category, 0) + tickets
+
+    show_answered = sum(show_reasons.values())
+    all_answered = sum(all_reasons.values())
+    reason_rows = []
+    for category in sorted(all_reasons, key=lambda c: (-show_reasons.get(c, 0), -all_reasons[c])):
+        show_t = show_reasons.get(category, 0)
+        reason_rows.append((
+            category,
+            show_t, (show_t / show_answered * 100) if show_answered else 0,
+            (all_reasons[category] / all_answered * 100) if all_answered else 0,
+        ))
+
     db.close()
 
     show_type    = show_info[0]
@@ -969,6 +1002,9 @@ def GetShowDetail():
         message1=message1,
         message2=message2,
         message3=message3,
+        reason_rows=reason_rows,
+        show_answered=show_answered,
+        show_no_answer=show_no_answer,
     )
 
 # @app.route('/Check_Calendar')
