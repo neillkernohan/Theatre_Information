@@ -271,6 +271,64 @@
 </div>
 {% endif %}
 
+{% if reason_rows %}
+{% set cy = this_season[:4]|int %}
+<div class="row mt-5 justify-content-center">
+  <div class="col-auto">
+    <h5 class="text-center mb-3">Why People Are Buying Tickets</h5>
+    <table class="table table-sm table-bordered" style="width:auto;">
+      <thead class="table-dark">
+        <tr>
+          <th rowspan="2" class="align-bottom">Reason</th>
+          <th colspan="2" class="text-center">{{ cy }}/{{ cy+1 }} Season</th>
+          {% if prev_season %}
+          {% set py = prev_season[:4]|int %}
+          <th colspan="2" class="text-center">{{ py }}/{{ py+1 }} Season</th>
+          {% endif %}
+        </tr>
+        <tr>
+          <th class="text-end">Tickets</th>
+          <th class="text-end">%</th>
+          {% if prev_season %}
+          <th class="text-end">Tickets</th>
+          <th class="text-end">%</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for reason, cur_t, cur_pct, prev_t, prev_pct in reason_rows %}
+        <tr>
+          <td>{{ reason }}</td>
+          <td class="text-end">{{ cur_t if cur_t else '' }}</td>
+          <td class="text-end">{{ "%.1f"|format(cur_pct) ~ '%' if cur_t else '' }}</td>
+          {% if prev_season %}
+          <td class="text-end">{{ prev_t if prev_t else '' }}</td>
+          <td class="text-end">{{ "%.1f"|format(prev_pct) ~ '%' if prev_t else '' }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="table-secondary fw-bold">
+          <td>Total Answered</td>
+          <td class="text-end">{{ reason_totals_row[0] }}</td>
+          <td class="text-end"></td>
+          {% if prev_season %}
+          <td class="text-end">{{ reason_totals_row[2] }}</td>
+          <td class="text-end"></td>
+          {% endif %}
+        </tr>
+      </tfoot>
+    </table>
+    <p class="text-muted small text-center">
+      From the &ldquo;How did you hear about us?&rdquo; question at checkout.
+      No answer given for {{ reason_totals_row[1] }} tickets this season{% if prev_season %}
+      ({{ reason_totals_row[3] }} last season){% endif %}.
+    </p>
+  </div>
+</div>
+{% endif %}
+
 <script>
 function changeSeason() {
     const season = document.getElementById('seasonSelect').value;

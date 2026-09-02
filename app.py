@@ -556,6 +556,35 @@ def login_redirect():
 def home():
     return render_template('home.html')
 
+def normalize_purchase_reason(raw):
+    """Collapse the many historical wordings of the checkout 'how did you hear
+    about us' dropdown (Ticket_Info.Dropdown_comments) into one set of categories.
+    Returns None for blank/no answer."""
+    if not raw or not raw.strip():
+        return None
+    v = raw.strip().lower().replace("''", "'")
+    v = re.sub(r'^[a-z]\s*-\s*', '', v)  # strip 'a - ', 'b - ' option prefixes
+    rules = [
+        (('regular patron', 'subscriber'), 'Subscriber / Regular Patron'),
+        (('member of theatre aurora',), 'Member of Theatre Aurora'),
+        (('cast/crew', 'someone involved in the show'), 'Knows Cast/Crew'),
+        (('previous show',), 'Saw a Previous Show'),
+        (('referral', 'word of mouth'), 'Word of Mouth / Referral'),
+        (('facebook',), 'Facebook'),
+        (('instagram',), 'Instagram'),
+        (('website', 'browsing online', 'online ad'), 'Website / Online'),
+        (('newspaper', 'print ad'), 'Newspaper'),
+        (('theatre sign', 'sign by theatre', 'roadside', 'driving by',
+          'town of aurora event sign'), 'Sign / Driving By'),
+        (('poster', 'postcard', 'flyer', 'business card', 'notice board'), 'Poster / Flyer'),
+        (('newsletter',), 'Newsletter'),
+        (('radio',), 'Radio Ad'),
+    ]
+    for needles, category in rules:
+        if any(n in v for n in needles):
+            return category
+    return 'Other'
+
 @app.route('/SeasonTotals')
 @theatreaurora_required
 def SeasonTotals():
@@ -685,6 +714,46 @@ def SeasonTotals():
             'total': sum(counts.get(s, empty_show)['total'] for counts in daily_by_date.values()),
         }
 
+    # Why people are buying tickets — from the checkout dropdown survey
+    def reason_totals(season):
+        reason_cursor = db.cursor()
+        reason_cursor.execute("""
+            SELECT Dropdown_comments, SUM(Item_count)
+            FROM Theatre_Information.Ticket_Info
+            WHERE Season = %s
+              AND Transaction_type != 'Reserve'
+            GROUP BY Dropdown_comments
+        """, (season,))
+        totals = {}
+        no_answer = 0
+        for raw, tickets in reason_cursor.fetchall():
+            tickets = int(tickets or 0)
+            category = normalize_purchase_reason(raw)
+            if category is None:
+                no_answer += tickets
+            else:
+                totals[category] = totals.get(category, 0) + tickets
+        return totals, no_answer
+
+    cur_reasons, cur_no_answer = reason_totals(this_season)
+    prev_reasons, prev_no_answer = ({}, 0)
+    if prev_season:
+        prev_reasons, prev_no_answer = reason_totals(prev_season)
+
+    cur_answered = sum(cur_reasons.values())
+    prev_answered = sum(prev_reasons.values())
+    reason_rows = []
+    for category in sorted(set(cur_reasons) | set(prev_reasons),
+                           key=lambda c: -cur_reasons.get(c, 0)):
+        cur_t = cur_reasons.get(category, 0)
+        prev_t = prev_reasons.get(category, 0)
+        reason_rows.append((
+            category,
+            cur_t, (cur_t / cur_answered * 100) if cur_answered else 0,
+            prev_t, (prev_t / prev_answered * 100) if prev_answered else 0,
+        ))
+    reason_totals_row = (cur_answered, cur_no_answer, prev_answered, prev_no_answer)
+
     db.close()
 
     person_types = ['Regular', 'Senior', 'Student']
@@ -727,7 +796,9 @@ def SeasonTotals():
         sub_rows=sub_rows,
         daily_sales=daily_sales,
         daily_show_names=daily_show_names,
-        daily_show_totals=daily_show_totals)
+        daily_show_totals=daily_show_totals,
+        reason_rows=reason_rows,
+        reason_totals_row=reason_totals_row)
 
 # @app.route('/TotalSales')
 # def TotalSales():
