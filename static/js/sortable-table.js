@@ -50,6 +50,15 @@
             const activate = () => {
                 const next = { none: 'ascending', ascending: 'descending', descending: 'none' }[th.getAttribute('aria-sort') || 'none'];
                 headers.forEach(h => h.removeAttribute('aria-sort'));
+                // Expose the current sort (via the header's data-sort-key) so
+                // things like an export link can reproduce the on-screen order.
+                if (next === 'none') {
+                    delete table.dataset.sortKey;
+                    delete table.dataset.sortDir;
+                } else {
+                    table.dataset.sortKey = th.dataset.sortKey || '';
+                    table.dataset.sortDir = next;
+                }
 
                 let rows = originalOrder.slice();
                 if (next !== 'none') {

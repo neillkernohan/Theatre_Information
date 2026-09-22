@@ -1,7 +1,10 @@
+import csv
+import io
 import os
 import re
 import shutil
-from flask import render_template, redirect, url_for, flash, request, current_app
+from datetime import date
+from flask import render_template, redirect, url_for, flash, request, current_app, Response
 from werkzeug.utils import secure_filename
 from inventory import inventory_bp
 from inventory.models import db, InventoryItem, generate_item_code
@@ -102,12 +105,11 @@ CATEGORY_LABELS = {
 }
 
 
-@inventory_bp.route('/')
-@inventory_required
-def list_items():
-    category_filter = request.args.get('category', '')
-    status_filter = request.args.get('status', '')
-    search = request.args.get('q', '').strip()
+def _filtered_items(args):
+    """Items matching the list page's search and filters, in its default order."""
+    category_filter = args.get('category', '')
+    status_filter = args.get('status', '')
+    search = args.get('q', '').strip()
 
     query = InventoryItem.query
 
@@ -130,16 +132,78 @@ def list_items():
             )
         )
 
-    items = query.order_by(InventoryItem.category, InventoryItem.name).all()
+    return query.order_by(InventoryItem.category, InventoryItem.name).all()
 
+
+def _natural_key(text):
+    """Case-insensitive key that orders embedded numbers numerically (EQUIP-9 before EQUIP-10)."""
+    return [(0, int(part), '') if part.isdigit() else (1, 0, part)
+            for part in re.split(r'(\d+)', text.casefold()) if part]
+
+
+# Keys match data-sort-key on the list table's headers, so an export can
+# reproduce whatever order the table was sorted into on screen.
+SORT_KEYS = {
+    'code': lambda i: _natural_key(i.item_code),
+    'name': lambda i: _natural_key(i.name),
+    'category': lambda i: _natural_key(CATEGORY_LABELS.get(i.category, i.category)),
+    'qty': lambda i: i.quantity,
+    'location': lambda i: _natural_key(i.storage_location) if i.storage_location else None,
+    'status': lambda i: i.qty_available,
+}
+
+
+def _sorted_items(items, sort, direction):
+    key = SORT_KEYS.get(sort)
+    if not key:
+        return items
+    present = [i for i in items if key(i) is not None]
+    blank = [i for i in items if key(i) is None]
+    # Blanks stay at the bottom in both directions, as they do on screen
+    return sorted(present, key=key, reverse=(direction == 'descending')) + blank
+
+
+def _csv_safe(value):
+    """Stop spreadsheet apps treating text like '=SUM(...)' as a formula."""
+    if isinstance(value, str) and value[:1] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + value
+    return value
+
+
+@inventory_bp.route('/')
+@inventory_required
+def list_items():
     return render_template(
         'inventory/list.html',
-        items=items,
-        category_filter=category_filter,
-        status_filter=status_filter,
-        search=search,
+        items=_filtered_items(request.args),
+        category_filter=request.args.get('category', ''),
+        status_filter=request.args.get('status', ''),
+        search=request.args.get('q', '').strip(),
         category_labels=CATEGORY_LABELS,
     )
+
+
+@inventory_bp.route('/export.csv')
+@inventory_required
+def export_csv():
+    items = _sorted_items(_filtered_items(request.args),
+                          request.args.get('sort', ''), request.args.get('dir', ''))
+
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(['Code', 'Name', 'Category', 'Total Qty', 'Available', 'In Use',
+                     'Needs Repair', 'Retired', 'Location', 'Description', 'Notes'])
+    for i in items:
+        writer.writerow([_csv_safe(v) for v in (
+            i.item_code, i.name, CATEGORY_LABELS.get(i.category, i.category), i.quantity,
+            i.qty_available, i.qty_in_use, i.qty_needs_repair, i.qty_retired,
+            i.storage_location or '', i.description or '', i.notes or '',
+        )])
+
+    filename = f'inventory-{date.today().isoformat()}.csv'
+    # The BOM makes Excel read the file as UTF-8, so accents and dashes survive
+    return Response('\ufeff' + out.getvalue(), mimetype='text/csv',
+                    headers={'Content-Disposition': f'attachment; filename="{filename}"'})
 
 
 @inventory_bp.route('/new', methods=['GET', 'POST'])
