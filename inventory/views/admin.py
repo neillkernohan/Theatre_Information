@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 from flask import render_template, redirect, url_for, flash, request, current_app
 from werkzeug.utils import secure_filename
 from inventory import inventory_bp
@@ -74,6 +75,17 @@ def _save_image(file, item_id):
     return f'inventory/uploads/{filename}'
 
 
+def _copy_image(image_path, item_id):
+    """Copy another item's photo for a new item; returns the new relative static path, or None."""
+    src = os.path.join(current_app.root_path, 'static', image_path)
+    if not os.path.exists(src):
+        return None
+    ext = image_path.rsplit('.', 1)[-1].lower()
+    filename = secure_filename(f'item_{item_id}.{ext}')
+    shutil.copyfile(src, os.path.join(os.path.dirname(src), filename))
+    return f'inventory/uploads/{filename}'
+
+
 def _delete_image(image_path):
     """Delete an image file from disk if it exists."""
     if image_path:
@@ -133,12 +145,20 @@ def list_items():
 @inventory_bp.route('/new', methods=['GET', 'POST'])
 @inventory_required
 def add_item():
-    form = InventoryItemForm()
+    source = None
+    copy_from = request.args.get('copy_from', type=int)
+    if copy_from:
+        source = InventoryItem.query.get_or_404(copy_from)
+
+    form = InventoryItemForm(obj=source) if source and request.method == 'GET' else InventoryItemForm()
 
     if request.method == 'GET':
-        default_category = request.args.get('category', 'costume')
-        form.category.data = default_category
-        form.item_code.data = generate_item_code(default_category)
+        if source:
+            form.item_code.data = generate_item_code(source.category)
+        else:
+            default_category = request.args.get('category', 'costume')
+            form.category.data = default_category
+            form.item_code.data = generate_item_code(default_category)
 
     if form.validate_on_submit():
         name = _clean(form.name.data)
@@ -163,9 +183,12 @@ def add_item():
             db.session.flush()  # get item.id before commit
             if form.image.data and form.image.data.filename:
                 item.image_path = _save_image(form.image.data, item.id)
+            elif source and source.image_path:
+                item.image_path = _copy_image(source.image_path, item.id)
             db.session.commit()
             flash(f'Item "{item.name}" ({item.item_code}) added.', 'success')
-            if duplicate:
+            # Copying is a deliberate "another one like this", so skip the same-name warning
+            if duplicate and not source:
                 flash(
                     f'Heads up: another item is also named "{duplicate.name}" ({duplicate.item_code}). '
                     'If they are the same thing, consider editing that one and adjusting its quantity instead.',
@@ -173,7 +196,7 @@ def add_item():
                 )
             return redirect(url_for('inventory.list_items'))
 
-    return render_template('inventory/form.html', form=form, editing=False, locations=_distinct_locations())
+    return render_template('inventory/form.html', form=form, editing=False, source=source, locations=_distinct_locations())
 
 
 @inventory_bp.route('/<int:item_id>/edit', methods=['GET', 'POST'])

@@ -95,8 +95,11 @@
                     {% endif %}
                 </td>
                 <td class="text-end">
-                    <a href="{{ url_for('inventory.edit_item', item_id=item.id) }}" class="btn btn-sm btn-outline-secondary me-1">
+                    <a href="{{ url_for('inventory.edit_item', item_id=item.id) }}" class="btn btn-sm btn-outline-secondary me-1" title="Edit">
                         <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="{{ url_for('inventory.add_item', copy_from=item.id) }}" class="btn btn-sm btn-outline-secondary me-1" title="Copy to a new item">
+                        <i class="bi bi-copy"></i>
                     </a>
                     <a href="{{ url_for('inventory.delete_item', item_id=item.id) }}" class="btn btn-sm btn-outline-danger">
                         <i class="bi bi-trash"></i>

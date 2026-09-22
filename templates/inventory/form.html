@@ -10,7 +10,20 @@
                 <i class="bi bi-arrow-left"></i>
             </a>
             <h2 class="mb-0">{{ 'Edit Item' if editing else 'Add Item' }}</h2>
+            {% if editing %}
+            <a href="{{ url_for('inventory.add_item', copy_from=item.id) }}" class="btn btn-outline-secondary btn-sm ms-auto">
+                <i class="bi bi-copy me-1"></i>Copy to new item
+            </a>
+            {% endif %}
         </div>
+
+        {% if source %}
+        <div class="alert alert-info py-2">
+            <i class="bi bi-copy me-1"></i>
+            Copied from <strong>{{ source.name }}</strong> (<code>{{ source.item_code }}</code>).
+            Change what's different and save — the original is not affected.
+        </div>
+        {% endif %}
 
         <div class="card shadow-sm">
             <div class="card-body p-4">
@@ -117,13 +130,16 @@
 
                         <div class="col-12">
                             <label class="form-label fw-semibold">{{ form.image.label.text }}</label>
-                            {% if editing and item.image_path %}
+                            {% set shown_image = item.image_path if editing else (source.image_path if source else None) %}
+                            {% if shown_image %}
                             <div class="mb-2">
-                                <img src="{{ url_for('static', filename=item.image_path) }}"
-                                     alt="{{ item.name }}"
+                                <img src="{{ url_for('static', filename=shown_image) }}"
+                                     alt="Current photo"
                                      class="rounded border"
                                      style="max-height:200px; max-width:100%; object-fit:contain;">
-                                <div class="form-text">Upload a new photo to replace this one.</div>
+                                <div class="form-text">
+                                    {% if editing %}Upload a new photo to replace this one.{% else %}This photo will be copied to the new item. Upload a different one to use that instead.{% endif %}
+                                </div>
                             </div>
                             {% endif %}
                             {{ form.image(class="form-control" + (" is-invalid" if form.image.errors else ""), accept="image/*", id="image-input") }}
