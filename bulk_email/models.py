@@ -44,7 +44,6 @@ class EmailCampaign(db.Model):
     sender_account_id = db.Column(db.Integer, db.ForeignKey('bulk_email_sender_accounts.id'), nullable=False)
     subject = db.Column(db.String(500), nullable=False)
     body_html = db.Column(db.Text, nullable=False)
-    body_design = db.Column(db.Text)  # Unlayer design JSON for re-editing
     audience_type = db.Column(db.String(50), nullable=False)
     audience_params = db.Column(db.Text)  # JSON for parameterised audiences
     status = db.Column(

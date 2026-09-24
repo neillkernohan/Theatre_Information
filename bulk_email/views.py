@@ -281,7 +281,6 @@ def edit_campaign(campaign_id):
     if request.method == 'POST':
         subject = request.form.get('subject', '').strip()
         body_html = request.form.get('body_html', '').strip()
-        body_design = request.form.get('body_design', '').strip() or None
         sender_id = request.form.get('sender_account_id', type=int)
 
         errors = []
@@ -298,7 +297,6 @@ def edit_campaign(campaign_id):
         else:
             campaign.subject = subject
             campaign.body_html = body_html
-            campaign.body_design = body_design
             campaign.sender_account_id = sender_id
             db.session.commit()
             flash('Campaign updated.', 'success')
@@ -327,7 +325,6 @@ def compose():
         sender_id = request.form.get('sender_account_id', type=int)
         subject = request.form.get('subject', '').strip()
         body_html = request.form.get('body_html', '').strip()
-        body_design = request.form.get('body_design', '').strip() or None
         audience_types = request.form.getlist('audience_type')
         list_name = request.form.get('list_name', '').strip()
         season = request.form.get('season', '').strip()
@@ -396,7 +393,6 @@ def compose():
             sender_account_id=sender_id,
             subject=subject,
             body_html=body_html,
-            body_design=body_design,
             audience_type=stored_type,
             audience_params=json.dumps(params),
             status='draft',

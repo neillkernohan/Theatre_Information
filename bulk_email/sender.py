@@ -24,17 +24,12 @@ _UNSUBSCRIBE_FOOTER = """
 
 def _prepare_html(html):
     """Inline email-safe styles so Gmail/Outlook don't override spacing."""
-    # Convert Quill indent classes to inline padding-left (40px per level)
-    def _inline_indent(m):
-        attrs = m.group(1) or ''
-        indent_m = re.search(r'ql-indent-(\d+)', attrs)
-        level = int(indent_m.group(1)) if indent_m else 0
-        attrs_clean = re.sub(r'\s*class="[^"]*"', '', attrs)
-        padding = f'padding-left:{level * 40}px;' if level else ''
-        return f'<p style="{padding}margin:0;line-height:1.5"{attrs_clean}>'
-
-    html = re.sub(r'<p(\s[^>]*)?>',  _inline_indent, html)
-
+    # Add margin:0 to every <p> tag (handles Gmail's default paragraph margins)
+    html = re.sub(
+        r'<p(\s[^>]*)?>',
+        lambda m: f'<p style="margin:0;line-height:1.5"{m.group(1) or ""}>',
+        html
+    )
     # Headings — keep bold but reset margin
     for tag in ('h1', 'h2', 'h3'):
         html = re.sub(
@@ -120,9 +115,8 @@ def send_campaign(app, campaign_id):
                     )
                     body = body + footer
 
-                    # Unlayer exports full HTML with its own inline styles — skip reprocessing
-                    if '<!DOCTYPE' not in body:
-                        body = _prepare_html(body)
+                    # Inline email-safe styles so Gmail doesn't add its own spacing
+                    body = _prepare_html(body)
 
                     to_name = ' '.join(filter(None, [recipient.first_name, recipient.last_name]))
                     try:
