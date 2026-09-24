@@ -2,11 +2,11 @@
 {% block title %}New Campaign{% endblock %}
 {% block extra_css %}
 <style>
-  #unlayer-editor { min-height: 600px; }
+  #unlayer-editor { height: 700px; width: 100%; display: block; }
 </style>
 {% endblock %}
 {% block content %}
-<div class="container mt-4" style="max-width:860px">
+<div class="container-fluid mt-4 px-4">
   <div class="d-flex align-items-center justify-content-between mb-4">
     <h2 class="mb-0">New Campaign</h2>
     <a href="{{ url_for('bulk_email.index') }}" class="btn btn-outline-secondary">Cancel</a>
@@ -106,15 +106,13 @@
     <div class="card mb-3">
       <div class="card-header fw-semibold">4. Body
         <small class="fw-normal text-muted ms-2">
-          Use <code>{{first_name}}</code> and <code>{{last_name}}</code> for personalisation.
+          Use <code>{% raw %}{{first_name}}{% endraw %}</code> and <code>{% raw %}{{last_name}}{% endraw %}</code> for personalisation.
         </small>
       </div>
-      <div class="card-body p-0">
-        <div id="unlayer-editor"></div>
-        <input type="hidden" name="body_html" id="body_html">
-        <input type="hidden" name="body_design" id="body_design">
-      </div>
     </div>
+    <div id="unlayer-editor" class="mb-3 border rounded"></div>
+    <input type="hidden" name="body_html" id="body_html">
+    <input type="hidden" name="body_design" id="body_design">
 
     <div class="d-flex gap-2 justify-content-end mb-5">
       <a href="{{ url_for('bulk_email.index') }}" class="btn btn-outline-secondary">Cancel</a>
