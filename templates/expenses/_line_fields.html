@@ -1,0 +1,25 @@
+{# Fields for adding / editing a line. Needs: lf, categories, claim, today. #}
+<div class="row g-2 mb-2">
+  <div class="col-md"><label class="form-label">Date</label>
+    <input class="form-control" type="date" name="spent_on" value="{{ lf.spent_on or today }}" max="{{ today }}" required></div>
+  {% if claim.kind == 'reimbursement' %}
+  <div class="col-md"><label class="form-label">Where</label>
+    <input class="form-control" name="merchant" value="{{ lf.merchant or '' }}" placeholder="e.g. Home Depot" required></div>
+  {% endif %}
+</div>
+<div class="mb-2"><label class="form-label">What was it?</label>
+  <input class="form-control" name="description" value="{{ lf.description or '' }}" required maxlength="500"></div>
+<div class="mb-2"><label class="form-label">Category</label>
+  <select class="form-select" name="category_id" required>
+    <option value="">Choose…</option>
+    {% for c in categories %}
+    <option value="{{ c.id }}" {{ 'selected' if (lf.category_id | string) == (c.id | string) }}>{{ c.label }}</option>
+    {% endfor %}
+    {% if lf.category and lf.category not in categories %}<option value="{{ lf.category.id }}" selected>{{ lf.category.label }}</option>{% endif %}
+  </select></div>
+<div class="row g-2 mb-2">
+  <div class="col"><label class="form-label">Total {{ 'paid' if claim.kind == 'reimbursement' }} (incl. tax)</label>
+    <input class="form-control" name="total" inputmode="decimal" value="{{ lf.total or '' }}" placeholder="0.00" required></div>
+  <div class="col"><label class="form-label">HST <small class="text-muted">(0 if none)</small></label>
+    <input class="form-control" name="hst" inputmode="decimal" value="{{ lf.hst or '' }}" placeholder="0.00"></div>
+</div>

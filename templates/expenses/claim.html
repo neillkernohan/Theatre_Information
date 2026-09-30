@@ -1,0 +1,247 @@
+{% extends "expenses/base.html" %}
+{% block title %}Claim #{{ claim.id }}{% endblock %}
+{% block page %}
+<p><a href="{{ url_for('expenses.index') }}">← My claims</a></p>
+
+<h1 class="h3 mb-1">{{ claim.title }}</h1>
+<p class="text-muted">
+  <span class="badge status-{{ claim.status }}">{{ STATUSES[claim.status] }}</span>
+  {{ KINDS[claim.kind] }} #{{ claim.id }} ·
+  {{ claim.show.name ~ ' (' ~ claim.show.season ~ ')' if claim.show else 'General' }} ·
+  {{ person_name(claim.submitter) }}
+</p>
+
+{% if waiting_on and not can_review %}
+<p class="text-muted">Waiting on: {{ waiting_on | map(attribute='name') | join(', ') }}</p>
+{% elif claim.status in ('submitted', 'approved') and not waiting_on %}
+<div class="alert alert-warning">Nobody is set up to {{ 'approve' if claim.status == 'submitted' else 'sign off' }} this claim yet. An admin needs to assign the {{ 'show producer' if claim.status == 'submitted' else 'VP of Finance / President role' }}.</div>
+{% endif %}
+
+{# ------------------------------------------------------------- Review #}
+{% if can_review %}
+<div class="card review-panel mb-3">
+  <div class="card-header fw-semibold">{{ 'Approve this claim?' if claim.status == 'submitted' else 'Sign off this claim?' }}</div>
+  <div class="card-body">
+    <p class="text-muted">Check the receipts and amounts below.
+      {% if claim.status == 'submitted' %}After you approve, it goes to the VP of Finance for sign-off.
+      {% else %}Signing off means it's OK to pay {{ claim.payee_name }} {{ money(claim.total_cents) }}.{% endif %}</p>
+    <form method="post" action="{{ url_for('expenses.claim_review', claim_id=claim.id) }}">
+      {% include "expenses/_csrf.html" %}
+      <label class="form-label">Comment <small class="text-muted">(required to return or reject)</small></label>
+      <textarea class="form-control mb-2" name="comment" rows="2"></textarea>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-success" name="decision" value="approve">{{ 'Approve' if claim.status == 'submitted' else 'Sign off' }}</button>
+        <button class="btn btn-outline-secondary" name="decision" value="return">Return for changes</button>
+        <button class="btn btn-outline-danger" name="decision" value="reject">Reject</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------ Payment #}
+{% if can_pay %}
+<div class="card review-panel mb-3">
+  <div class="card-header fw-semibold">Record payment of {{ money(claim.total_cents) }}</div>
+  <div class="card-body">
+    <dl class="row mb-2">
+      <dt class="col-sm-3">Pay</dt><dd class="col-sm-9">{{ claim.payee_name }}</dd>
+      <dt class="col-sm-3">e-Transfer to</dt><dd class="col-sm-9">{{ claim.payee_email or '—' }}</dd>
+      {% if claim.kind == 'reimbursement' and claim.submitter.phone %}<dt class="col-sm-3">Phone</dt><dd class="col-sm-9">{{ claim.submitter.phone }}</dd>{% endif %}
+      {% if claim.kind == 'invoice' %}
+      <dt class="col-sm-3">Invoice #</dt><dd class="col-sm-9">{{ claim.invoice_number }}{% if claim.due_date %} · due {{ claim.due_date }}{% endif %}</dd>
+      {% if claim.vendor and claim.vendor.address %}<dt class="col-sm-3">Address</dt><dd class="col-sm-9">{{ claim.vendor.address }}</dd>{% endif %}
+      {% endif %}
+    </dl>
+    {% if claim.vendor_other %}
+    <div class="alert alert-warning">“{{ claim.vendor_other }}” isn't in the vendor list yet. <a href="{{ url_for('expenses.setup_vendor') }}">Add them</a> before booking this in QuickBooks.</div>
+    {% endif %}
+    <form method="post" action="{{ url_for('expenses.record_payment', claim_id=claim.id) }}">
+      {% include "expenses/_csrf.html" %}
+      <div class="row g-2 mb-2">
+        <div class="col-md"><label class="form-label">Paid by</label>
+          <select class="form-select" name="method" required>
+            {% for key, label in PAYMENT_METHODS.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+          </select></div>
+        <div class="col-md"><label class="form-label">Date paid</label>
+          <input class="form-control" type="date" name="paid_on" value="{{ today }}" max="{{ today }}" required></div>
+        <div class="col-md"><label class="form-label">Reference <small class="text-muted">(cheque # required)</small></label>
+          <input class="form-control" name="reference" maxlength="100"></div>
+      </div>
+      <label class="form-label">Note <small class="text-muted">(optional)</small></label>
+      <input class="form-control mb-2" name="note" maxlength="500">
+      <button class="btn btn-success">Mark as paid</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if claim.payment %}
+<div class="card mb-3">
+  <div class="card-header fw-semibold">Paid</div>
+  <div class="card-body">
+    <p class="mb-2">{{ money(claim.payment.amount_cents) }} by {{ PAYMENT_METHODS[claim.payment.method] }}{% if claim.payment.reference %} #{{ claim.payment.reference }}{% endif %}
+      on {{ claim.payment.paid_on }} — recorded by {{ person_name(claim.payment.paid_by) }}{% if claim.payment.note %} ({{ claim.payment.note }}){% endif %}.</p>
+    {% if can_undo_payment %}
+    <details><summary class="small">Undo this payment</summary>
+      <form method="post" action="{{ url_for('expenses.undo_payment', claim_id=claim.id) }}" class="mt-2">
+        {% include "expenses/_csrf.html" %}
+        <input class="form-control mb-2" name="reason" required placeholder="Why? e.g. recorded on the wrong claim">
+        <button class="btn btn-outline-danger btn-sm">Undo payment</button>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if duplicates %}
+<div class="alert alert-warning">Heads up: invoice <strong>{{ claim.invoice_number }}</strong> from this vendor is already on
+  {% for d in duplicates %}claim #{{ d.id }}{{ ', ' if not loop.last }}{% endfor %}. Make sure this isn't a duplicate.</div>
+{% endif %}
+{% if can_edit and claim.status == 'returned' %}
+<div class="alert alert-warning">This claim was sent back to you. Make the changes asked for below, then submit it again.</div>
+{% endif %}
+
+{# ------------------------------------------------------------ Invoice #}
+{% if claim.kind == 'invoice' %}
+<div class="card mb-3" id="files">
+  <div class="card-header fw-semibold">Invoice</div>
+  <div class="card-body">
+    <dl class="row mb-2">
+      <dt class="col-sm-3">Vendor</dt><dd class="col-sm-9">{{ claim.payee_name }}{% if claim.vendor_other %} <span class="badge text-bg-secondary">new</span>{% endif %}</dd>
+      <dt class="col-sm-3">Invoice #</dt><dd class="col-sm-9">{{ claim.invoice_number or '—' }}</dd>
+      <dt class="col-sm-3">Invoice date</dt><dd class="col-sm-9">{{ claim.invoice_date or '—' }}</dd>
+      <dt class="col-sm-3">Due</dt><dd class="col-sm-9">{{ claim.due_date or '—' }}</dd>
+    </dl>
+    <p class="fw-semibold mb-1">Invoice copy</p>
+    {% set files = claim.claim_files %}
+    {% if files %}{% include "expenses/_files.html" %}{% elif not can_edit %}<p class="text-muted">None attached.</p>{% endif %}
+    {% if can_edit %}
+    <form method="post" action="{{ url_for('expenses.files_add', claim_id=claim.id) }}" enctype="multipart/form-data" class="d-flex gap-2">
+      {% include "expenses/_csrf.html" %}
+      <input class="form-control" type="file" name="files" accept="image/*,application/pdf" multiple aria-label="Invoice file">
+      <button class="btn btn-outline-secondary">Upload</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if can_edit %}
+<details class="mb-3">
+  <summary>Edit details</summary>
+  {% set kind = claim.kind %}
+  {% set form = {'title': claim.title, 'show_id': claim.show_id or '',
+                 'vendor': ('other' if claim.vendor_other else (claim.vendor_id or '')),
+                 'vendor_other': claim.vendor_other, 'invoice_number': claim.invoice_number,
+                 'invoice_date': claim.invoice_date, 'due_date': claim.due_date} %}
+  <form method="post" action="{{ url_for('expenses.claim_update', claim_id=claim.id) }}" class="card card-body mt-2">
+    {% include "expenses/_csrf.html" %}
+    {% include "expenses/_header_fields.html" %}
+    <div><button class="btn btn-outline-secondary">Save details</button></div>
+  </form>
+</details>
+{% endif %}
+
+{# -------------------------------------------------------------- Lines #}
+<div class="card mb-3" id="lines">
+  <div class="card-header fw-semibold">{{ 'Receipts' if claim.kind == 'reimbursement' else 'Line items' }}</div>
+  <div class="card-body">
+    {% for line in claim.lines %}
+    <div class="border-bottom pb-2 mb-2">
+      <div class="d-flex justify-content-between gap-3">
+        <span><strong>{{ line.description }}</strong><br>
+          <small class="text-muted">{{ line.spent_on }}{{ ' · ' ~ line.merchant if line.merchant }} · {{ line.category.label }}</small></span>
+        <span class="money">{{ money(line.total_cents) }}<br><small class="text-muted">HST {{ money(line.hst_cents) }}</small></span>
+      </div>
+      {% set files = line.attachments %}
+      {% include "expenses/_files.html" %}
+      {% if can_edit %}
+        {% if claim.kind == 'reimbursement' and not line.attachments %}<p class="text-warning fw-semibold mb-1">Needs a receipt photo</p>{% endif %}
+        <form method="post" action="{{ url_for('expenses.files_add', claim_id=claim.id) }}" enctype="multipart/form-data" class="d-flex gap-2 mb-2">
+          {% include "expenses/_csrf.html" %}
+          <input type="hidden" name="line_id" value="{{ line.id }}">
+          <input class="form-control form-control-sm" type="file" name="files" accept="image/*,application/pdf" multiple aria-label="Receipt for {{ line.description }}">
+          <button class="btn btn-outline-secondary btn-sm text-nowrap">Add receipt</button>
+        </form>
+        <details><summary class="small">Edit this line</summary>
+          {% set lf = {'spent_on': line.spent_on, 'merchant': line.merchant, 'description': line.description,
+                       'category_id': line.category_id, 'category': line.category,
+                       'total': '%.2f' % (line.total_cents / 100), 'hst': '%.2f' % (line.hst_cents / 100)} %}
+          <form method="post" action="{{ url_for('expenses.line_update', claim_id=claim.id, line_id=line.id) }}" class="mt-2">
+            {% include "expenses/_csrf.html" %}
+            {% include "expenses/_line_fields.html" %}
+            <button class="btn btn-outline-secondary btn-sm">Save line</button>
+          </form>
+          <form method="post" action="{{ url_for('expenses.line_delete', claim_id=claim.id, line_id=line.id) }}" class="mt-2">
+            {% include "expenses/_csrf.html" %}
+            <button class="btn btn-outline-danger btn-sm">Delete this line</button>
+          </form>
+        </details>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="text-muted">No {{ 'receipts' if claim.kind == 'reimbursement' else 'line items' }} yet.</p>
+    {% endfor %}
+
+    {% if claim.lines %}
+    <table class="table table-sm w-auto ms-auto mb-0">
+      <tr><td>Before tax</td><td class="money">{{ money(claim.total_cents - claim.hst_cents) }}</td></tr>
+      <tr><td>HST</td><td class="money">{{ money(claim.hst_cents) }}</td></tr>
+      <tr class="fw-bold"><td>Total</td><td class="money">{{ money(claim.total_cents) }}</td></tr>
+    </table>
+    {% endif %}
+  </div>
+</div>
+
+{% if can_edit %}
+<div class="card mb-3">
+  <div class="card-header fw-semibold">Add {{ 'a receipt' if claim.kind == 'reimbursement' else 'a line item' }}</div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('expenses.line_add', claim_id=claim.id) }}" enctype="multipart/form-data">
+      {% include "expenses/_csrf.html" %}
+      {% set lf = line_form %}
+      {% include "expenses/_line_fields.html" %}
+      {% if claim.kind == 'reimbursement' %}
+      <label class="form-label">Receipt photo</label>
+      <input class="form-control" type="file" name="receipts" accept="image/*,application/pdf" multiple>
+      <div class="form-text mb-2">Take a photo or choose a file. Photos and PDFs up to 10 MB.</div>
+      {% endif %}
+      <button class="btn btn-primary">Add</button>
+    </form>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    {% if problems %}
+    <p class="fw-semibold mb-1">Before you can submit:</p>
+    <ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+    {% endif %}
+    <div class="d-flex flex-wrap gap-2">
+      <form method="post" action="{{ url_for('expenses.claim_submit', claim_id=claim.id) }}">
+        {% include "expenses/_csrf.html" %}
+        <button class="btn btn-primary" {{ 'disabled' if problems }}>{{ 'Resubmit' if claim.status == 'returned' else 'Submit' }} for approval</button>
+      </form>
+      {% if claim.status == 'draft' %}
+      <form method="post" action="{{ url_for('expenses.claim_delete', claim_id=claim.id) }}" onsubmit="return confirm('Delete this draft and its receipts?');">
+        {% include "expenses/_csrf.html" %}
+        <button class="btn btn-outline-danger">Delete draft</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------ History #}
+<div class="card">
+  <div class="card-header fw-semibold">History</div>
+  <ul class="list-group list-group-flush">
+    {% for e in claim.events %}
+    <li class="list-group-item small">{{ local_time(e.created_at) }} — {{ person_name(e.actor) }} {{ e.action }}{% if e.comment %}: “{{ e.comment }}”{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

@@ -5,6 +5,7 @@ Uses an isolated SQLite in-memory database so tests never touch
 the production MySQL instance.
 """
 import os
+import tempfile
 import pytest
 from datetime import datetime, timedelta
 from flask import Flask
@@ -30,6 +31,8 @@ def app():
         'MAIL_PORT': 25,
         'MAIL_DEFAULT_SENDER': 'test@theatreaurora.com',
         'SERVER_NAME': 'localhost',
+        'EXPENSES_UPLOAD_DIR': tempfile.mkdtemp(),
+        'EXPENSES_MAX_UPLOAD_MB': 1,
     })
 
     from auth.models import db, User
@@ -51,8 +54,10 @@ def app():
 
     from auth import auth_bp
     from auditions import auditions_bp
+    from expenses import expenses_bp
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(auditions_bp)
+    flask_app.register_blueprint(expenses_bp)
 
     with flask_app.app_context():
         db.create_all()

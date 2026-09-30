@@ -1,0 +1,22 @@
+{% extends "expenses/base.html" %}
+{% block title %}Vendors{% endblock %}
+{% block page %}
+<p><a href="{{ url_for('expenses.setup') }}">← Setup</a></p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Vendors</h1>
+  <a href="{{ url_for('expenses.setup_vendor') }}" class="btn btn-primary">Add vendor</a>
+</div>
+<table class="table table-hover bg-white">
+  <thead><tr><th>Name</th><th>Email</th><th>HST #</th></tr></thead>
+  <tbody>
+  {% for v in vendors %}
+    <tr class="{{ '' if v.active else 'text-muted' }}">
+      <td><a href="{{ url_for('expenses.setup_vendor', vendor_id=v.id) }}">{{ v.name }}</a>{% if not v.active %} <span class="badge text-bg-secondary">inactive</span>{% endif %}</td>
+      <td>{{ v.email or '—' }}</td><td>{{ v.hst_number or '—' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="3" class="text-muted">No vendors yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

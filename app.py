@@ -196,6 +196,8 @@ try:
     from proxy.models import ProxyMeeting, ProxySubmission  # noqa: F401 — ensure tables are registered
     from inventory import inventory_bp
     from inventory.models import InventoryItem  # noqa: F401 — ensure tables are registered
+    from expenses import expenses_bp
+    from expenses.models import ExpenseClaim  # noqa: F401 — ensure tables are registered
 
     # SQLAlchemy config
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('AUDITIONS_DB_URI')
@@ -211,6 +213,10 @@ try:
     app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20MB (supports multiple file uploads)
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'auditions', 'uploads')
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    # Expense receipts are private: stored outside static/ and served only via
+    # an access-checked route. Override with EXPENSES_UPLOAD_DIR on the server.
+    app.config['EXPENSES_UPLOAD_DIR'] = os.getenv('EXPENSES_UPLOAD_DIR') or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'private', 'expense_receipts')
 
     # Flask-Mail config (Gmail SMTP)
     app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -244,6 +250,7 @@ try:
     app.register_blueprint(auditions_bp)
     app.register_blueprint(proxy_bp)
     app.register_blueprint(inventory_bp)
+    app.register_blueprint(expenses_bp)
     from bulk_email import bulk_email_bp
     app.register_blueprint(bulk_email_bp)
 

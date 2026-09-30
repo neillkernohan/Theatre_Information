@@ -1,0 +1,30 @@
+{% extends "expenses/base.html" %}
+{% block title %}Finance roles{% endblock %}
+{% block page %}
+<p><a href="{{ url_for('expenses.setup') }}">← Setup</a></p>
+<h1 class="h3 mb-1">Finance roles</h1>
+<p class="text-muted">The VP of Finance signs off and pays claims; the President signs off the VP of Finance's own claims. Site super admins manage expenses setup.</p>
+<table class="table bg-white">
+  <thead><tr><th>Person</th><th>Role</th><th></th></tr></thead>
+  <tbody>
+  {% for r in roles %}
+    <tr>
+      <td>{% if users.get(r.email) %}{{ person_name(users[r.email]) }} <small class="text-muted">{{ r.email }}</small>{% else %}{{ r.email }} <span class="badge text-bg-warning">no account yet</span>{% endif %}</td>
+      <td>{{ ROLES[r.role] }}</td>
+      <td class="text-end"><form method="post" action="{{ url_for('expenses.setup_role_remove', role_id=r.id) }}" class="d-inline">
+        {% include "expenses/_csrf.html" %}<button class="btn btn-link btn-sm p-0">remove</button></form></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="3" class="text-muted">Nobody yet — claims can't be signed off until a VP of Finance is set.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<div class="card"><div class="card-header fw-semibold">Add</div><div class="card-body">
+  <form method="post" class="row g-2">
+    {% include "expenses/_csrf.html" %}
+    <div class="col-md-6"><input class="form-control" type="email" name="email" placeholder="email" required aria-label="Email"></div>
+    <div class="col-md-4"><select class="form-select" name="role" aria-label="Role">{% for key, label in ROLES.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><button class="btn btn-primary">Add</button></div>
+  </form>
+</div></div>
+{% endblock %}

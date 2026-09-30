@@ -71,3 +71,6 @@ app for deployment.py
 requirement.txt
 import os.py
 Test.py
+
+# Private uploads (expense receipts) — never commit, back up separately
+private/

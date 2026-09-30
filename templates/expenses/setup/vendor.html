@@ -1,0 +1,20 @@
+{% extends "expenses/base.html" %}
+{% block title %}{{ vendor.name or 'New vendor' }}{% endblock %}
+{% block page %}
+<p><a href="{{ url_for('expenses.setup_vendors') }}">← Vendors</a></p>
+<div class="card mx-auto" style="max-width: 36rem"><div class="card-body">
+  <h1 class="h4">{{ vendor.name or 'New vendor' }}</h1>
+  <form method="post">
+    {% include "expenses/_csrf.html" %}
+    <div class="mb-2"><label class="form-label">Name</label><input class="form-control" name="name" value="{{ vendor.name or '' }}" required></div>
+    <div class="mb-2"><label class="form-label">Email</label><input class="form-control" type="email" name="email" value="{{ vendor.email or '' }}"></div>
+    <div class="mb-2"><label class="form-label">Phone</label><input class="form-control" type="tel" name="phone" value="{{ vendor.phone or '' }}"></div>
+    <div class="mb-2"><label class="form-label">Address</label><textarea class="form-control" name="address" rows="3">{{ vendor.address or '' }}</textarea></div>
+    <div class="mb-2"><label class="form-label">HST number</label><input class="form-control" name="hst_number" value="{{ vendor.hst_number or '' }}" placeholder="123456789 RT0001"></div>
+    {% if vendor.id %}
+    <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="active" value="true" id="active" {{ 'checked' if vendor.active }}><label class="form-check-label" for="active">Active</label></div>
+    {% endif %}
+    <button class="btn btn-primary">Save</button>
+  </form>
+</div></div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "expenses/base.html" %}
+{% block page %}
+<h1 class="h3 mb-3">Hi, {{ current_user.first_name }}</h1>
+
+{% if waiting %}
+<div class="alert alert-warning"><a href="{{ url_for('expenses.approvals') }}" class="alert-link">{{ waiting }} claim{{ 's' if waiting != 1 }} waiting for you to review →</a></div>
+{% endif %}
+{% if to_pay %}
+<div class="alert alert-warning"><a href="{{ url_for('expenses.payments') }}" class="alert-link">{{ to_pay }} claim{{ 's' if to_pay != 1 }} signed off and ready to pay →</a></div>
+{% endif %}
+
+<div class="row g-2 mb-4">
+  <div class="col-sm-6"><a href="{{ url_for('expenses.new_claim', kind='reimbursement') }}" class="btn btn-primary btn-lg w-100">Get reimbursed</a></div>
+  <div class="col-sm-6"><a href="{{ url_for('expenses.new_claim', kind='invoice') }}" class="btn btn-outline-secondary btn-lg w-100">Submit a vendor invoice</a></div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header fw-semibold">My claims</div>
+  <div class="card-body py-1">
+    {% for c in claims %}
+    <a href="{{ url_for('expenses.claim_detail', claim_id=c.id) }}" class="claim-row">
+      <span><strong>{{ c.title }}</strong><br>
+        <small class="text-muted">{{ c.show.name if c.show else 'General' }} · {{ KINDS[c.kind] }} · #{{ c.id }}</small></span>
+      <span class="money">{{ money(c.total_cents) }}<br><span class="badge status-{{ c.status }}">{{ STATUSES[c.status] }}</span></span>
+    </a>
+    {% else %}
+    <p class="text-muted my-2">Nothing yet. Bought something for the theatre? Tap <em>Get reimbursed</em>.</p>
+    {% endfor %}
+  </div>
+</div>
+
+{% if producing %}
+<div class="card">
+  <div class="card-header fw-semibold">Shows you approve for</div>
+  <ul class="list-group list-group-flush">
+    {% for show in producing %}<li class="list-group-item">{{ show.name }} <small class="text-muted">{{ show.season }}</small></li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}

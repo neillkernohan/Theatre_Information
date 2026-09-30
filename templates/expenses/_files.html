@@ -1,0 +1,18 @@
+{# Thumbnails for a list of attachments. Needs: files, can_edit, claim. #}
+<div class="files">
+  {% for f in files %}
+  <span>
+    {% if f.content_type.startswith('image/') and f.content_type != 'image/heic' %}
+    <a href="{{ url_for('expenses.file_download', attachment_id=f.id) }}" target="_blank" title="{{ f.original_name }}"><img src="{{ url_for('expenses.file_download', attachment_id=f.id) }}" alt="{{ f.original_name }}" loading="lazy"></a>
+    {% else %}
+    <a class="doc" href="{{ url_for('expenses.file_download', attachment_id=f.id) }}" target="_blank" title="{{ f.original_name }}">{{ 'PDF' if f.content_type == 'application/pdf' else 'Photo' }}</a>
+    {% endif %}
+    {% if can_edit %}
+    <form method="post" action="{{ url_for('expenses.file_delete', claim_id=claim.id, attachment_id=f.id) }}" class="d-inline">
+      {% include "expenses/_csrf.html" %}
+      <button class="btn btn-link btn-sm p-0" title="Remove {{ f.original_name }}">remove</button>
+    </form>
+    {% endif %}
+  </span>
+  {% endfor %}
+</div>

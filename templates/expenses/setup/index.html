@@ -1,0 +1,21 @@
+{% extends "expenses/base.html" %}
+{% block title %}Expenses setup{% endblock %}
+{% block page %}
+<h1 class="h3 mb-3">Setup</h1>
+<div class="row g-3">
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h5"><a href="{{ url_for('expenses.setup_shows') }}">Shows &amp; producers</a></h2>
+    <p class="text-muted mb-0">Each show's QuickBooks class, and who approves its expenses.</p></div></div></div>
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h5"><a href="{{ url_for('expenses.setup_categories') }}">Categories</a></h2>
+    <p class="text-muted mb-0">What submitters pick from, mapped to QuickBooks accounts.</p></div></div></div>
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h5"><a href="{{ url_for('expenses.setup_vendors') }}">Vendors</a></h2>
+    <p class="text-muted mb-0">Businesses that invoice the theatre.</p></div></div></div>
+  {% if current_user.is_super_admin %}
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h5"><a href="{{ url_for('expenses.setup_roles') }}">Finance roles</a></h2>
+    <p class="text-muted mb-0">VP of Finance and President.</p></div></div></div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "expenses/base.html" %}
+{% block title %}Approvals{% endblock %}
+{% block page %}
+<h1 class="h3 mb-3">Approvals</h1>
+
+<div class="card mb-4">
+  <div class="card-header fw-semibold">Waiting for you</div>
+  <div class="card-body py-1">
+    {% for c in queue %}
+    <a href="{{ url_for('expenses.claim_detail', claim_id=c.id) }}" class="claim-row">
+      <span><strong>{{ c.title }}</strong><br>
+        <small class="text-muted">{{ person_name(c.submitter) }} · {{ c.show.name if c.show else 'General' }} · {{ KINDS[c.kind] }} · #{{ c.id }}</small></span>
+      <span class="money">{{ money(c.total_cents) }}<br><span class="badge status-{{ c.status }}">{{ 'Approve' if c.status == 'submitted' else 'Sign off' }}</span></span>
+    </a>
+    {% else %}
+    <p class="text-muted my-2">Nothing waiting for you. 🎭</p>
+    {% endfor %}
+  </div>
+</div>
+
+{% if oversees %}
+<div class="card">
+  <div class="card-header fw-semibold">Everything else in progress</div>
+  <div class="card-body py-1">
+    {% for c, waiting in in_progress %}
+    <a href="{{ url_for('expenses.claim_detail', claim_id=c.id) }}" class="claim-row">
+      <span><strong>{{ c.title }}</strong><br>
+        <small class="text-muted">{{ person_name(c.submitter) }} · {{ c.show.name if c.show else 'General' }} · #{{ c.id }}
+          {% if waiting %}· waiting on {{ waiting | map(attribute='name') | join(', ') }}{% endif %}</small></span>
+      <span class="money">{{ money(c.total_cents) }}<br><span class="badge status-{{ c.status }}">{{ STATUSES[c.status] }}</span></span>
+    </a>
+    {% else %}
+    <p class="text-muted my-2">Nothing else in progress.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

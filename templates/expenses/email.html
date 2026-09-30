@@ -1,0 +1,13 @@
+<div style="font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 15px; color: #222; max-width: 560px;">
+  <p>Hi {{ greeting }},</p>
+  {% for p in paragraphs[:1] %}<p>{{ p }}</p>{% endfor %}
+  <table style="border-left: 3px solid #6c757d; padding-left: 12px; margin: 12px 0;">
+    <tr><td><strong>{{ claim.title }}</strong></td></tr>
+    <tr><td>{{ claim.show.name if claim.show else 'General' }} · {{ money(claim.total_cents) }} · from {{ person_name(claim.submitter) }}</td></tr>
+    <tr><td>Payee: {{ claim.payee_name }}</td></tr>
+  </table>
+  {% if comment %}<p>{{ commenter }} wrote:<br><em>“{{ comment }}”</em></p>{% endif %}
+  {% for p in paragraphs[1:] %}<p>{{ p }}</p>{% endfor %}
+  <p><a href="{{ link }}" style="display: inline-block; background: #0d6efd; color: #fff; padding: 8px 16px; border-radius: 4px; text-decoration: none;">Open the claim</a></p>
+  <p style="color: #6c757d; font-size: 13px;">Theatre Aurora Expenses</p>
+</div>

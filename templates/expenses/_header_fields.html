@@ -1,0 +1,43 @@
+{# Shared by the new-claim form and the draft editor. Needs: form, kind, shows, vendors. #}
+<div class="mb-3">
+  <label class="form-label">What's it for?</label>
+  <input class="form-control" name="title" value="{{ form.title or '' }}" required maxlength="255"
+         placeholder="{{ 'e.g. Lighting rental for tech week' if kind == 'invoice' else 'e.g. Props shopping for Act 2' }}">
+</div>
+<div class="mb-3">
+  <label class="form-label">Show</label>
+  <select class="form-select" name="show_id">
+    <option value="">General / not for a show</option>
+    {% for s in shows %}
+    <option value="{{ s.id }}" {{ 'selected' if (form.show_id | string) == (s.id | string) }}>{{ s.name }} ({{ s.season }})</option>
+    {% endfor %}
+  </select>
+</div>
+{% if kind == 'invoice' %}
+<div class="mb-3">
+  <label class="form-label">Vendor</label>
+  <select class="form-select vendor-select" name="vendor">
+    <option value="">Choose…</option>
+    {% for v in vendors %}
+    <option value="{{ v.id }}" {{ 'selected' if (form.vendor | string) == (v.id | string) }}>{{ v.name }}</option>
+    {% endfor %}
+    <option value="other" {{ 'selected' if form.vendor == 'other' }}>Other (not listed)</option>
+  </select>
+</div>
+<div class="mb-3 vendor-other" {{ 'hidden' if form.vendor != 'other' }}>
+  <label class="form-label">Vendor name</label>
+  <input class="form-control" name="vendor_other" value="{{ form.vendor_other or '' }}">
+  <div class="form-text">The VP of Finance will add them to the vendor list.</div>
+</div>
+<div class="row g-2 mb-3">
+  <div class="col-md"><label class="form-label">Invoice number</label><input class="form-control" name="invoice_number" value="{{ form.invoice_number or '' }}"></div>
+  <div class="col-md"><label class="form-label">Invoice date</label><input class="form-control" type="date" name="invoice_date" value="{{ form.invoice_date or '' }}"></div>
+  <div class="col-md"><label class="form-label">Due date</label><input class="form-control" type="date" name="due_date" value="{{ form.due_date or '' }}"></div>
+</div>
+<script>
+  document.querySelectorAll(".vendor-select").forEach(function (sel) {
+    var other = sel.closest("form").querySelector(".vendor-other");
+    sel.addEventListener("change", function () { other.hidden = sel.value !== "other"; });
+  });
+</script>
+{% endif %}

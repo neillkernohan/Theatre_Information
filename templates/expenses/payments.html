@@ -1,0 +1,63 @@
+{% extends "expenses/base.html" %}
+{% block title %}Payments{% endblock %}
+{% block page %}
+<h1 class="h3 mb-3">Payments</h1>
+
+<div class="card mb-4">
+  <div class="card-header fw-semibold">Ready to pay <small class="text-muted fw-normal">— signed off, nearest due date first</small></div>
+  <div class="card-body py-1">
+    {% for c in to_pay %}
+    <a href="{{ url_for('expenses.claim_detail', claim_id=c.id) }}" class="claim-row">
+      <span><strong>{{ c.payee_name }}</strong> <small class="text-muted">· {{ c.payee_email or 'no email' }}</small><br>
+        <small class="text-muted">{{ c.title }} · {{ c.show.name if c.show else 'General' }} · {{ KINDS[c.kind] }} · #{{ c.id }}</small></span>
+      <span class="money">{{ money(c.total_cents) }}<br>
+        {% if c.due_date %}<small class="{{ 'text-danger fw-semibold' if c.due_date <= today else 'text-muted' }}">due {{ c.due_date }}</small>{% endif %}</span>
+    </a>
+    {% else %}
+    <p class="text-muted my-2">Nothing to pay right now.</p>
+    {% endfor %}
+  </div>
+  {% if to_pay %}
+  <div class="card-footer">
+    <strong>{{ money(to_pay | sum(attribute='total_cents')) }}</strong> to pay across {{ to_pay | length }} claim{{ 's' if to_pay | length != 1 }}.
+    {% if can_pay %}Open a claim to record its payment.{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="card mb-4">
+  <div class="card-header fw-semibold">Export for QuickBooks</div>
+  <div class="card-body">
+    <p class="text-muted">A CSV with one row per expense line: payee, QB account, QB class, subtotal, HST, tax code, total, and who approved and paid it.</p>
+    {% if unmapped %}
+    <div class="alert alert-warning">These categories have no QuickBooks account yet, so their rows will export with it blank:
+      {{ unmapped | map(attribute='label') | join(', ') }}.
+      {% if nav.setup %}<a href="{{ url_for('expenses.setup_categories') }}" class="alert-link">Set them up</a>.{% endif %}</div>
+    {% endif %}
+    <form method="get" action="{{ url_for('expenses.export_csv') }}">
+      <input type="hidden" name="status" value="paid">
+      <div class="row g-2 mb-2">
+        <div class="col-md"><label class="form-label">Paid from</label><input class="form-control" type="date" name="start" value="{{ export_start }}"></div>
+        <div class="col-md"><label class="form-label">to</label><input class="form-control" type="date" name="end" value="{{ export_end }}"></div>
+      </div>
+      <button class="btn btn-primary">Download paid claims</button>
+      <a class="btn btn-link" href="{{ url_for('expenses.export_csv', status='signed_off') }}">Download claims waiting to be paid</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header fw-semibold">Paid in the last 60 days</div>
+  <div class="card-body py-1">
+    {% for c in recent %}
+    <a href="{{ url_for('expenses.claim_detail', claim_id=c.id) }}" class="claim-row">
+      <span><strong>{{ c.payee_name }}</strong><br>
+        <small class="text-muted">{{ c.title }} · #{{ c.id }} · {{ PAYMENT_METHODS[c.payment.method] }}{% if c.payment.reference %} #{{ c.payment.reference }}{% endif %}</small></span>
+      <span class="money">{{ money(c.total_cents) }}<br><small class="text-muted">{{ c.payment.paid_on }}</small></span>
+    </a>
+    {% else %}
+    <p class="text-muted my-2">No payments recorded yet.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
