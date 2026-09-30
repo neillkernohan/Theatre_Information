@@ -187,8 +187,7 @@ class TestClaims:
         claim_id = new_claim(c)
         folder = Path(app.config['EXPENSES_UPLOAD_DIR'])
         before = set(folder.iterdir()) if folder.exists() else set()
-        r = add_line(c, claim_id, org['props'],
-                     files=[('good.jpg', JPEG), ('evil.jpg', b'<script>alert(1)</script>')])
+        r = add_line(c, claim_id, org['props'], files=[('evil.jpg', b'<script>alert(1)</script>')])
         assert r.status_code == 400 and "isn't a photo" in text(r)
         assert claim(db, claim_id).lines == []
         assert set(folder.iterdir()) == before
@@ -497,13 +496,13 @@ class TestReceiptReading:
         c = as_user('vol@example.com')
         claim_id = new_claim(c)
         assert extract(c, claim_id, file=('r.jpg', real_jpeg())).status_code == 404
-        assert 'Fill in the details from the photo' not in text(c.get(f'/expenses/claims/{claim_id}'))
+        assert 'filled in from it automatically' not in text(c.get(f'/expenses/claims/{claim_id}'))
 
     def test_reads_receipt_photo(self, db, org, as_user, claude):
         fake = claude()
         c = as_user('vol@example.com')
         claim_id = new_claim(c)
-        assert 'Fill in the details from the photo' in text(c.get(f'/expenses/claims/{claim_id}'))
+        assert 'filled in from it automatically' in text(c.get(f'/expenses/claims/{claim_id}'))
 
         r = extract(c, claim_id, file=('r.jpg', real_jpeg()))
         assert r.status_code == 200, r.get_data(as_text=True)
@@ -534,10 +533,12 @@ class TestReceiptReading:
                        'category': 'Lighting'})
         c = as_user('vol@example.com')
         claim_id = new_claim(c, kind='invoice')
-        c.post(f'/expenses/claims/{claim_id}/files', data={'files': [(io.BytesIO(PDF), 'i.pdf')]},
-               content_type='multipart/form-data')
+        r = c.post(f'/expenses/claims/{claim_id}/files', data={'files': [(io.BytesIO(PDF), 'i.pdf')]},
+                   content_type='multipart/form-data')
         attachment_id = claim(db, claim_id).attachments[0].id
-        assert 'Fill in from this invoice' in text(c.get(f'/expenses/claims/{claim_id}'))
+        # The page is asked to read the new invoice straight away.
+        assert f'read={attachment_id}' in r.headers['Location']
+        assert 'Read the invoice again' in text(c.get(f'/expenses/claims/{claim_id}'))
 
         d = extract(c, claim_id, attachment_id=attachment_id).get_json()
         assert d['vendor_id'] == org['vendor']
@@ -611,3 +612,34 @@ def test_add_show_command(app, db):
     assert 'already exists' in r.output and 'pat@example.com' in r.output
     show = ExpenseShow.query.filter_by(name='Holmes/Poirot').one()
     assert show.qb_class == 'Holmes/Poirot' and show.producer_emails == ['pat@example.com']
+
+
+class TestOneFilePerExpense:
+    def test_one_receipt_per_new_line(self, db, org, as_user):
+        c = as_user('vol@example.com')
+        claim_id = new_claim(c)
+        r = add_line(c, claim_id, org['props'], files=[('a.jpg', JPEG), ('b.jpg', JPEG)])
+        assert r.status_code == 400 and 'one receipt per expense' in text(r)
+        assert claim(db, claim_id).lines == []
+
+    def test_line_keeps_a_single_receipt(self, db, org, as_user):
+        c = as_user('vol@example.com')
+        claim_id = new_claim(c)
+        add_line(c, claim_id, org['props'], files=[('a.jpg', JPEG)])
+        line_id = claim(db, claim_id).lines[0].id
+        r = c.post(f'/expenses/claims/{claim_id}/files',
+                   data={'line_id': str(line_id), 'files': [(io.BytesIO(JPEG), 'b.jpg')]},
+                   content_type='multipart/form-data')
+        assert r.status_code == 400 and 'already has its receipt' in text(r)
+        assert len(claim(db, claim_id).attachments) == 1
+
+    def test_invoice_keeps_a_single_file(self, db, org, as_user):
+        c = as_user('vol@example.com')
+        claim_id = new_claim(c, kind='invoice')
+        upload = lambda: c.post(f'/expenses/claims/{claim_id}/files',
+                                data={'files': [(io.BytesIO(PDF), 'i.pdf')]},
+                                content_type='multipart/form-data')
+        assert upload().status_code == 302
+        r = upload()
+        assert r.status_code == 400 and 'already has its invoice' in text(r)
+        assert len(claim(db, claim_id).claim_files) == 1

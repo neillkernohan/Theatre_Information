@@ -118,20 +118,17 @@
     {% set files = claim.claim_files %}
     {% if files %}{% include "expenses/_files.html" %}{% elif not can_edit %}<p class="text-muted">None attached.</p>{% endif %}
     {% if ai_enabled and files %}
-    <div class="mb-2">
-      {% for f in files %}
-      <button type="button" class="btn btn-sm btn-outline-primary ai-read" data-attachment-id="{{ f.id }}">
-        <i class="bi bi-magic"></i> Fill in from {{ f.original_name if files | length > 1 else 'this invoice' }}</button>
-      {% endfor %}
-      <div class="alert alert-info d-none mt-2" id="ai-status" role="status"></div>
-    </div>
+    <div class="alert alert-info d-none" id="ai-status" role="status"></div>
+    <button type="button" class="btn btn-link btn-sm p-0 mb-2 ai-read" data-attachment-id="{{ files[0].id }}">
+      <i class="bi bi-magic"></i> Read the invoice again</button>
     {% endif %}
-    {% if can_edit %}
+    {% if can_edit and not files %}
     <form method="post" action="{{ url_for('expenses.files_add', claim_id=claim.id) }}" enctype="multipart/form-data" class="d-flex gap-2">
       {% include "expenses/_csrf.html" %}
-      <input class="form-control" type="file" name="files" accept="image/*,application/pdf" multiple aria-label="Invoice file">
+      <input class="form-control" type="file" name="files" accept="image/*,application/pdf" required aria-label="Invoice file">
       <button class="btn btn-outline-secondary">Upload</button>
     </form>
+    {% if ai_enabled %}<div class="form-text">Once uploaded, the invoice is read and the details filled in for you to check.</div>{% endif %}
     {% endif %}
   </div>
 </div>
@@ -167,13 +164,15 @@
       {% set files = line.attachments %}
       {% include "expenses/_files.html" %}
       {% if can_edit %}
-        {% if claim.kind == 'reimbursement' and not line.attachments %}<p class="text-warning fw-semibold mb-1">Needs a receipt photo</p>{% endif %}
+        {% if claim.kind == 'reimbursement' and not line.attachments %}
+        <p class="text-warning fw-semibold mb-1">Needs a receipt photo</p>
         <form method="post" action="{{ url_for('expenses.files_add', claim_id=claim.id) }}" enctype="multipart/form-data" class="d-flex gap-2 mb-2">
           {% include "expenses/_csrf.html" %}
           <input type="hidden" name="line_id" value="{{ line.id }}">
-          <input class="form-control form-control-sm" type="file" name="files" accept="image/*,application/pdf" multiple aria-label="Receipt for {{ line.description }}">
+          <input class="form-control form-control-sm" type="file" name="files" accept="image/*,application/pdf" required aria-label="Receipt for {{ line.description }}">
           <button class="btn btn-outline-secondary btn-sm text-nowrap">Add receipt</button>
         </form>
+        {% endif %}
         <details><summary class="small">Edit this line</summary>
           {% set lf = {'spent_on': line.spent_on, 'merchant': line.merchant, 'description': line.description,
                        'category_id': line.category_id, 'category': line.category,
@@ -212,12 +211,13 @@
       {% include "expenses/_csrf.html" %}
       {% if claim.kind == 'reimbursement' %}
       <label class="form-label">Receipt photo</label>
-      <input class="form-control" type="file" name="receipts" accept="image/*,application/pdf" multiple>
-      <div class="form-text mb-2">Take a photo or choose a file. Photos and PDFs up to 10 MB.</div>
+      <input class="form-control" type="file" name="receipts" accept="image/*,application/pdf" id="receipt-input">
+      <div class="form-text mb-2">One receipt per expense. Take a photo or choose a file (photo or PDF, up to 10 MB).
+        {% if ai_enabled %}The details below are filled in from it automatically — check them before adding.{% endif %}</div>
       {% if ai_enabled %}
-      <button type="button" class="btn btn-sm btn-outline-primary mb-2 ai-read">
-        <i class="bi bi-magic"></i> Fill in the details from the photo</button>
       <div class="alert alert-info d-none" id="ai-status" role="status"></div>
+      <button type="button" class="btn btn-link btn-sm p-0 mb-2 ai-read d-none" id="reread">
+        <i class="bi bi-magic"></i> Read the receipt again</button>
       {% endif %}
       <hr>
       {% endif %}
@@ -289,32 +289,58 @@
     {% endif %}
   }
 
+  function read(body, button) {
+    if (button) button.disabled = true;
+    say("info", "Reading the document… this takes a few seconds.");
+    fetch(url, {method: "POST", body: body, headers: {"X-CSRFToken": "{{ csrf_token() }}"}})
+      .then(function (r) { return r.json().then(function (d) { return {ok: r.ok, d: d}; }); })
+      .then(function (res) {
+        if (!res.ok) { say("warning", res.d.error || "Couldn't read that. Please fill in the details yourself."); return; }
+        fill(res.d);
+        var note = res.d.document_type === "other"
+          ? "That doesn't look like a receipt or invoice — check everything carefully."
+          : "Filled in from the document. Check the highlighted fields, then {{ 'save the details and add the line' if claim.kind == 'invoice' else 'tap Add' }}.";
+        say(res.d.document_type === "other" ? "warning" : "success", note);
+      })
+      .catch(function () { say("warning", "Couldn't reach the server. Please try again."); })
+      .finally(function () { if (button) button.disabled = false; });
+  }
+
+  function readChosenReceipt(button) {
+    var file = receiptInput && receiptInput.files[0];
+    if (!file) return;
+    var body = new FormData();
+    body.append("file", file);
+    read(body, button);
+    var again = document.getElementById("reread");
+    if (again) again.classList.remove("d-none");
+  }
+
+  var receiptInput = document.getElementById("receipt-input");
+  if (receiptInput) {
+    receiptInput.addEventListener("change", function () { readChosenReceipt(null); });
+  }
+
   document.querySelectorAll(".ai-read").forEach(function (button) {
     button.addEventListener("click", function () {
-      var body = new FormData();
       if (button.dataset.attachmentId) {
+        var body = new FormData();
         body.append("attachment_id", button.dataset.attachmentId);
+        read(body, button);
       } else {
-        var file = lineForm.elements["receipts"].files[0];
-        if (!file) { say("warning", "Choose or take a photo of the receipt first."); return; }
-        body.append("file", file);
+        readChosenReceipt(button);
       }
-      button.disabled = true;
-      say("info", "Reading the document… this takes a few seconds.");
-      fetch(url, {method: "POST", body: body, headers: {"X-CSRFToken": "{{ csrf_token() }}"}})
-        .then(function (r) { return r.json().then(function (d) { return {ok: r.ok, d: d}; }); })
-        .then(function (res) {
-          if (!res.ok) { say("warning", res.d.error || "Couldn't read that. Please fill in the details yourself."); return; }
-          fill(res.d);
-          var note = res.d.document_type === "other"
-            ? "That doesn't look like a receipt or invoice — check everything carefully."
-            : "Filled in from the document. Check the highlighted fields, then save{{ ' details and add the line' if claim.kind == 'invoice' else '' }}.";
-          say(res.d.document_type === "other" ? "warning" : "success", note);
-        })
-        .catch(function () { say("warning", "Couldn't reach the server. Please try again."); })
-        .finally(function () { button.disabled = false; });
     });
   });
+
+  // Just uploaded an invoice: read it straight away.
+  var justUploaded = new URLSearchParams(location.search).get("read");
+  if (justUploaded) {
+    var body = new FormData();
+    body.append("attachment_id", justUploaded);
+    read(body, null);
+    history.replaceState(null, "", location.pathname + location.hash);
+  }
 })();
 </script>
 {% endif %}

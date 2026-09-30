@@ -162,10 +162,13 @@ def claim_update(claim_id):
 def line_add(claim_id):
     claim = editable(claim_id)
     f = _form(LINE_FIELDS)
+    receipts = _real_files('receipts')
     try:
+        if len(receipts) > 1:
+            raise FormError('Attach one receipt per expense. Add each receipt as its own line.')
         line = ExpenseLine(**_line_values(claim, f))
         claim.lines.append(line)
-        _store_files(claim, _real_files('receipts'), line)
+        _store_files(claim, receipts, line)
     except (FormError, storage.UploadError) as exc:
         db.session.rollback()
         return claim_page(load_claim(claim_id), str(exc), 400, line_form=f)
@@ -206,7 +209,8 @@ def line_delete(claim_id, line_id):
 @expenses_bp.route('/claims/<int:claim_id>/files', methods=['POST'])
 @login_required
 def files_add(claim_id):
-    """Attach more files to a line (``line_id``) or to the claim itself."""
+    """Attach the receipt for a line (``line_id``) or the claim's invoice.
+    One file each: to replace it, remove the old one first."""
     claim = editable(claim_id)
     line = None
     line_id = request.form.get('line_id', '')
@@ -217,12 +221,23 @@ def files_add(claim_id):
     uploads = _real_files('files')
     if not uploads:
         return claim_page(claim, 'Choose a file to upload.', 400)
+    if len(uploads) > 1:
+        return claim_page(claim, 'Upload one file at a time.', 400)
+    existing = line.attachments if line else claim.claim_files
+    if existing:
+        what = 'receipt' if line else 'invoice'
+        return claim_page(claim, f'This already has its {what}. Remove it first to replace it.', 400)
     try:
         _store_files(claim, uploads, line)
     except storage.UploadError as exc:
         db.session.rollback()
         return claim_page(load_claim(claim_id), str(exc), 400)
     db.session.commit()
+    if line is None and ai.available():
+        # Read the new invoice straight away (the page runs it on load).
+        new = claim.claim_files[-1]
+        return redirect(url_for('expenses.claim_detail', claim_id=claim.id,
+                                read=new.id, _anchor='files'))
     return see_claim(claim, 'lines' if line else 'files')
 
 
