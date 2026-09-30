@@ -599,3 +599,15 @@ class TestReceiptReading:
         from expenses import ai as ai_module
         with app.app_context():
             assert ai_module.available() is False
+
+
+def test_add_show_command(app, db):
+    from expenses.models import ExpenseShow
+    runner = app.test_cli_runner()
+    r = runner.invoke(args=['expenses', 'add-show', 'Holmes/Poirot', '--season', '2026-27'])
+    assert 'Added Holmes/Poirot (2026-27)' in r.output, r.output
+    r = runner.invoke(args=['expenses', 'add-show', 'Holmes/Poirot', '--season', '2026-27',
+                            '--producer', 'Pat@Example.com'])
+    assert 'already exists' in r.output and 'pat@example.com' in r.output
+    show = ExpenseShow.query.filter_by(name='Holmes/Poirot').one()
+    assert show.qb_class == 'Holmes/Poirot' and show.producer_emails == ['pat@example.com']
