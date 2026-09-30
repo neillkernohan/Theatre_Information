@@ -6,7 +6,7 @@ from flask import abort, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from auth.models import db
-from expenses import access, expenses_bp
+from expenses import access, ai, expenses_bp
 from expenses.models import (INVOICE, KINDS, PAYMENT_METHODS, REIMBURSEMENT, ROLES, STATUSES,
                              ExpenseCategory, ExpenseClaim, ExpenseEvent, ExpenseShow,
                              ExpenseVendor, person_name)
@@ -147,5 +147,6 @@ def claim_page(claim, error=None, status=200, line_form=None):
         problems=submission_problems(claim) if can_edit else [],
         duplicates=duplicate_invoices(claim),
         line_form=line_form or {}, today=date.today().isoformat(),
+        ai_enabled=can_edit and ai.available(),
         **options(claim),
     ), status

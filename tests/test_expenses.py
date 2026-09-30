@@ -436,3 +436,146 @@ class TestSetup:
         assert 'Props' in seed() and seed() == []
         assert ExpenseCategory.query.filter_by(label='Props').one().qb_account == 'Show Expenses:Props'
         assert ExpenseCategory.query.count() == len(CATEGORIES)
+
+
+# ---------------------------------------------------------------------------
+# Reading receipts with AI (Claude is faked — no real API calls)
+# ---------------------------------------------------------------------------
+
+def real_jpeg() -> bytes:
+    from PIL import Image
+    out = io.BytesIO()
+    Image.new('RGB', (3000, 2000), 'white').save(out, 'JPEG')
+    return out.getvalue()
+
+
+class FakeClaude:
+    """Stands in for anthropic.Anthropic(); records the request it was sent."""
+
+    def __init__(self, answer, stop_reason='end_turn'):
+        import json
+        from types import SimpleNamespace
+        self.requests = []
+        self.response = SimpleNamespace(
+            stop_reason=stop_reason,
+            content=[SimpleNamespace(type='text', text=json.dumps(answer))])
+        self.beta = SimpleNamespace(messages=SimpleNamespace(create=self._create))
+
+    def _create(self, **kwargs):
+        self.requests.append(kwargs)
+        return self.response
+
+
+RECEIPT = {'document_type': 'receipt', 'merchant': 'Fabricland', 'date': '2026-09-20',
+           'total': 84.75, 'hst': 9.75, 'description': 'Gold sequin trim',
+           'category': 'Props', 'invoice_number': None, 'due_date': None}
+
+
+@pytest.fixture
+def claude(app, monkeypatch):
+    """Turn the feature on and fake Claude. Call with the answer to return."""
+    monkeypatch.setitem(app.config, 'EXPENSES_AI_ENABLED', True)
+
+    def _fake(answer=RECEIPT, stop_reason='end_turn'):
+        fake = FakeClaude(answer, stop_reason)
+        monkeypatch.setattr('expenses.ai._client', lambda: fake)
+        return fake
+    return _fake
+
+
+def extract(c, claim_id, file=None, attachment_id=None):
+    data = {'attachment_id': str(attachment_id)} if attachment_id else {}
+    if file:
+        data['file'] = (io.BytesIO(file[1]), file[0])
+    return c.post(f'/expenses/claims/{claim_id}/extract', data=data,
+                  content_type='multipart/form-data')
+
+
+class TestReceiptReading:
+    def test_off_without_api_key(self, app, db, org, as_user, monkeypatch):
+        monkeypatch.setitem(app.config, 'EXPENSES_AI_ENABLED', False)
+        c = as_user('vol@example.com')
+        claim_id = new_claim(c)
+        assert extract(c, claim_id, file=('r.jpg', real_jpeg())).status_code == 404
+        assert 'Fill in the details from the photo' not in text(c.get(f'/expenses/claims/{claim_id}'))
+
+    def test_reads_receipt_photo(self, db, org, as_user, claude):
+        fake = claude()
+        c = as_user('vol@example.com')
+        claim_id = new_claim(c)
+        assert 'Fill in the details from the photo' in text(c.get(f'/expenses/claims/{claim_id}'))
+
+        r = extract(c, claim_id, file=('r.jpg', real_jpeg()))
+        assert r.status_code == 200, r.get_data(as_text=True)
+        d = r.get_json()
+        assert (d['merchant'], d['date'], d['total'], d['hst']) == \
+            ('Fabricland', '2026-09-20', '84.75', '9.75')
+        assert d['category_id'] == org['props']
+
+        sent = fake.requests[0]
+        assert sent['model'] == 'claude-opus-5'
+        assert sent['fallbacks'] == 'default'
+        image = sent['messages'][0]['content'][0]
+        assert image['type'] == 'image' and image['source']['media_type'] == 'image/jpeg'
+        # Big phone photos are shrunk before sending.
+        from PIL import Image
+        import base64
+        sent_img = Image.open(io.BytesIO(base64.b64decode(image['source']['data'])))
+        assert max(sent_img.size) <= 1568
+        # Only this theatre's categories are allowed as answers.
+        category_schema = sent['output_config']['format']['schema']['properties']['category']
+        assert set(category_schema['anyOf'][0]['enum']) == {'Props', 'Lighting'}
+        # Nothing was saved.
+        assert claim(db, claim_id).lines == []
+
+    def test_reads_attached_invoice_and_matches_vendor(self, db, org, as_user, claude):
+        fake = claude({**RECEIPT, 'document_type': 'invoice', 'merchant': 'stage lights inc',
+                       'invoice_number': 'INV-42', 'due_date': '2026-10-31',
+                       'category': 'Lighting'})
+        c = as_user('vol@example.com')
+        claim_id = new_claim(c, kind='invoice')
+        c.post(f'/expenses/claims/{claim_id}/files', data={'files': [(io.BytesIO(PDF), 'i.pdf')]},
+               content_type='multipart/form-data')
+        attachment_id = claim(db, claim_id).attachments[0].id
+        assert 'Fill in from this invoice' in text(c.get(f'/expenses/claims/{claim_id}'))
+
+        d = extract(c, claim_id, attachment_id=attachment_id).get_json()
+        assert d['vendor_id'] == org['vendor']
+        assert (d['invoice_number'], d['due_date']) == ('INV-42', '2026-10-31')
+        assert fake.requests[0]['messages'][0]['content'][0]['type'] == 'document'
+
+    def test_only_owner_while_editable(self, db, org, as_user, claude, outbox):
+        claude()
+        c = as_user('vol@example.com')
+        draft = new_claim(c)
+        submitted = submit(c, org)
+        assert extract(c, submitted, file=('r.jpg', real_jpeg())).status_code == 409
+        other = as_user('rando@example.com')
+        assert extract(other, draft, file=('r.jpg', real_jpeg())).status_code == 403
+
+    def test_rejects_non_image(self, db, org, as_user, claude):
+        claude()
+        c = as_user('vol@example.com')
+        r = extract(c, new_claim(c), file=('notes.txt', b'hello'))
+        assert r.status_code == 400 and "isn't a photo" in r.get_json()['error']
+
+    def test_refusal_gives_friendly_error(self, db, org, as_user, claude):
+        claude(stop_reason='refusal')
+        c = as_user('vol@example.com')
+        r = extract(c, new_claim(c), file=('r.jpg', real_jpeg()))
+        assert r.status_code == 422 and 'fill in the details yourself' in r.get_json()['error']
+
+    def test_answer_is_sanitised(self, app):
+        from expenses.ai import _clean
+        with app.app_context():
+            d = _clean({'total': 10, 'hst': 20, 'date': '2026-13-45', 'category': 'Snacks',
+                        'merchant': '  Rona  ', 'description': None}, ['Props'])
+        assert d['hst'] is None and d['date'] is None and d['category'] is None
+        assert (d['total'], d['merchant']) == ('10.00', 'Rona')
+
+    def test_real_sdk_client_builds(self, app):
+        """Guards against dependency clashes (e.g. an old trio pin breaks the
+        SDK's HTTP layer on Python 3.13) that the fake client would hide."""
+        from expenses.ai import _client
+        with app.app_context():
+            assert _client() is not None

@@ -54,8 +54,8 @@ def path_for(stored_name: str) -> Path:
     return upload_root() / stored_name
 
 
-def save(upload: FileStorage) -> tuple[str, str, int]:
-    """Validate and store an upload. Returns (stored_name, content_type, size)."""
+def read_valid(upload: FileStorage) -> tuple[bytes, str]:
+    """Read and validate an upload without storing it. Returns (data, content_type)."""
     limit = _max_mb() * 1024 * 1024
     data = upload.stream.read(limit + 1)
     if not data:
@@ -65,7 +65,12 @@ def save(upload: FileStorage) -> tuple[str, str, int]:
     content_type = _sniff(data[:16])
     if content_type is None:
         raise UploadError(f"“{upload.filename}” isn't a photo (JPEG, PNG, HEIC, WebP) or PDF.")
+    return data, content_type
 
+
+def save(upload: FileStorage) -> tuple[str, str, int]:
+    """Validate and store an upload. Returns (stored_name, content_type, size)."""
+    data, content_type = read_valid(upload)
     stored_name = secrets.token_hex(16) + EXTENSIONS[content_type]
     path_for(stored_name).write_bytes(data)
     return stored_name, content_type, len(data)

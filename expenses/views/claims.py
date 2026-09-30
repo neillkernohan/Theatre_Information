@@ -1,11 +1,11 @@
 """Creating, editing, submitting and reviewing claims; serving their files."""
 from datetime import date, datetime
 
-from flask import abort, redirect, render_template, request, send_file, url_for
+from flask import abort, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 
 from auth.models import db
-from expenses import access, expenses_bp, notify, storage
+from expenses import access, ai, expenses_bp, notify, storage
 from expenses.models import (APPROVED, DRAFT, INVOICE, KINDS, REIMBURSEMENT, REJECTED, RETURNED,
                              SIGNED_OFF, SUBMITTED, ExpenseAttachment, ExpenseCategory,
                              ExpenseClaim, ExpenseLine, ExpenseShow, ExpenseVendor, person_name)
@@ -320,6 +320,50 @@ def claim_review(claim_id):
                             f"It won't be paid. Questions? Contact {person_name(current_user)} "
                             f'at {current_user.email}.')
     return redirect(url_for('expenses.approvals'))
+
+
+# ---------------------------------------------------------------------------
+# Read a receipt / invoice with AI (pre-fills the forms; nothing is saved)
+# ---------------------------------------------------------------------------
+
+@expenses_bp.route('/claims/<int:claim_id>/extract', methods=['POST'])
+@login_required
+def claim_extract(claim_id):
+    """Suggest form values from a new photo (``file``) or an attached file
+    (``attachment_id``). Only the claim's owner, while it's editable."""
+    if not ai.available():
+        abort(404)
+    claim = editable(claim_id)
+
+    attachment_id = request.form.get('attachment_id', '')
+    try:
+        if attachment_id:
+            attachment = next((a for a in claim.attachments if str(a.id) == attachment_id), None)
+            if attachment is None:
+                abort(404)
+            data = storage.path_for(attachment.stored_name).read_bytes()
+            content_type = attachment.content_type
+        else:
+            upload = request.files.get('file')
+            if not upload or not upload.filename:
+                return jsonify(error='Choose a photo or PDF first.'), 400
+            data, content_type = storage.read_valid(upload)
+    except storage.UploadError as exc:
+        return jsonify(error=str(exc)), 400
+
+    categories = ExpenseCategory.query.filter_by(active=True).all()
+    try:
+        fields = ai.extract(data, content_type, [c.label for c in categories])
+    except ai.ExtractionError as exc:
+        return jsonify(error=str(exc)), 422
+
+    by_label = {c.label: c.id for c in categories}
+    fields['category_id'] = by_label.get(fields['category'])
+    if claim.kind == INVOICE and fields['merchant']:
+        vendor = (ExpenseVendor.query.filter_by(active=True)
+                  .filter(db.func.lower(ExpenseVendor.name) == fields['merchant'].lower()).first())
+        fields['vendor_id'] = vendor.id if vendor else None
+    return jsonify(fields)
 
 
 # ---------------------------------------------------------------------------

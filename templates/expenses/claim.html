@@ -117,6 +117,15 @@
     <p class="fw-semibold mb-1">Invoice copy</p>
     {% set files = claim.claim_files %}
     {% if files %}{% include "expenses/_files.html" %}{% elif not can_edit %}<p class="text-muted">None attached.</p>{% endif %}
+    {% if ai_enabled and files %}
+    <div class="mb-2">
+      {% for f in files %}
+      <button type="button" class="btn btn-sm btn-outline-primary ai-read" data-attachment-id="{{ f.id }}">
+        <i class="bi bi-magic"></i> Fill in from {{ f.original_name if files | length > 1 else 'this invoice' }}</button>
+      {% endfor %}
+      <div class="alert alert-info d-none mt-2" id="ai-status" role="status"></div>
+    </div>
+    {% endif %}
     {% if can_edit %}
     <form method="post" action="{{ url_for('expenses.files_add', claim_id=claim.id) }}" enctype="multipart/form-data" class="d-flex gap-2">
       {% include "expenses/_csrf.html" %}
@@ -129,14 +138,14 @@
 {% endif %}
 
 {% if can_edit %}
-<details class="mb-3">
+<details class="mb-3" id="edit-details">
   <summary>Edit details</summary>
   {% set kind = claim.kind %}
   {% set form = {'title': claim.title, 'show_id': claim.show_id or '',
                  'vendor': ('other' if claim.vendor_other else (claim.vendor_id or '')),
                  'vendor_other': claim.vendor_other, 'invoice_number': claim.invoice_number,
                  'invoice_date': claim.invoice_date, 'due_date': claim.due_date} %}
-  <form method="post" action="{{ url_for('expenses.claim_update', claim_id=claim.id) }}" class="card card-body mt-2">
+  <form method="post" action="{{ url_for('expenses.claim_update', claim_id=claim.id) }}" class="card card-body mt-2" id="header-form">
     {% include "expenses/_csrf.html" %}
     {% include "expenses/_header_fields.html" %}
     <div><button class="btn btn-outline-secondary">Save details</button></div>
@@ -199,15 +208,21 @@
 <div class="card mb-3">
   <div class="card-header fw-semibold">Add {{ 'a receipt' if claim.kind == 'reimbursement' else 'a line item' }}</div>
   <div class="card-body">
-    <form method="post" action="{{ url_for('expenses.line_add', claim_id=claim.id) }}" enctype="multipart/form-data">
+    <form method="post" action="{{ url_for('expenses.line_add', claim_id=claim.id) }}" enctype="multipart/form-data" id="line-form">
       {% include "expenses/_csrf.html" %}
-      {% set lf = line_form %}
-      {% include "expenses/_line_fields.html" %}
       {% if claim.kind == 'reimbursement' %}
       <label class="form-label">Receipt photo</label>
       <input class="form-control" type="file" name="receipts" accept="image/*,application/pdf" multiple>
       <div class="form-text mb-2">Take a photo or choose a file. Photos and PDFs up to 10 MB.</div>
+      {% if ai_enabled %}
+      <button type="button" class="btn btn-sm btn-outline-primary mb-2 ai-read">
+        <i class="bi bi-magic"></i> Fill in the details from the photo</button>
+      <div class="alert alert-info d-none" id="ai-status" role="status"></div>
       {% endif %}
+      <hr>
+      {% endif %}
+      {% set lf = line_form %}
+      {% include "expenses/_line_fields.html" %}
       <button class="btn btn-primary">Add</button>
     </form>
   </div>
@@ -233,6 +248,75 @@
     </div>
   </div>
 </div>
+{% endif %}
+
+{% if ai_enabled %}
+<script>
+(function () {
+  var url = "{{ url_for('expenses.claim_extract', claim_id=claim.id) }}";
+  var status = document.getElementById("ai-status");
+  var lineForm = document.getElementById("line-form");
+  var headerForm = document.getElementById("header-form");
+
+  function say(kind, text) {
+    if (!status) return;
+    status.className = "alert alert-" + kind;
+    status.textContent = text;
+    status.scrollIntoView({block: "nearest"});
+  }
+  function put(form, name, value) {
+    var field = form && form.elements[name];
+    if (!field || value === null || value === undefined || value === "") return;
+    field.value = value;
+    field.classList.add("border-primary", "border-2");
+    field.dispatchEvent(new Event("change"));
+  }
+
+  function fill(d) {
+    put(lineForm, "spent_on", d.date);
+    put(lineForm, "merchant", d.merchant);
+    put(lineForm, "description", d.description);
+    put(lineForm, "category_id", d.category_id);
+    put(lineForm, "total", d.total);
+    put(lineForm, "hst", d.hst);
+    {% if claim.kind == 'invoice' %}
+    if (d.vendor_id) { put(headerForm, "vendor", d.vendor_id); }
+    else if (d.merchant) { put(headerForm, "vendor", "other"); put(headerForm, "vendor_other", d.merchant); }
+    put(headerForm, "invoice_number", d.invoice_number);
+    put(headerForm, "invoice_date", d.date);
+    put(headerForm, "due_date", d.due_date);
+    document.getElementById("edit-details").open = true;
+    {% endif %}
+  }
+
+  document.querySelectorAll(".ai-read").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var body = new FormData();
+      if (button.dataset.attachmentId) {
+        body.append("attachment_id", button.dataset.attachmentId);
+      } else {
+        var file = lineForm.elements["receipts"].files[0];
+        if (!file) { say("warning", "Choose or take a photo of the receipt first."); return; }
+        body.append("file", file);
+      }
+      button.disabled = true;
+      say("info", "Reading the document… this takes a few seconds.");
+      fetch(url, {method: "POST", body: body, headers: {"X-CSRFToken": "{{ csrf_token() }}"}})
+        .then(function (r) { return r.json().then(function (d) { return {ok: r.ok, d: d}; }); })
+        .then(function (res) {
+          if (!res.ok) { say("warning", res.d.error || "Couldn't read that. Please fill in the details yourself."); return; }
+          fill(res.d);
+          var note = res.d.document_type === "other"
+            ? "That doesn't look like a receipt or invoice — check everything carefully."
+            : "Filled in from the document. Check the highlighted fields, then save{{ ' details and add the line' if claim.kind == 'invoice' else '' }}.";
+          say(res.d.document_type === "other" ? "warning" : "success", note);
+        })
+        .catch(function () { say("warning", "Couldn't reach the server. Please try again."); })
+        .finally(function () { button.disabled = false; });
+    });
+  });
+})();
+</script>
 {% endif %}
 
 {# ------------------------------------------------------------ History #}
