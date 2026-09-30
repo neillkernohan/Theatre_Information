@@ -3,8 +3,11 @@
 The result only pre-fills the claim forms; the submitter checks it and saves
 as usual, so a misread never reaches approval unseen.
 
-Enabled when ANTHROPIC_API_KEY is set (e.g. in .env). Receipts are sent to
-Anthropic's API for processing.
+Enabled when ANTHROPIC_API_KEY is set (e.g. in .env) and the ``anthropic``
+package is installed. Receipts are sent to Anthropic's API for processing.
+
+``anthropic`` is imported lazily: this module is loaded at app start-up, and
+a missing optional package must never take the rest of the site down.
 """
 import base64
 import io
@@ -12,8 +15,8 @@ import json
 import os
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from importlib.util import find_spec
 
-import anthropic
 from flask import current_app
 
 MODEL = 'claude-opus-5'
@@ -46,11 +49,14 @@ class ExtractionError(Exception):
 
 
 def available() -> bool:
+    if find_spec('anthropic') is None:
+        return False
     return bool(current_app.config.get('EXPENSES_AI_ENABLED',
                                        os.getenv('ANTHROPIC_API_KEY')))
 
 
-def _client() -> anthropic.Anthropic:
+def _client():
+    import anthropic
     return anthropic.Anthropic(timeout=90.0, max_retries=2)
 
 
@@ -136,6 +142,7 @@ def _clean(raw: dict, categories: list[str]) -> dict:
 
 def extract(data: bytes, content_type: str, categories: list[str]) -> dict:
     """Read one receipt/invoice. Raises ExtractionError with a friendly message."""
+    import anthropic
     block = _document_block(data, content_type)
     try:
         response = _client().beta.messages.create(

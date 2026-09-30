@@ -579,3 +579,23 @@ class TestReceiptReading:
         from expenses.ai import _client
         with app.app_context():
             assert _client() is not None
+
+    def test_site_loads_without_anthropic_package(self):
+        """A server that hasn't installed the SDK yet must keep working. app.py
+        disables auth/auditions/inventory/expenses together if any of their
+        imports fail, so importing expenses must not need ``anthropic``."""
+        import subprocess
+        import sys
+        code = ("import sys; sys.modules['anthropic'] = None; "
+                "import expenses, expenses.views.claims; print('ok')")
+        root = Path(__file__).resolve().parent.parent
+        result = subprocess.run([sys.executable, '-c', code], cwd=root,
+                                capture_output=True, text=True, timeout=120)
+        assert result.stdout.strip() == 'ok', result.stderr
+
+    def test_buttons_hidden_without_anthropic_package(self, app, monkeypatch):
+        monkeypatch.setitem(app.config, 'EXPENSES_AI_ENABLED', True)
+        monkeypatch.setattr('expenses.ai.find_spec', lambda name: None)
+        from expenses import ai as ai_module
+        with app.app_context():
+            assert ai_module.available() is False
