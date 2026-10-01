@@ -59,7 +59,8 @@ def hst_check(subtotal_cents: int, hst_cents: int) -> str:
     if not hst_cents:
         return ""
     rate = HST_RATE_PERCENT
-    expected = (subtotal_cents * rate + 50) // 100
+    sign = -1 if subtotal_cents < 0 else 1          # refunds: same check, mirrored
+    expected = sign * ((abs(subtotal_cents) * rate + 50) // 100)
     if abs(hst_cents - expected) <= 1:
         return ""
     return f"HST isn't {rate}% of subtotal (expected {_amount(expected)}) - adjust tax in QB"

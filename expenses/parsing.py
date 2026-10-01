@@ -9,8 +9,9 @@ class FormError(ValueError):
     pass
 
 
-def parse_money(value: str, field: str, allow_zero: bool = False) -> int:
-    """'$1,234.56' → 123456 cents."""
+def parse_money(value: str, field: str, allow_zero: bool = False,
+                allow_negative: bool = False) -> int:
+    """'$1,234.56' → 123456 cents; '-$24.99' → -2499 when negatives are allowed."""
     cleaned = value.strip().replace("$", "").replace(",", "")
     if not cleaned:
         if allow_zero:
@@ -22,7 +23,10 @@ def parse_money(value: str, field: str, allow_zero: bool = False) -> int:
         raise FormError(f"{field} must be an amount like 12.34.")
     if amount != amount.quantize(Decimal("0.01")):
         raise FormError(f"{field} can't have more than two decimal places.")
-    if amount < 0 or (amount == 0 and not allow_zero):
+    if amount == 0 and not allow_zero:
+        raise FormError(f"{field} can't be zero." if allow_negative
+                        else f"{field} must be more than zero.")
+    if amount < 0 and not allow_negative:
         raise FormError(f"{field} must be more than zero.")
     return int(amount * 100)
 

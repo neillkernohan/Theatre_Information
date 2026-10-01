@@ -168,7 +168,10 @@ class TestClaims:
 
     @pytest.mark.parametrize('overrides, message', [
         ({'total': 'abc'}, 'must be an amount'),
-        ({'total': '0'}, 'more than zero'),
+        ({'total': '0'}, "can't be zero"),
+        ({'total': '-10', 'hst': '1.30'}, 'HST as a negative amount too'),
+        ({'total': '10', 'hst': '-1'}, "HST can't be negative on a purchase"),
+        ({'total': '-10', 'hst': '-20'}, "HST can't be more than the total"),
         ({'total': '10.005'}, 'two decimal places'),
         ({'hst': '20', 'total': '10'}, "HST can't be more than the total"),
         ({'spent_on': (TODAY + timedelta(days=2)).isoformat()}, "can't be in the future"),
@@ -667,3 +670,39 @@ def test_workspace_header_from_env(app, monkeypatch):
     assert _client().default_headers['anthropic-workspace-id'] == 'wrkspc_test'
     monkeypatch.delenv('ANTHROPIC_WORKSPACE_ID')
     assert 'anthropic-workspace-id' not in _client().default_headers
+
+
+class TestRefunds:
+    def test_refund_line_reduces_the_claim(self, db, org, as_user, outbox):
+        c = as_user('vol@example.com')
+        claim_id = new_claim(c)
+        add_line(c, claim_id, org['props'], files=[('r.jpg', JPEG)])            # +113.00
+        r = add_line(c, claim_id, org['props'], files=[('refund.jpg', JPEG)],
+                     description='Returned lumber', total='-$22.60', hst='-2.60')
+        assert r.status_code == 302, text(r)
+        cl = claim(db, claim_id)
+        assert [l.total_cents for l in cl.lines] == [11300, -2260]
+        assert (cl.total_cents, cl.hst_cents) == (9040, 1040)
+        assert '-$22.60' in text(c.get(f'/expenses/claims/{claim_id}'))
+        assert c.post(f'/expenses/claims/{claim_id}/submit').status_code == 302
+
+    def test_claim_cannot_total_zero_or_less(self, db, org, as_user):
+        c = as_user('vol@example.com')
+        claim_id = new_claim(c)
+        add_line(c, claim_id, org['props'], files=[('refund.jpg', JPEG)],
+                 total='-10', hst='0')
+        r = c.post(f'/expenses/claims/{claim_id}/submit')
+        assert r.status_code == 400 and 'total must be more than zero' in text(r)
+
+    def test_refund_exports_negative_with_matching_hst_check(self, app):
+        from expenses.export import hst_check
+        with app.app_context():
+            assert hst_check(-2000, -260) == ''           # exactly 13%, mirrored
+            assert hst_check(-2000, -100) != ''
+
+    def test_ai_keeps_refund_amounts(self, app):
+        from expenses.ai import _clean
+        with app.app_context():
+            d = _clean({'total': -22.6, 'hst': -2.6}, [])
+            assert (d['total'], d['hst']) == ('-22.60', '-2.60')
+            assert _clean({'total': -22.6, 'hst': 2.6}, [])['hst'] is None   # sign mismatch

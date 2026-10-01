@@ -18,7 +18,8 @@
     {% if lf.category and lf.category not in categories %}<option value="{{ lf.category.id }}" selected>{{ lf.category.label }}</option>{% endif %}
   </select></div>
 <div class="row g-2 mb-2">
-  <div class="col"><label class="form-label">Total {{ 'paid' if claim.kind == 'reimbursement' }} (incl. tax)</label>
+  <div class="col"><label class="form-label">Total {{ 'paid' if claim.kind == 'reimbursement' }} (incl. tax)
+    <small class="text-muted">— negative for a refund</small></label>
     <input class="form-control" name="total" inputmode="decimal" value="{{ lf.total or '' }}" placeholder="0.00" required></div>
   <div class="col"><label class="form-label">HST <small class="text-muted">(0 if none)</small></label>
     <input class="form-control" name="hst" inputmode="decimal" value="{{ lf.hst or '' }}" placeholder="0.00"></div>

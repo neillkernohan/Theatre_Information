@@ -33,9 +33,11 @@ Fill each field only from what the document shows; use null when a value is \
 missing or unreadable rather than guessing.
 - date: the purchase date (receipts) or invoice date (invoices), YYYY-MM-DD.
 - merchant: the store or business name.
-- total: the final amount paid or owing, including tax.
-- hst: the HST (or GST + PST) amount printed on the document. Use 0 when it \
-clearly shows no tax. Don't calculate it yourself when it isn't printed.
+- total: the final amount paid or owing, including tax. For a refund or \
+return receipt, give it as a negative number.
+- hst: the HST (or GST + PST) amount printed on the document, negative on a \
+refund. Use 0 when it clearly shows no tax. Don't calculate it yourself when \
+it isn't printed.
 - description: a short plain summary of what was bought (under 80 characters).
 - category: the best match from the allowed list for what was bought, or null \
 if none fits.
@@ -116,7 +118,7 @@ def _money(value) -> str | None:
         amount = Decimal(str(value)).quantize(CURRENCY_Q)
     except InvalidOperation:
         return None
-    return str(amount) if amount >= 0 else None
+    return str(amount)                     # negative = refund
 
 
 def _date(value) -> str | None:
@@ -129,8 +131,10 @@ def _date(value) -> str | None:
 def _clean(raw: dict, categories: list[str]) -> dict:
     """Normalise the model's answer into form-ready strings."""
     total, hst = _money(raw.get('total')), _money(raw.get('hst'))
-    if total and hst and Decimal(hst) > Decimal(total):
-        hst = None
+    if total and hst:
+        t, h = Decimal(total), Decimal(hst)
+        if abs(h) > abs(t) or (h and (h < 0) != (t < 0)):
+            hst = None                     # inconsistent: let the person enter it
     return {
         'document_type': raw.get('document_type'),
         'merchant': (raw.get('merchant') or '').strip()[:255] or None,

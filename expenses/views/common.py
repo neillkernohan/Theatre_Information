@@ -119,6 +119,8 @@ def submission_problems(claim) -> list[str]:
     problems = []
     if not claim.lines:
         problems.append('Add at least one expense line.')
+    elif claim.total_cents <= 0:
+        problems.append('The total must be more than zero. Refunds can only reduce a claim.')
     if claim.show is not None and not claim.show.active:
         problems.append(f'{claim.show.name} is no longer taking claims. '
                         'Choose another show or General.')

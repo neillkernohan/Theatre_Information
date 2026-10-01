@@ -82,14 +82,19 @@ def _line_values(claim, f) -> dict:
         'spent_on': parse_date(f['spent_on'], 'Date'),
         'merchant': f['merchant'].strip()[:255] or None,
         'description': f['description'].strip()[:500],
-        'total_cents': parse_money(f['total'], 'Total paid'),
-        'hst_cents': parse_money(f['hst'], 'HST', allow_zero=True),
+        # Negative amounts are refunds/returns; HST then follows the total's sign.
+        'total_cents': parse_money(f['total'], 'Total', allow_negative=True),
+        'hst_cents': parse_money(f['hst'], 'HST', allow_zero=True, allow_negative=True),
     }
     if values['spent_on'] > date.today():
         raise FormError("The date can't be in the future.")
     if not values['description']:
         raise FormError('Describe what was bought.')
-    if values['hst_cents'] > values['total_cents']:
+    total, hst = values['total_cents'], values['hst_cents']
+    if hst and (hst < 0) != (total < 0):
+        raise FormError('For a refund, enter the HST as a negative amount too.'
+                        if total < 0 else "HST can't be negative on a purchase.")
+    if abs(hst) > abs(total):
         raise FormError("HST can't be more than the total.")
     cid = f['category_id']
     category = db.session.get(ExpenseCategory, int(cid)) if cid.isdigit() else None
