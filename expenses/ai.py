@@ -57,7 +57,11 @@ def available() -> bool:
 
 def _client():
     import anthropic
-    return anthropic.Anthropic(timeout=90.0, max_retries=2)
+    # Keys that work in several workspaces must name one on every request;
+    # single-workspace keys don't need it.
+    workspace = os.getenv('ANTHROPIC_WORKSPACE_ID')
+    headers = {'anthropic-workspace-id': workspace} if workspace else None
+    return anthropic.Anthropic(timeout=90.0, max_retries=2, default_headers=headers)
 
 
 def _schema(categories: list[str]) -> dict:

@@ -658,3 +658,12 @@ def test_drop_zone_only_while_editable(db, org, as_user, outbox):
 
     invoice = new_claim(as_user('vol@example.com'), kind='invoice')
     assert 'Drop the invoice here' in text(c.get(f'/expenses/claims/{invoice}'))
+
+
+def test_workspace_header_from_env(app, monkeypatch):
+    from expenses.ai import _client
+    monkeypatch.setenv('ANTHROPIC_API_KEY', 'test-key')
+    monkeypatch.setenv('ANTHROPIC_WORKSPACE_ID', 'wrkspc_test')
+    assert _client().default_headers['anthropic-workspace-id'] == 'wrkspc_test'
+    monkeypatch.delenv('ANTHROPIC_WORKSPACE_ID')
+    assert 'anthropic-workspace-id' not in _client().default_headers
