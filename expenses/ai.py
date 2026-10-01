@@ -160,21 +160,21 @@ def extract(data: bytes, content_type: str, categories: list[str]) -> dict:
             ]}],
         )
     except anthropic.RateLimitError:
-        raise ExtractionError('The receipt reader is busy. Please try again in a minute.')
+        raise ExtractionError('The document reader is busy. Please try again in a minute.')
     except anthropic.APIConnectionError:
-        raise ExtractionError("Couldn't reach the receipt reader. Please try again.")
+        raise ExtractionError("Couldn't reach the document reader. Please try again.")
     except anthropic.APIStatusError as exc:
         current_app.logger.error('Receipt extraction failed (%s): %s', exc.status_code, exc.message)
-        raise ExtractionError("The receipt couldn't be read. Please fill in the details yourself.")
+        raise ExtractionError("That document couldn't be read. Please fill in the details yourself.")
 
     if response.stop_reason in ('refusal', 'max_tokens'):
         current_app.logger.warning('Receipt extraction stopped: %s', response.stop_reason)
-        raise ExtractionError("The receipt couldn't be read. Please fill in the details yourself.")
+        raise ExtractionError("That document couldn't be read. Please fill in the details yourself.")
     text = next((b.text for b in response.content if b.type == 'text'), None)
     try:
         raw = json.loads(text) if text else None
     except json.JSONDecodeError:
         raw = None
     if not isinstance(raw, dict):
-        raise ExtractionError("The receipt couldn't be read. Please fill in the details yourself.")
+        raise ExtractionError("That document couldn't be read. Please fill in the details yourself.")
     return _clean(raw, categories)

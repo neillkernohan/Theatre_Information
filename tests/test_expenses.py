@@ -643,3 +643,18 @@ class TestOneFilePerExpense:
         r = upload()
         assert r.status_code == 400 and 'already has its invoice' in text(r)
         assert len(claim(db, claim_id).claim_files) == 1
+
+
+def test_drop_zone_only_while_editable(db, org, as_user, outbox):
+    c = as_user('vol@example.com')
+    draft = new_claim(c)
+    page = text(c.get(f'/expenses/claims/{draft}'))
+    assert 'id="drop-overlay"' in page and 'Drop the receipt here' in page
+
+    submitted = submit(c, org)
+    assert 'id="drop-overlay"' not in text(c.get(f'/expenses/claims/{submitted}'))
+    # Reviewers looking at someone else's claim get no drop zone either.
+    assert 'id="drop-overlay"' not in text(as_user('vp@example.com').get(f'/expenses/claims/{submitted}'))
+
+    invoice = new_claim(as_user('vol@example.com'), kind='invoice')
+    assert 'Drop the invoice here' in text(c.get(f'/expenses/claims/{invoice}'))

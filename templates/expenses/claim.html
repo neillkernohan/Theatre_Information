@@ -123,12 +123,12 @@
       <i class="bi bi-magic"></i> Read the invoice again</button>
     {% endif %}
     {% if can_edit and not files %}
-    <form method="post" action="{{ url_for('expenses.files_add', claim_id=claim.id) }}" enctype="multipart/form-data" class="d-flex gap-2">
+    <form method="post" action="{{ url_for('expenses.files_add', claim_id=claim.id) }}" enctype="multipart/form-data" class="d-flex gap-2" id="invoice-upload">
       {% include "expenses/_csrf.html" %}
       <input class="form-control" type="file" name="files" accept="image/*,application/pdf" required aria-label="Invoice file">
       <button class="btn btn-outline-secondary">Upload</button>
     </form>
-    {% if ai_enabled %}<div class="form-text">Once uploaded, the invoice is read and the details filled in for you to check.</div>{% endif %}
+    <div class="form-text">Or drag the invoice onto this page.{% if ai_enabled %} Once uploaded, it's read and the details filled in for you to check.{% endif %}</div>
     {% endif %}
   </div>
 </div>
@@ -166,7 +166,7 @@
       {% if can_edit %}
         {% if claim.kind == 'reimbursement' and not line.attachments %}
         <p class="text-warning fw-semibold mb-1">Needs a receipt photo</p>
-        <form method="post" action="{{ url_for('expenses.files_add', claim_id=claim.id) }}" enctype="multipart/form-data" class="d-flex gap-2 mb-2">
+        <form method="post" action="{{ url_for('expenses.files_add', claim_id=claim.id) }}" enctype="multipart/form-data" class="d-flex gap-2 mb-2" data-drop-line="{{ line.id }}">
           {% include "expenses/_csrf.html" %}
           <input type="hidden" name="line_id" value="{{ line.id }}">
           <input class="form-control form-control-sm" type="file" name="files" accept="image/*,application/pdf" required aria-label="Receipt for {{ line.description }}">
@@ -212,7 +212,7 @@
       {% if claim.kind == 'reimbursement' %}
       <label class="form-label">Receipt photo</label>
       <input class="form-control" type="file" name="receipts" accept="image/*,application/pdf" id="receipt-input">
-      <div class="form-text mb-2">One receipt per expense. Take a photo or choose a file (photo or PDF, up to 10 MB).
+      <div class="form-text mb-2">One receipt per expense. Take a photo, choose a file, or drag it onto this page (photo or PDF, up to 10 MB).
         {% if ai_enabled %}The details below are filled in from it automatically — check them before adding.{% endif %}</div>
       {% if ai_enabled %}
       <div class="alert alert-info d-none" id="ai-status" role="status"></div>
@@ -248,6 +248,82 @@
     </div>
   </div>
 </div>
+{% endif %}
+
+{% if can_edit %}
+{% set noun = 'invoice' if claim.kind == 'invoice' else 'receipt' %}
+<div class="drop-overlay d-none" id="drop-overlay" aria-hidden="true"><div>Drop the {{ noun }} here</div></div>
+<div class="drop-toast alert d-none" id="drop-toast" role="status"></div>
+<script>
+(function () {
+  var overlay = document.getElementById("drop-overlay");
+  var toast = document.getElementById("drop-toast");
+  var depth = 0, timer;
+
+  function hasFiles(e) {
+    return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, "Files") !== -1;
+  }
+  function tell(kind, text) {
+    toast.className = "drop-toast alert alert-" + kind;
+    toast.textContent = text;
+    clearTimeout(timer);
+    timer = setTimeout(function () { toast.classList.add("d-none"); }, 6000);
+  }
+  function usable(file) {
+    return /^image\//.test(file.type) || file.type === "application/pdf" ||
+           /\.(jpe?g|png|webp|heic|heif|pdf)$/i.test(file.name);
+  }
+  function put(input, file) {
+    var dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+  }
+  function hide() { depth = 0; overlay.classList.add("d-none"); }
+
+  window.addEventListener("dragenter", function (e) {
+    if (!hasFiles(e)) return;
+    depth++;
+    overlay.classList.remove("d-none");
+  });
+  window.addEventListener("dragleave", function (e) {
+    if (!hasFiles(e)) return;
+    depth = Math.max(0, depth - 1);
+    if (!depth) overlay.classList.add("d-none");
+  });
+  window.addEventListener("dragover", function (e) { if (hasFiles(e)) e.preventDefault(); });
+  window.addEventListener("drop", function (e) {
+    if (!hasFiles(e)) return;
+    e.preventDefault();            // never let the browser open the file instead
+    hide();
+    var files = e.dataTransfer.files;
+    if (files.length !== 1) { tell("warning", "Drop one {{ noun }} at a time."); return; }
+    var file = files[0];
+    if (!usable(file)) { tell("warning", "\u201c" + file.name + "\u201d isn't a photo or PDF."); return; }
+
+    // Dropped on an existing line that still needs its receipt: attach it there.
+    var lineForm = e.target.closest && e.target.closest("[data-drop-line]");
+    if (lineForm) {
+      put(lineForm.querySelector("input[type=file]"), file);
+      tell("info", "Attaching " + file.name + "\u2026");
+      lineForm.submit();
+      return;
+    }
+    {% if claim.kind == 'invoice' %}
+    var upload = document.getElementById("invoice-upload");
+    if (!upload) { tell("warning", "This already has its invoice. Remove it first to replace it."); return; }
+    put(upload.querySelector("input[type=file]"), file);
+    tell("info", "Uploading " + file.name + "\u2026");
+    upload.submit();
+    {% else %}
+    var input = document.getElementById("receipt-input");
+    put(input, file);
+    input.dispatchEvent(new Event("change"));
+    document.getElementById("line-form").scrollIntoView({behavior: "smooth", block: "start"});
+    tell("success", "\u201c" + file.name + "\u201d added. {{ 'Reading it now\u2026' if ai_enabled else 'Fill in the details, then tap Add.' }}");
+    {% endif %}
+  });
+})();
+</script>
 {% endif %}
 
 {% if ai_enabled %}
