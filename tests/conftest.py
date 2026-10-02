@@ -55,9 +55,11 @@ def app():
     from auth import auth_bp
     from auditions import auditions_bp
     from expenses import expenses_bp
+    from respectful_space import respectful_space_bp
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(auditions_bp)
     flask_app.register_blueprint(expenses_bp)
+    flask_app.register_blueprint(respectful_space_bp)
 
     with flask_app.app_context():
         db.create_all()

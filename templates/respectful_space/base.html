@@ -1,0 +1,26 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Respectful Space Policy{% endblock %}
+
+{% block brand_url %}{{ url_for('respectful_space.sign') }}{% endblock %}
+
+{% block nav_items %}
+    <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('respectful_space.sign') }}">Sign the Policy</a>
+        </li>
+        {% if current_user.is_authenticated and current_user.can_read_admin %}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('respectful_space.admin') }}"><i class="bi bi-list-check"></i> Signatures</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('respectful_space.check') }}"><i class="bi bi-people"></i> Check a Cast List</a>
+        </li>
+        {% endif %}
+    </ul>
+    {% if current_user.is_authenticated %}
+    <ul class="navbar-nav">
+        <li class="nav-item"><span class="navbar-text small text-muted">{{ current_user.email }}</span></li>
+    </ul>
+    {% endif %}
+{% endblock %}

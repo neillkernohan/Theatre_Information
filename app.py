@@ -198,6 +198,8 @@ try:
     from inventory.models import InventoryItem  # noqa: F401 — ensure tables are registered
     from expenses import expenses_bp
     from expenses.models import ExpenseClaim  # noqa: F401 — ensure tables are registered
+    from respectful_space import respectful_space_bp
+    from respectful_space.models import RespectfulSpaceSignature  # noqa: F401 — ensure tables are registered
 
     # SQLAlchemy config
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('AUDITIONS_DB_URI')
@@ -251,6 +253,7 @@ try:
     app.register_blueprint(proxy_bp)
     app.register_blueprint(inventory_bp)
     app.register_blueprint(expenses_bp)
+    app.register_blueprint(respectful_space_bp)
     from bulk_email import bulk_email_bp
     app.register_blueprint(bulk_email_bp)
 

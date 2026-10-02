@@ -1,0 +1,20 @@
+<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #222; max-width: 640px;">
+    <p>Hi {{ sig.first_name }},</p>
+    <p>Thank you for signing Theatre Aurora’s Respectful Space Policy. This email is your copy of the confirmation.</p>
+
+    <table style="border-collapse: collapse; margin: 16px 0;">
+        <tr><td style="padding: 4px 12px 4px 0; color: #666;">Name</td><td style="padding: 4px 0;">{{ sig.full_name }}</td></tr>
+        <tr><td style="padding: 4px 12px 4px 0; color: #666;">Signature</td><td style="padding: 4px 0;"><em>{{ sig.signature_name }}</em></td></tr>
+        <tr><td style="padding: 4px 12px 4px 0; color: #666;">Date</td><td style="padding: 4px 0;">{{ sig.signed_at | rs_local_time }}</td></tr>
+        {% if sig.production %}<tr><td style="padding: 4px 12px 4px 0; color: #666;">Show / role</td><td style="padding: 4px 0;">{{ sig.production }}</td></tr>{% endif %}
+        <tr><td style="padding: 4px 12px 4px 0; color: #666;">Policy version</td><td style="padding: 4px 0;">{{ sig.policy_version }}</td></tr>
+    </table>
+
+    <p><strong>You confirmed that:</strong></p>
+    {% include "respectful_space/_confirmation.html" %}
+
+    <p style="margin-top: 16px;">You can re-read the full policy any time at
+        <a href="{{ url_for('respectful_space.sign', _external=True) }}">{{ url_for('respectful_space.sign', _external=True) }}</a>.</p>
+    <p>If you ever need to report a concern, speak to your Stage Manager or Producer, the President, or any member of the Board Executive.</p>
+    <p>— Theatre Aurora</p>
+</div>

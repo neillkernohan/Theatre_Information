@@ -1,0 +1,14 @@
+{% extends "respectful_space/base.html" %}
+
+{% block title %}Thank you — Respectful Space Policy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 text-center py-5">
+        <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+        <h2 class="mt-3">Thank you{% if name %}, {{ name }}{% endif %}!</h2>
+        <p class="lead">Your signature on the Respectful Space Policy has been recorded.</p>
+        <p class="text-muted">A copy of what you signed is on its way to your email.</p>
+    </div>
+</div>
+{% endblock %}

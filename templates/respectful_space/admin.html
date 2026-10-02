@@ -1,0 +1,71 @@
+{% extends "respectful_space/base.html" %}
+
+{% block title %}Signatures — Respectful Space Policy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="mb-1">Respectful Space Signatures</h2>
+        <p class="text-muted mb-0">Current policy version: {{ POLICY_VERSION }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('respectful_space.check') }}" class="btn btn-outline-dark"><i class="bi bi-people"></i> Check a cast list</a>
+        <a href="{{ url_for('respectful_space.export', season=season, q=q) }}" class="btn btn-outline-secondary"><i class="bi bi-download"></i> Export CSV</a>
+    </div>
+</div>
+
+<div class="card mb-4 border-0 bg-light">
+    <div class="card-body">
+        <label class="form-label fw-semibold small mb-1" for="signLink">Link to send people</label>
+        <div class="input-group">
+            <input id="signLink" class="form-control" readonly value="{{ sign_url }}">
+            <button class="btn btn-dark" type="button" onclick="navigator.clipboard.writeText(document.getElementById('signLink').value); this.textContent='Copied';">Copy</button>
+        </div>
+        <div class="form-text">Tip: add <code>?show=Show%20Name</code> to the end to fill in the show for them.</div>
+    </div>
+</div>
+
+<form class="row g-2 mb-3" method="GET">
+    <div class="col-sm-3">
+        <select name="season" class="form-select" onchange="this.form.submit()">
+            {% for s in seasons %}<option value="{{ s }}" {{ 'selected' if s == season }}>{{ s }} season</option>{% endfor %}
+            <option value="all" {{ 'selected' if season == 'all' }}>All seasons</option>
+        </select>
+    </div>
+    <div class="col-sm-6">
+        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search name, email or show">
+    </div>
+    <div class="col-sm-3"><button class="btn btn-outline-dark w-100">Search</button></div>
+</form>
+
+<p class="text-muted small">{{ signatures | length }} signature{{ '' if signatures | length == 1 else 's' }}</p>
+
+{% if signatures %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle bg-white sortable">
+        <thead class="table-dark">
+            <tr><th>Name</th><th>Show / role</th><th>Signed</th><th>Signature</th><th>Version</th></tr>
+        </thead>
+        <tbody>
+            {% for s in signatures %}
+            <tr>
+                <td><strong>{{ s.full_name }}</strong><br><small class="text-muted">{{ s.email }}</small></td>
+                <td>{{ s.production or '' }}</td>
+                <td data-sort-value="{{ s.signed_at.isoformat() }}">{{ s.signed_at | rs_local_time }}</td>
+                <td><em>{{ s.signature_name }}</em></td>
+                <td>
+                    {% if s.is_current_version %}<span class="badge bg-success">{{ s.policy_version }}</span>
+                    {% else %}<span class="badge bg-warning text-dark" title="Signed an older version of the policy">{{ s.policy_version }}</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
+    <h5 class="mt-3 text-muted">No signatures yet</h5>
+</div>
+{% endif %}
+{% endblock %}

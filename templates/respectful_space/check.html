@@ -1,0 +1,55 @@
+{% extends "respectful_space/base.html" %}
+
+{% block title %}Check a Cast List — Respectful Space Policy{% endblock %}
+
+{% block content %}
+<h2 class="mb-1">Check a Cast List</h2>
+<p class="text-muted mb-4">
+    Paste your cast and crew — email addresses work best, names work too — to see who still needs to sign
+    for the {{ season }} season.
+</p>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            {{ form.people.label(class='form-label fw-semibold') }}
+            {{ form.people(class='form-control', rows=14, placeholder='jane@example.com\nJohn Smith\n…') }}
+            {{ form.submit(class='btn btn-dark mt-2') }}
+        </form>
+    </div>
+
+    <div class="col-lg-8">
+        {% if results is not none %}
+        {% set missing = results | selectattr('status', 'ne', 'signed') | list %}
+        <p>
+            <span class="badge bg-success">{{ results | selectattr('status', 'eq', 'signed') | list | length }} signed</span>
+            <span class="badge bg-danger">{{ missing | length }} still to sign</span>
+        </p>
+        <table class="table align-middle bg-white">
+            <thead class="table-dark"><tr><th>Person</th><th>Status</th><th>Last signed</th></tr></thead>
+            <tbody>
+                {% for r in results %}
+                <tr>
+                    <td>{{ r.entry }}{% if r.signature and r.signature.full_name | lower not in r.entry | lower %}<br><small class="text-muted">{{ r.signature.full_name }}</small>{% endif %}</td>
+                    <td>
+                        {% if r.status == 'signed' %}<span class="badge bg-success">Signed</span>
+                        {% elif r.status == 'outdated' %}<span class="badge bg-warning text-dark">Needs to re-sign</span>
+                        {% else %}<span class="badge bg-danger">Not signed</span>{% endif %}
+                    </td>
+                    <td>{% if r.signature %}{{ r.signature.signed_at | rs_local_time }}{% if r.signature.production %}<br><small class="text-muted">{{ r.signature.production }}</small>{% endif %}{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if missing %}
+        <div class="card border-0 bg-light">
+            <div class="card-body small">
+                <strong>To chase up:</strong> send them <a href="{{ sign_url }}">{{ sign_url }}</a>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

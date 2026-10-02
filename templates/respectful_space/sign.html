@@ -1,0 +1,89 @@
+{% extends "respectful_space/base.html" %}
+
+{% block extra_css %}
+<style>
+    .policy-text { max-height: 26rem; overflow-y: auto; font-size: .92rem; }
+    .policy-text h5 { margin-top: 1.25rem; font-size: 1.05rem; font-weight: 600; }
+    .policy-text h6 { margin-top: .75rem; font-weight: 600; }
+    .rs-hp { position: absolute; left: -10000px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <h2 class="mb-1">Respectful Space Policy</h2>
+        <p class="text-muted mb-4">
+            Everyone involved with Theatre Aurora — cast, crew, volunteers and members — is asked to
+            read and sign this policy each season. It takes about five minutes.
+        </p>
+
+        <div class="card mb-3">
+            <div class="card-header bg-white fw-semibold">1. Read the policy</div>
+            <div class="card-body policy-text" tabindex="0">
+                {% include "respectful_space/_policy.html" %}
+            </div>
+        </div>
+        <p class="small text-muted mb-4">
+            Questions about the policy? Ask your Stage Manager or Producer, or any member of the Board Executive,
+            before you sign.
+        </p>
+
+        <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="card mb-4">
+                <div class="card-header bg-white fw-semibold">2. Confirm</div>
+                <div class="card-body">
+                    {% include "respectful_space/_confirmation.html" %}
+                    <div class="form-check mt-3 p-3 ps-5 border rounded bg-light">
+                        {{ form.agree(class='form-check-input' + (' is-invalid' if form.agree.errors else '')) }}
+                        {{ form.agree.label(class='form-check-label fw-semibold') }}
+                        {% for e in form.agree.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white fw-semibold">3. Sign</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% for field in [form.first_name, form.last_name] %}
+                        <div class="col-sm-6">
+                            {{ field.label(class='form-label') }}
+                            {{ field(class='form-control' + (' is-invalid' if field.errors else ''), autocomplete=('given-name' if field.name == 'first_name' else 'family-name')) }}
+                            {% for e in field.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+                        {% endfor %}
+                        <div class="col-sm-6">
+                            {{ form.email.label(class='form-label') }}
+                            {{ form.email(class='form-control' + (' is-invalid' if form.email.errors else ''), autocomplete='email') }}
+                            <div class="form-text">We’ll email you a copy of what you signed.</div>
+                            {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-sm-6">
+                            {{ form.production.label(class='form-label') }}
+                            {{ form.production(class='form-control' + (' is-invalid' if form.production.errors else '')) }}
+                            <div class="form-text">{{ form.production.description }}</div>
+                            {% for e in form.production.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            {{ form.signature_name.label(class='form-label') }}
+                            {{ form.signature_name(class='form-control form-control-lg fst-italic' + (' is-invalid' if form.signature_name.errors else ''), placeholder='First Last', autocomplete='off') }}
+                            <div class="form-text">Typing your name here is your signature. The date and time are recorded automatically.</div>
+                            {% for e in form.signature_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="rs-hp" aria-hidden="true">
+                        {{ form.website.label }} {{ form.website(tabindex='-1', autocomplete='off') }}
+                    </div>
+                </div>
+            </div>
+
+            {{ form.submit(class='btn btn-dark btn-lg') }}
+        </form>
+
+    </div>
+</div>
+{% endblock %}
