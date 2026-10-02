@@ -1,5 +1,6 @@
 import csv
 import io
+import os
 import re
 
 from flask import (current_app, flash, make_response, redirect, render_template, request,
@@ -70,6 +71,12 @@ def thanks():
     return render_template('respectful_space/thanks.html', name=request.args.get('name', ''))
 
 
+# The confirmation comes from info@ rather than the auditions address the rest
+# of the site sends from. Gmail only keeps this From if info@ is set up as a
+# "Send mail as" address on the MAIL_USERNAME account; replies go to info@ either way.
+SENDER = os.getenv('RESPECTFUL_SPACE_SENDER', 'Theatre Aurora <info@theatreaurora.com>')
+
+
 def _send_confirmation(sig):
     """Email the signer a copy of what they agreed to (best effort)."""
     try:
@@ -81,6 +88,8 @@ def _send_confirmation(sig):
             html_body=html_body,
             email_type='respectful_space_signed',
             user_id=sig.user_id,
+            sender=SENDER,
+            reply_to=SENDER,
         )
     except Exception as e:  # never lose a signature because email failed
         current_app.logger.error(f'Respectful Space confirmation email failed: {e}')

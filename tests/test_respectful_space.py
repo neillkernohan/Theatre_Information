@@ -106,3 +106,14 @@ def test_check_cast_list(client, admin, db):
     assert html.count('>Signed<') == 2
     assert html.count('Needs to re-sign') == 2
     assert html.count('>Not signed<') == 1
+
+
+def test_confirmation_email_comes_from_info(client, db, app):
+    mail = app.extensions['mail']
+    with mail.record_messages() as outbox:
+        _sign(client)
+    assert len(outbox) == 1
+    msg = outbox[0]
+    assert msg.recipients == ['pat@example.com']
+    assert 'info@theatreaurora.com' in msg.sender
+    assert 'info@theatreaurora.com' in msg.reply_to

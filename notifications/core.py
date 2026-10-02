@@ -18,7 +18,8 @@ def get_mail():
 
 
 def send_logged_email(mail, *, to, subject, html_body, email_type,
-                      registration_id=None, user_id=None, commit=True):
+                      registration_id=None, user_id=None, commit=True,
+                      sender=None, reply_to=None):
     """Send one HTML email and record the attempt in EmailLog.
 
     Args:
@@ -31,12 +32,15 @@ def send_logged_email(mail, *, to, subject, html_body, email_type,
         registration_id / user_id: optional FK values for the log row.
         commit: when False, the log row is added to the session but not
             committed — let the caller commit once after a batch.
+        sender / reply_to: optional overrides of MAIL_DEFAULT_SENDER and the
+            Reply-To header.
 
     Returns:
         True if the message was sent, False if sending raised.
     """
     recipients = list(to) if isinstance(to, (list, tuple)) else [to]
-    msg = Message(subject=subject, recipients=recipients, html=html_body)
+    msg = Message(subject=subject, recipients=recipients, html=html_body,
+                  sender=sender, reply_to=reply_to)
 
     log = EmailLog(
         registration_id=registration_id,
