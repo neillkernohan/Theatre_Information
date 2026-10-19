@@ -167,6 +167,25 @@
                                   placeholder="List any dates or times you are unavailable during the rehearsal period, or write 'None'." required></textarea>
                     </div>
 
+                    {% if not current_user.hear_about_us %}
+                    <div class="mb-3">
+                        <label class="form-label">How did you hear about us?</label>
+                        <select class="form-select" name="hear_about_us">
+                            <option value="">— Select one —</option>
+                            <option value="Friend or family member">Friend or family member</option>
+                            <option value="Returning member / I've auditioned before">Returning member / I've auditioned before</option>
+                            <option value="Social media (Facebook, Instagram, etc.)">Social media (Facebook, Instagram, etc.)</option>
+                            <option value="Theatre Aurora website">Theatre Aurora website</option>
+                            <option value="ACT-CO website">ACT-CO website</option>
+                            <option value="Poster or flyer">Poster or flyer</option>
+                            <option value="Local newspaper or magazine">Local newspaper or magazine</option>
+                            <option value="Email newsletter">Email newsletter</option>
+                            <option value="School or teacher">School or teacher</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    {% endif %}
+
                     <div class="mb-3">
                         {{ profile_form.training.label(class="form-label") }}
                         {{ profile_form.training(class="form-control", rows=3, placeholder="e.g. BFA in Theatre, vocal coaching, dance training...") }}
