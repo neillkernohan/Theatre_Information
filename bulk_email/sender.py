@@ -24,12 +24,18 @@ _UNSUBSCRIBE_FOOTER = """
 
 def _prepare_html(html):
     """Inline email-safe styles so Gmail/Outlook don't override spacing."""
-    # Add margin:0 to every <p> tag (handles Gmail's default paragraph margins)
-    html = re.sub(
-        r'<p(\s[^>]*)?>',
-        lambda m: f'<p style="margin:0;line-height:1.5"{m.group(1) or ""}>',
-        html
-    )
+    def _inline_p(m):
+        attrs = m.group(1) or ''
+        indent_m = re.search(r'ql-indent-(\d+)', attrs)
+        level = int(indent_m.group(1)) if indent_m else 0
+        padding = f'padding-left:{level * 40}px;' if level else ''
+        # Strip class attribute — no stylesheet in email to honour it
+        attrs_clean = re.sub(r'\s*class="[^"]*"', '', attrs).strip()
+        attrs_out = f' {attrs_clean}' if attrs_clean else ''
+        return f'<p style="{padding}margin:0;line-height:1.5"{attrs_out}>'
+
+    html = re.sub(r'<p(\s[^>]*)?>',  _inline_p, html)
+
     # Headings — keep bold but reset margin
     for tag in ('h1', 'h2', 'h3'):
         html = re.sub(
