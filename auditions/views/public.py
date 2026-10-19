@@ -125,10 +125,9 @@ def register_for_show(show_id):
         registration.schedule_conflicts = request.form.get('schedule_conflicts', '').strip() or None
         registration.respectful_space_ok = (request.form.get('respectful_space_ok') == 'yes')
 
-        if not current_user.hear_about_us:
-            heard = request.form.get('hear_about_us', '').strip()
-            if heard:
-                current_user.hear_about_us = heard
+        heard = request.form.get('hear_about_us', '').strip()
+        if heard:
+            current_user.hear_about_us = heard
 
         # Handle file uploads (headshot, resume) and video link
         registration.video_link = request.form.get('video_link', '').strip() or None
