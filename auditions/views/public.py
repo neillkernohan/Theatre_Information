@@ -123,6 +123,7 @@ def register_for_show(show_id):
         registration.roles_auditioning_for = request.form.get('roles_auditioning_for', '').strip() or None
         registration.accept_other_role = (request.form.get('accept_other_role') == 'yes')
         registration.schedule_conflicts = request.form.get('schedule_conflicts', '').strip() or None
+        registration.respectful_space_ok = (request.form.get('respectful_space_ok') == 'yes')
 
         # Handle file uploads (headshot, resume) and video link
         registration.video_link = request.form.get('video_link', '').strip() or None

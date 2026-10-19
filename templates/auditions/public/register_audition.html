@@ -220,6 +220,56 @@
                 </div>
             </div>
 
+            <!-- Respectful Space Policy -->
+            <div class="card shadow-sm mb-4 border-warning">
+                <div class="card-header bg-warning bg-opacity-25">
+                    <strong><i class="bi bi-shield-heart me-2"></i>Respectful Space Policy</strong>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        Theatre Aurora is committed to fostering and sustaining a respectful space — one that values
+                        diversity and inclusion, dignity, courteous conduct, fairness, positive communication and
+                        professional working relationships. A respectful space is inclusive, diverse, equitable,
+                        accessible and free from harassment and discrimination.
+                    </p>
+                    <div class="mb-3">
+                        <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse"
+                           href="#rsPolicy" role="button">
+                            <i class="bi bi-chevron-down me-1"></i>Read the full Respectful Space Policy
+                        </a>
+                        <div class="collapse mt-3" id="rsPolicy">
+                            <div class="border rounded p-3 small bg-light" style="max-height:320px;overflow-y:auto">
+                                <p>The policy of Theatre Aurora is to take every reasonable step to:</p>
+                                <ul>
+                                    <li>Cultivate and sustain a respectful, positive, inclusive and supportive culture</li>
+                                    <li>Promote awareness of rights and responsibilities</li>
+                                    <li>Prevent, identify and eliminate harassment and discrimination in a timely manner</li>
+                                    <li>Improve and/or restore environments and relationships affected by incidents or allegations of harassment or discrimination</li>
+                                </ul>
+                                <p><strong>To whom does this policy apply?</strong><br>
+                                This policy applies to members, associate members, volunteers, artistic members, production members and anyone associated with Theatre Aurora.</p>
+                                <p><strong>Where does this policy apply?</strong><br>
+                                This policy applies to any location where anyone is gathered for a Theatre Aurora reason, including physical sites (theatre, rehearsal space), cast parties, and social outings.</p>
+                                <p><strong>Procedures</strong><br>
+                                A person who is subjected to harassment or discrimination should — where possible — inform that person that the conduct is unwelcome. If this is not comfortable or if the behaviour continues, the issue should be reported to the Stage Manager or Producer (when in a show), or the President or another member of the Board Executive.</p>
+                                <p>Theatre Aurora is committed to confidentially investigating any reported incidents and taking action as required. All persons have the obligation to uphold this Policy and report incidents within <strong>six (6) months</strong>.</p>
+                                <p>This policy upholds the <em>Ontario Human Rights Code</em>, the <em>Accessibility for Ontarians with Disabilities Act, 2005 (AODA)</em>, and the <em>Criminal Code of Canada</em>.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="respectfulSpaceCheck"
+                               name="respectful_space_ok" value="yes" required>
+                        <label class="form-check-label fw-semibold" for="respectfulSpaceCheck">
+                            I have read and agree to Theatre Aurora's Respectful Space Policy. I understand
+                            that harassment, discrimination, and violence will not be tolerated, and I agree
+                            to act in accordance with this policy.
+                            <span class="text-danger">*</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             {% if show.allow_choice and available_slots %}
             <div id="noSlotWarning" class="alert alert-warning mb-3" style="display:none">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i>

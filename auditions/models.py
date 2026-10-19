@@ -84,6 +84,7 @@ class Registration(db.Model):
     notes = db.Column(db.Text)           # pre-audition admin notes
     audition_notes = db.Column(db.Text)  # in-the-room notes recorded during the audition
     callback_for = db.Column(db.String(255))  # role the director/SM is considering calling them back for
+    respectful_space_ok = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     tags = db.relationship('Tag', secondary=registration_tags, backref='registrations')
