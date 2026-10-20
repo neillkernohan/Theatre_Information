@@ -146,6 +146,7 @@ def claim_page(claim, error=None, status=200, line_form=None):
         can_pay=access.can_pay(current_user, claim),
         can_undo_payment=access.has_role(current_user, *access.PAYERS),
         waiting_on=access.waiting_on(claim),
+        signer_role=ROLES[access.signer_role(claim)],
         problems=submission_problems(claim) if can_edit else [],
         duplicates=duplicate_invoices(claim),
         line_form=line_form or {}, today=date.today().isoformat(),

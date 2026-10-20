@@ -14,7 +14,17 @@
 {% if waiting_on and not can_review %}
 <p class="text-muted">Waiting on: {{ waiting_on | map(attribute='name') | join(', ') }}</p>
 {% elif claim.status in ('submitted', 'approved') and not waiting_on %}
-<div class="alert alert-warning">Nobody is set up to {{ 'approve' if claim.status == 'submitted' else 'sign off' }} this claim yet. An admin needs to assign the {{ 'show producer' if claim.status == 'submitted' else 'VP of Finance / President role' }}.</div>
+<div class="alert alert-warning">
+  {% if claim.status == 'submitted' %}
+  Nobody is set up to approve this claim yet. An admin needs to add a producer to {{ claim.show.name }}.
+  {% elif signer_role == 'President' %}
+  Nobody is set up to sign off this claim yet. Claims submitted by the VP of Finance are signed off by the
+  <strong>President</strong>, and nobody has that role. An admin can assign it under Setup → Finance roles.
+  {% else %}
+  Nobody is set up to sign off this claim yet. An admin needs to assign the <strong>VP of Finance</strong>
+  role under Setup → Finance roles.
+  {% endif %}
+</div>
 {% endif %}
 
 {# ------------------------------------------------------------- Review #}

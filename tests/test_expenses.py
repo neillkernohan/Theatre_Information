@@ -706,3 +706,13 @@ class TestRefunds:
             d = _clean({'total': -22.6, 'hst': -2.6}, [])
             assert (d['total'], d['hst']) == ('-22.60', '-2.60')
             assert _clean({'total': -22.6, 'hst': 2.6}, [])['hst'] is None   # sign mismatch
+
+
+def test_warning_names_the_missing_president(db, org, as_user, outbox):
+    from expenses.models import ExpenseRole
+    ExpenseRole.query.filter_by(role='president').delete()
+    db.session.commit()
+    vp = as_user('vp@example.com')
+    claim_id = submit(vp, org)
+    page = text(vp.get(f'/expenses/claims/{claim_id}'))
+    assert 'President</strong>, and nobody has that role' in page
