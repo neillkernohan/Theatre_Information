@@ -8,6 +8,9 @@
   </table>
   {% if comment %}<p>{{ commenter }} wrote:<br><em>“{{ comment }}”</em></p>{% endif %}
   {% for p in paragraphs[1:] %}<p>{{ p }}</p>{% endfor %}
-  <p><a href="{{ link }}" style="display: inline-block; background: #0d6efd; color: #fff; padding: 8px 16px; border-radius: 4px; text-decoration: none;">Open the claim</a></p>
+  {# Blue text on an outlined button: still readable if a mail program strips
+     background colours (Gmail does), unlike white-on-blue. #}
+  <p><a href="{{ link }}" style="display: inline-block; color: #0d6efd; border: 2px solid #0d6efd; padding: 8px 16px; border-radius: 4px; font-weight: bold; text-decoration: none;">Open the claim</a></p>
+  <p style="font-size: 13px; color: #6c757d;">Or open this link: <a href="{{ link }}" style="color: #0d6efd;">{{ link }}</a></p>
   <p style="color: #6c757d; font-size: 13px;">Theatre Aurora Expenses</p>
 </div>
