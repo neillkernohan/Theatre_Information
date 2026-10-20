@@ -298,6 +298,25 @@ def claim_submit(claim_id):
     return see_claim(claim)
 
 
+WITHDRAWABLE = (SUBMITTED, APPROVED)     # before sign-off
+
+
+@expenses_bp.route('/claims/<int:claim_id>/withdraw', methods=['POST'])
+@login_required
+def claim_withdraw(claim_id):
+    """The submitter pulls a claim back to a draft to change it (before sign-off)."""
+    claim = load_claim(claim_id)
+    if claim.submitter_id != current_user.id:
+        abort(403)
+    if claim.status not in WITHDRAWABLE:
+        return claim_page(claim, "This claim has already been signed off, so it can't be "
+                                 "withdrawn. Ask the VP of Finance to return it.", 409)
+    claim.status = DRAFT
+    log(claim, 'withdrew it')
+    db.session.commit()
+    return see_claim(claim)
+
+
 @expenses_bp.route('/claims/<int:claim_id>/review', methods=['POST'])
 @login_required
 def claim_review(claim_id):

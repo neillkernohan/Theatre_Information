@@ -7,9 +7,9 @@ from flask_login import current_user, login_required
 
 from auth.models import db
 from expenses import access, ai, expenses_bp
-from expenses.models import (INVOICE, KINDS, PAYMENT_METHODS, REIMBURSEMENT, ROLES, STATUSES,
-                             ExpenseCategory, ExpenseClaim, ExpenseEvent, ExpenseShow,
-                             ExpenseVendor, person_name)
+from expenses.models import (APPROVED, INVOICE, KINDS, PAYMENT_METHODS, REIMBURSEMENT, ROLES,
+                             STATUSES, SUBMITTED, ExpenseCategory, ExpenseClaim, ExpenseEvent,
+                             ExpenseShow, ExpenseVendor, person_name)
 from expenses.parsing import local_time, money
 
 
@@ -145,6 +145,8 @@ def claim_page(claim, error=None, status=200, line_form=None):
         can_review=access.can_review(current_user, claim),
         can_pay=access.can_pay(current_user, claim),
         can_undo_payment=access.has_role(current_user, *access.PAYERS),
+        can_withdraw=(claim.submitter_id == current_user.id
+                      and claim.status in (SUBMITTED, APPROVED)),
         waiting_on=access.waiting_on(claim),
         signer_role=ROLES[access.signer_role(claim)],
         problems=submission_problems(claim) if can_edit else [],

@@ -716,3 +716,29 @@ def test_warning_names_the_missing_president(db, org, as_user, outbox):
     claim_id = submit(vp, org)
     page = text(vp.get(f'/expenses/claims/{claim_id}'))
     assert 'President</strong>, and nobody has that role' in page
+
+
+class TestWithdraw:
+    def test_submitter_can_withdraw_before_sign_off(self, db, org, as_user, outbox):
+        c = as_user('vol@example.com')
+        claim_id = submit(c, org, show='annie')                     # waiting for producer
+        assert 'Withdraw to make changes' in text(c.get(f'/expenses/claims/{claim_id}'))
+        assert c.post(f'/expenses/claims/{claim_id}/withdraw').status_code == 302
+        cl = claim(db, claim_id)
+        assert cl.status == 'draft' and cl.events[-1].action == 'withdrew it'
+        # Editable again, and it can be resubmitted.
+        assert add_line(c, claim_id, org['props'], files=[('r2.jpg', JPEG)]).status_code == 302
+        assert c.post(f'/expenses/claims/{claim_id}/submit').status_code == 302
+        # Resubmitting sends it back to the producer.
+        assert claim(db, claim_id).status == 'submitted'
+
+    def test_cannot_withdraw_after_sign_off_or_someone_elses(self, db, org, as_user, outbox):
+        claim_id = signed_off(as_user, org)
+        c = as_user('vol@example.com')
+        assert 'Withdraw to make changes' not in text(c.get(f'/expenses/claims/{claim_id}'))
+        r = c.post(f'/expenses/claims/{claim_id}/withdraw')
+        assert r.status_code == 409 and 'already been signed off' in text(r)
+
+        other = submit(as_user('vol@example.com'), org)
+        assert as_user('vp@example.com').post(f'/expenses/claims/{other}/withdraw').status_code == 403
+        assert claim(db, other).status == 'approved'

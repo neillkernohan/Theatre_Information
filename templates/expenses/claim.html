@@ -109,6 +109,14 @@
 <div class="alert alert-warning">Heads up: invoice <strong>{{ claim.invoice_number }}</strong> from this vendor is already on
   {% for d in duplicates %}claim #{{ d.id }}{{ ', ' if not loop.last }}{% endfor %}. Make sure this isn't a duplicate.</div>
 {% endif %}
+{% if can_withdraw %}
+<form method="post" action="{{ url_for('expenses.claim_withdraw', claim_id=claim.id) }}" class="mb-3"
+      onsubmit="return confirm('Pull this claim back to a draft? You can edit it and submit it again.');">
+  {% include "expenses/_csrf.html" %}
+  <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Withdraw to make changes</button>
+</form>
+{% endif %}
+
 {% if can_edit and claim.status == 'returned' %}
 <div class="alert alert-warning">This claim was sent back to you. Make the changes asked for below, then submit it again.</div>
 {% endif %}
