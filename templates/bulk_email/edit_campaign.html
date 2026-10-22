@@ -22,12 +22,6 @@
     {% endfor %}
   {% endwith %}
 
-  <div class="alert alert-info">
-    <strong>{{ campaign.total_count }} recipients</strong> already loaded for
-    <em>{{ campaign.audience_label }}</em>.
-    Editing does not change the audience — only the sender, subject, and body.
-  </div>
-
   <form method="post" id="edit-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -43,6 +37,55 @@
           </option>
           {% endfor %}
         </select>
+      </div>
+    </div>
+
+    <!-- Audience -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold">Audience
+        <small class="fw-normal text-muted ms-2">Currently: <em>{{ campaign.audience_label }}</em> ({{ campaign.total_count }} recipients)</small>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          {% for key, label in audience_labels.items() %}
+          <div class="form-check">
+            <input class="form-check-input audience-check" type="checkbox" name="audience_type"
+                   id="aud_{{ key }}" value="{{ key }}"
+                   {% if key in current_audience_types %}checked{% endif %}>
+            <label class="form-check-label" for="aud_{{ key }}">{{ label }}</label>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div id="marketing-list-row" class="d-none mb-2 ms-4">
+          <label class="form-label">Marketing list</label>
+          <select name="list_name" class="form-select">
+            <option value="">— select —</option>
+            {% for ml in marketing_lists %}
+            <option value="{{ ml }}" {% if ml == current_params.get('list_name') %}selected{% endif %}>{{ ml }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div id="season-row" class="d-none mb-2 ms-4">
+          <label class="form-label">Season</label>
+          <select name="season" class="form-select">
+            <option value="">— select —</option>
+            {% for s in seasons %}
+            <option value="{{ s }}" {% if s == current_params.get('season') %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div id="addresses-row" class="d-none mb-2 ms-4">
+          <label class="form-label">Email addresses</label>
+          <textarea name="addresses" class="form-control" rows="4"
+                    placeholder="One per line, or separated by commas or semicolons">{{ current_params.get('addresses', '') }}</textarea>
+        </div>
+
+        <div class="mt-3">
+          <span class="badge bg-secondary" id="audience-badge">Check boxes to preview new count</span>
+        </div>
       </div>
     </div>
 
@@ -120,6 +163,57 @@ function uploadImage(editor) {
       });
   };
 }
+
+// Audience checkboxes + count badge
+const audienceChecks = document.querySelectorAll('.audience-check');
+const mlRow   = document.getElementById('marketing-list-row');
+const seasRow = document.getElementById('season-row');
+const addrRow = document.getElementById('addresses-row');
+const badge   = document.getElementById('audience-badge');
+let countController = null;
+
+function checkedTypes() {
+  return [...document.querySelectorAll('.audience-check:checked')].map(c => c.value);
+}
+
+function updateAudienceUI() {
+  const types = checkedTypes();
+  mlRow.classList.toggle('d-none',   !types.includes('marketing_list'));
+  seasRow.classList.toggle('d-none', !types.includes('season_buyers'));
+  addrRow.classList.toggle('d-none', !types.includes('specific_addresses'));
+  fetchCount();
+}
+
+function fetchCount() {
+  if (countController) countController.abort();
+  countController = new AbortController();
+  const types = checkedTypes();
+  if (!types.length) {
+    badge.textContent = 'Check boxes to preview new count';
+    badge.className = 'badge bg-secondary';
+    return;
+  }
+  const params = new URLSearchParams();
+  types.forEach(t => params.append('type', t));
+  params.set('list_name', document.querySelector('[name=list_name]').value);
+  params.set('season',    document.querySelector('[name=season]').value);
+  params.set('addresses', document.querySelector('[name=addresses]').value);
+  badge.textContent = 'Loading…';
+  badge.className = 'badge bg-secondary';
+  fetch(`{{ url_for('bulk_email.audience_count') }}?${params}`, { signal: countController.signal })
+    .then(r => r.json())
+    .then(d => {
+      badge.textContent = `${d.count.toLocaleString()} recipient${d.count === 1 ? '' : 's'}`;
+      badge.className = d.count > 0 ? 'badge bg-success' : 'badge bg-warning text-dark';
+    })
+    .catch(() => {});
+}
+
+audienceChecks.forEach(c => c.addEventListener('change', updateAudienceUI));
+document.querySelector('[name=list_name]')?.addEventListener('change', fetchCount);
+document.querySelector('[name=season]')?.addEventListener('change', fetchCount);
+document.querySelector('[name=addresses]')?.addEventListener('input', fetchCount);
+updateAudienceUI();
 
 // Pre-fill with existing body
 quill.clipboard.dangerouslyPasteHTML({{ campaign.body_html | tojson }});

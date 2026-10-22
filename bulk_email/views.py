@@ -277,11 +277,28 @@ def edit_campaign(campaign_id):
         return redirect(url_for('bulk_email.campaign_detail', campaign_id=campaign_id))
 
     accounts = SenderAccount.query.filter_by(is_active=True).all()
+    seasons = []
+    marketing_lists = []
+    try:
+        seasons = get_available_seasons()
+        marketing_lists = get_available_marketing_lists()
+    except Exception:
+        pass
+
+    current_params = campaign.audience_params_dict
+    if campaign.audience_type == 'multi':
+        current_audience_types = current_params.get('types', [])
+    else:
+        current_audience_types = [campaign.audience_type] if campaign.audience_type else []
 
     if request.method == 'POST':
         subject = request.form.get('subject', '').strip()
         body_html = request.form.get('body_html', '').strip()
         sender_id = request.form.get('sender_account_id', type=int)
+        audience_types = request.form.getlist('audience_type')
+        list_name = request.form.get('list_name', '').strip()
+        season = request.form.get('season', '').strip()
+        addresses = request.form.get('addresses', '').strip()
 
         errors = []
         if not subject:
@@ -290,11 +307,60 @@ def edit_campaign(campaign_id):
             errors.append('Email body is required.')
         if not sender_id:
             errors.append('Please select a sender account.')
+        if not audience_types:
+            errors.append('Please select at least one audience.')
+        if 'marketing_list' in audience_types and not list_name:
+            errors.append('Please select a marketing list.')
+        if 'season_buyers' in audience_types and not season:
+            errors.append('Please select a season.')
+        if 'specific_addresses' in audience_types and not addresses:
+            errors.append('Please enter at least one email address.')
 
         if errors:
             for e in errors:
                 flash(e, 'danger')
         else:
+            params = {'list_name': list_name, 'season': season, 'addresses': addresses}
+            audience_changed = (set(audience_types) != set(current_audience_types) or
+                                list_name != current_params.get('list_name', '') or
+                                season != current_params.get('season', '') or
+                                addresses != current_params.get('addresses', ''))
+
+            if audience_changed:
+                try:
+                    new_audience = resolve_audiences(audience_types, params)
+                except Exception as exc:
+                    flash(f'Error loading audience: {exc}', 'danger')
+                    new_audience = None
+
+                if new_audience is not None:
+                    if not new_audience:
+                        flash('The selected audience returned 0 recipients.', 'warning')
+                    else:
+                        # Replace only pending recipients
+                        EmailRecipient.query.filter_by(
+                            campaign_id=campaign_id, status='pending'
+                        ).delete()
+                        for row in new_audience:
+                            existing_emails = {
+                                r.email.lower() for r in
+                                EmailRecipient.query.filter_by(campaign_id=campaign_id).all()
+                            }
+                            if row['email'].lower() not in existing_emails:
+                                db.session.add(EmailRecipient(
+                                    campaign_id=campaign_id,
+                                    email=row['email'],
+                                    first_name=row.get('first_name', ''),
+                                    last_name=row.get('last_name', ''),
+                                    status='pending',
+                                ))
+                        stored_type = audience_types[0] if len(audience_types) == 1 else 'multi'
+                        params['types'] = audience_types
+                        campaign.audience_type = stored_type
+                        campaign.audience_params = json.dumps(params)
+                        campaign.total_count = EmailRecipient.query.filter_by(campaign_id=campaign_id).count()
+                        flash(f'Audience updated to {campaign.total_count} recipients.', 'success')
+
             campaign.subject = subject
             campaign.body_html = body_html
             campaign.sender_account_id = sender_id
@@ -302,7 +368,16 @@ def edit_campaign(campaign_id):
             flash('Campaign updated.', 'success')
             return redirect(url_for('bulk_email.campaign_detail', campaign_id=campaign_id))
 
-    return render_template('bulk_email/edit_campaign.html', campaign=campaign, accounts=accounts)
+    return render_template(
+        'bulk_email/edit_campaign.html',
+        campaign=campaign,
+        accounts=accounts,
+        seasons=seasons,
+        marketing_lists=marketing_lists,
+        audience_labels=AUDIENCE_LABELS,
+        current_audience_types=current_audience_types,
+        current_params=current_params,
+    )
 
 
 # ---------------------------------------------------------------------------
