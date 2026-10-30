@@ -150,7 +150,13 @@ def actor_dashboard():
     ).filter(Registration.status != 'cancelled').order_by(
         Registration.created_at.desc()
     ).all()
-    return render_template('auditions/public/my_auditions.html', registrations=registrations)
+
+    from auditions.views.public import _auditions_finished
+    auditions_finished = {reg.show_id: _auditions_finished(reg.show) for reg in registrations}
+
+    return render_template('auditions/public/my_auditions.html',
+                           registrations=registrations,
+                           auditions_finished=auditions_finished)
 
 
 @auditions_bp.route('/profile/edit', methods=['GET', 'POST'])

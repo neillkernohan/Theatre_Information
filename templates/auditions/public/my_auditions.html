@@ -59,8 +59,10 @@
                         <i class="bi bi-calendar-event"></i> Change Time
                     </a>
                     {% endif %}
+                    {% if reg.status not in ('cancelled',) and not auditions_finished[reg.show_id] %}
                     <a href="{{ url_for('auditions.cancel_confirm', reg_id=reg.id) }}"
                        class="btn btn-outline-danger btn-sm">Cancel</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

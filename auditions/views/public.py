@@ -295,6 +295,18 @@ def change_slot(reg_id):
     )
 
 
+def _auditions_finished(show):
+    """True if the last audition slot date is in the past."""
+    from datetime import date as date_type
+    last = AuditionSlot.query.filter_by(show_id=show.id).order_by(AuditionSlot.date.desc()).first()
+    if last:
+        return last.date < date_type.today()
+    # No slots — fall back to registration close date
+    if show.registration_close:
+        return show.registration_close.date() < date_type.today()
+    return False
+
+
 @auditions_bp.route('/registrations/<int:reg_id>/cancel-confirm')
 @login_required
 def cancel_confirm(reg_id):
@@ -305,6 +317,9 @@ def cancel_confirm(reg_id):
     if registration.status == 'cancelled':
         flash('This registration is already cancelled.', 'info')
         return redirect(url_for('auditions.actor_dashboard'))
+    if _auditions_finished(registration.show):
+        flash('Auditions have already taken place. Please contact Theatre Aurora directly to cancel.', 'warning')
+        return redirect(url_for('auditions.actor_dashboard'))
     return render_template('auditions/public/cancel_confirm.html', registration=registration)
 
 
@@ -313,13 +328,16 @@ def cancel_confirm(reg_id):
 def cancel_registration(reg_id):
     registration = Registration.query.get_or_404(reg_id)
 
-    # Only the owner can cancel
     if registration.user_id != current_user.id:
         flash('You do not have permission to cancel this registration.', 'danger')
         return redirect(url_for('auditions.actor_dashboard'))
 
     if registration.status == 'cancelled':
         flash('This registration is already cancelled.', 'info')
+        return redirect(url_for('auditions.actor_dashboard'))
+
+    if _auditions_finished(registration.show):
+        flash('Auditions have already taken place. Please contact Theatre Aurora directly to cancel.', 'warning')
         return redirect(url_for('auditions.actor_dashboard'))
 
     # Free up the slot
@@ -331,11 +349,8 @@ def cancel_registration(reg_id):
     registration.slot_id = None
     db.session.commit()
 
-    # Send cancellation email
     send_cancellation_email(registration)
     send_admin_notification(registration, 'Registration Cancelled')
-
-    # Promote from waitlist
     promote_from_waitlist(show_id)
 
     flash('Your registration has been cancelled. A confirmation email has been sent.', 'info')
